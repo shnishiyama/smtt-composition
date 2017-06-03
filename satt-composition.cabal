@@ -2,13 +2,13 @@ name:                satt-composition
 version:             0.1.0.0
 -- synopsis:
 -- description:
-homepage:            https://github.com/githubuser/satt-composition#readme
+homepage:            https://gitlab.com/mizunashi-mana/satt-composition#readme
 license:             BSD3
 license-file:        LICENSE
 author:              Author name here
 maintainer:          example@example.com
 copyright:           2017 Author name here
-category:            Web
+category:            Tree
 build-type:          Simple
 extra-source-files:  README.md
 cabal-version:       >=1.10
