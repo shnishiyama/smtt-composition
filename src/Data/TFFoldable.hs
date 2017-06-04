@@ -50,10 +50,10 @@ newtype TFFoldableWrapper t = TFFoldableWrapper
 instance Foldable t => TFFoldable (TFFoldableWrapper (t a)) where
   type TFFoldElem (TFFoldableWrapper (t a)) = a
 
-  tfFoldMap f = foldMap f . coerceReduction
-  tfFoldr f s = foldr f s . coerceReduction
-  tfFoldl f s = foldl f s . coerceReduction
-  tfFoldr' f s = foldr' f s . coerceReduction
-  tfFoldl' f s = foldl' f s . coerceReduction
-  toList = F.toList . coerceReduction
-  length = F.length . coerceReduction
+  tfFoldMap f = foldMap f . unwrapTFFoldable
+  tfFoldr f s = foldr f s . unwrapTFFoldable
+  tfFoldl f s = foldl f s . unwrapTFFoldable
+  tfFoldr' f s = foldr' f s . unwrapTFFoldable
+  tfFoldl' f s = foldl' f s . unwrapTFFoldable
+  toList = F.toList . unwrapTFFoldable
+  length = F.length . unwrapTFFoldable

@@ -4,8 +4,6 @@
 
 module Data.SATT.ATT where
 
-import Control.CoercionExt
-
 import Data.TFFoldable
 import Data.Tree.RankedTree
 import Data.Tree.Transducer
@@ -38,6 +36,12 @@ data AttrTreeTrans syn inh ta tb = AttrTreeTrans
   , inheritedRule   :: InheritedRuleType syn inh ta tb
   }
 
+data ReductionState syn inh l
+  = SynAttrState syn [Int]
+  | InhAddrState inh [Int]
+  | LabelState l [ReductionState syn inh l]
+  deriving (Show, Eq, Ord)
+
 data ReductionStep syn inh ta
   = SynthesizedReductionStep syn (InputLabelType ta)
   | InheritedReductionStep inh Int (InputLabelType ta)
@@ -49,7 +53,7 @@ buildAttReduction :: forall b s syn inh ta tb. RankedTree ta =>
   (b -> s -> ReductionStep syn inh ta -> b) -> b -> AttrTreeTrans syn inh ta tb -> ta -> b
 buildAttReduction _f _s _trans t = tfFoldl go undefined t' where
   t' :: RankedTreeWrapper ta
-  t' = coerce t
+  t' = RankedTreeWrapper t
 
   go :: b -> l -> b
   go = undefined
