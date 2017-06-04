@@ -1,9 +1,14 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE FlexibleContexts #-}
 
-module Data.SATT.Tree where
+module Data.Tree.RankedTree where
+
+import Control.CoercionExt
 
 import Data.Proxy
+import Data.TFFoldable
+import Data.Monoid
 
 -- | Ranked Labeled Tree Class
 --
@@ -27,6 +32,34 @@ class RankedTree t where
 
 treeRank :: forall t. RankedTree t => t -> Int
 treeRank = treeLabelRank (Proxy :: Proxy t) . treeLabel
+
+foldTree :: RankedTree t => (LabelType t -> [b] -> b) -> t -> b
+foldTree f = go where
+  go t = f (treeLabel t) [go c | c <- treeChilds t]
+
+newtype RankedTreeWrapper t = RankedTreeWrapper
+  { unwrapRankedTree :: t
+  } deriving (Show, Eq, Ord)
+
+instance RankedTree t => RankedTree (RankedTreeWrapper t) where
+  type LabelType (RankedTreeWrapper t) = LabelType t
+
+  treeLabel (RankedTreeWrapper t) = treeLabel t
+  treeChilds (RankedTreeWrapper t) = coerce $ treeChilds t
+  treeLabelRank = treeLabelRank
+
+  mkTree l = RankedTreeWrapper #. mkTree l . coerce
+
+instance RankedTree t => TFFoldable (RankedTreeWrapper t) where
+  type TFFoldElem (RankedTreeWrapper t) = LabelType t
+
+  tfFoldMap f = foldTree $ \a bs -> f a <> mconcat bs
+
+  tfFoldl f s t = foldl (tfFoldl f) is $ treeChilds t where
+    is = f s $ treeLabel t
+
+  tfFoldr f s t = f (treeLabel t) child where
+    child = foldr (flip $ tfFoldr f) s $ treeChilds t
 
 data TreeABC
   = TreeA TreeABC TreeABC
