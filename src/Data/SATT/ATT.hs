@@ -1,6 +1,7 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE RecordWildCards #-}
 
 module Data.SATT.ATT where
 
@@ -42,26 +43,46 @@ data ReductionState syn inh l
   | LabelState l [ReductionState syn inh l]
   deriving (Show, Eq, Ord)
 
-data ReductionStep syn inh ta
-  = SynthesizedReductionStep syn (InputLabelType ta)
-  | InheritedReductionStep inh Int (InputLabelType ta)
+type TreeReductionState syn inh t = ReductionState syn inh (LabelType t)
 
-type ReductionSteps syn inh ta = [ReductionStep syn inh ta]
+data ReductionStep syn inh l
+  = SynReductionStep syn l
+  | InhReductionStep inh Int l
+  deriving (Show, Eq, Ord)
+
+type ReductionSteps syn inh t = [ReductionStep syn inh t]
+
+type TreeReductionStep syn inh t = ReductionStep syn inh (InputLabelType t)
+type TreeReductionSteps syn inh t = [TreeReductionStep syn inh t]
+
+data ReductionContext syn inh l a = ReductionContext
+  { reductionState :: ReductionState syn inh l
+  , reductionValue :: a
+  } deriving (Show, Eq, Ord)
+
+type TreeReductionContext syn inh t = ReductionContext syn inh (LabelType t)
 
 -- | TODO
-buildAttReduction :: forall b s syn inh ta tb. RankedTree ta =>
-  (b -> s -> ReductionStep syn inh ta -> b) -> b -> AttrTreeTrans syn inh ta tb -> ta -> b
-buildAttReduction _f _s _trans t = tfFoldl go undefined t' where
+buildAttReduction :: forall b syn inh ta tb. RankedTree ta =>
+  (b -> TreeReductionStep syn inh ta -> TreeReductionState syn inh tb -> b)
+  -> b -> AttrTreeTrans syn inh ta tb -> ta -> b
+buildAttReduction _f s AttrTreeTrans{..} _t = reductionValue $ go initCtx where
+  initState = SynAttrState initialAttr []
+  initCtx = ReductionContext initState s
+
+  {-
   t' :: RankedTreeWrapper ta
   t' = RankedTreeWrapper t
+  -}
 
-  go :: b -> l -> b
-  go = undefined
+  go :: ReductionContext syn inh tb b
+    -> ReductionContext syn inh tb b
+  go ctx = ctx
 
 buildAttReductionSteps :: RankedTree ta =>
-  AttrTreeTrans syn inh ta tb -> ta -> ReductionSteps syn inh ta
+  AttrTreeTrans syn inh ta tb -> ta -> TreeReductionSteps syn inh ta
 buildAttReductionSteps trans t = reverse $ buildAttReduction builder [] trans t where
-  builder steps _ step = step : steps
+  builder steps step = const $ step : steps
 
 runAttReduction :: (RankedTree ta, RankedTree tb) =>
   AttrTreeTrans syn inh ta tb -> ta -> tb
