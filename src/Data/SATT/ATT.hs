@@ -5,7 +5,6 @@
 
 module Data.SATT.ATT where
 
-import Data.TFFoldable
 import Data.Tree.RankedTree
 import Data.Tree.Transducer
 

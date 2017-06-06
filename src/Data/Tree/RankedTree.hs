@@ -1,3 +1,4 @@
+{-# OPTIONS_GHC -fno-warn-incomplete-patterns #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE FlexibleContexts #-}
@@ -37,6 +38,9 @@ foldTree :: RankedTree t => (LabelType t -> [b] -> b) -> t -> b
 foldTree f = go where
   go t = f (treeLabel t) [go c | c <- treeChilds t]
 
+
+-- wrapper
+
 newtype RankedTreeWrapper t = RankedTreeWrapper
   { unwrapRankedTree :: t
   } deriving (Show, Eq, Ord)
@@ -60,6 +64,18 @@ instance RankedTree t => TFFoldable (RankedTreeWrapper t) where
 
   tfFoldr f s t = f (treeLabel t) child where
     child = foldr (flip $ tfFoldr f) s $ treeChilds t
+
+
+-- lenses
+
+_rtRoot :: a
+_rtRoot = undefined
+
+_rtBranches :: a
+_rtBranches = undefined
+
+
+-- instances
 
 data TreeABC
   = TreeA TreeABC TreeABC
