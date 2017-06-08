@@ -6,7 +6,7 @@ import Test.DocTest
 
 main :: IO ()
 main = do
-  let args = ["src"] -- flags ++ pkgs ++ module_sources
+  let args = [] -- flags ++ pkgs ++ module_sources
 
   traverse_ putStrLn args
   doctest args

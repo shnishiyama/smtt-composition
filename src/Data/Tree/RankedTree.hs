@@ -6,6 +6,7 @@
 module Data.Tree.RankedTree where
 
 import Control.CoercionExt
+import Control.Lens
 
 import Data.Proxy
 import Data.TFFoldable
@@ -68,12 +69,11 @@ instance RankedTree t => TFFoldable (RankedTreeWrapper t) where
 
 -- lenses
 
-_rtRoot :: a
-_rtRoot = undefined
+_rtroot :: RankedTree t => Lens' t (LabelType t)
+_rtroot f t = (`mkTree` treeChilds t) <$> f (treeLabel t)
 
-_rtBranches :: a
-_rtBranches = undefined
-
+_rtbranches :: RankedTree t => Lens' t [t]
+_rtbranches f t = mkTree (treeLabel t) <$> f (treeChilds t)
 
 -- instances
 

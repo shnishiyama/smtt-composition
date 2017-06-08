@@ -15,4 +15,4 @@ stack test
 
 ## Links
 
-* Original: [Composing Stack-Attributed Tree Transducer]()
+* Original: [Composing Stack-Attributed Tree Transducer](https://link.springer.com/article/10.1007/s00224-008-9125-y)
