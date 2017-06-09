@@ -1,16 +1,27 @@
 {-# OPTIONS_GHC -fno-warn-incomplete-patterns #-}
-{-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE FlexibleContexts #-}
 
-module Data.Tree.RankedTree where
+{-# LANGUAGE FlexibleContexts    #-}
 
-import Control.CoercionExt
-import Control.Lens
+module Data.Tree.RankedTree
+  (
+  -- main
+    RankedTree (..)
+  , treeRank
+  , foldTree
+  , RankedTreeWrapper (..)
 
-import Data.Proxy
-import Data.TFFoldable
-import Data.Monoid
+  -- instances
+  , TreeABC (..)
+  , InfixOpTree (..)
+  , PostfixOpTree (..)
+  ) where
+
+import ClassyPrelude
+
+import           Control.CoercionExt
+
+import           Data.Proxy
+import           Data.TFFoldable
 
 -- | Ranked Labeled Tree Class
 --
@@ -31,6 +42,9 @@ class RankedTree t where
   treeLabelRank :: Proxy t -> LabelType t -> Int
 
   mkTree :: LabelType t -> [t] -> t
+
+  modifyChilds :: (t -> t) -> t -> t
+  modifyChilds f t = mkTree (treeLabel t) $ map f (treeChilds t)
 
 treeRank :: forall t. RankedTree t => t -> Int
 treeRank = treeLabelRank (Proxy :: Proxy t) . treeLabel
@@ -58,22 +72,14 @@ instance RankedTree t => RankedTree (RankedTreeWrapper t) where
 instance RankedTree t => TFFoldable (RankedTreeWrapper t) where
   type TFFoldElem (RankedTreeWrapper t) = LabelType t
 
-  tfFoldMap f = foldTree $ \a bs -> f a <> mconcat bs
+  tfFoldMap f = foldTree $ \a bs -> f a `mappend` mconcat bs
 
-  tfFoldl f s t = foldl (tfFoldl f) is $ treeChilds t where
+  tfFoldl f s t = foldl' (tfFoldl f) is $ treeChilds t where
     is = f s $ treeLabel t
 
   tfFoldr f s t = f (treeLabel t) child where
     child = foldr (flip $ tfFoldr f) s $ treeChilds t
 
-
--- lenses
-
-_rtroot :: RankedTree t => Lens' t (LabelType t)
-_rtroot f t = (`mkTree` treeChilds t) <$> f (treeLabel t)
-
-_rtbranches :: RankedTree t => Lens' t [t]
-_rtbranches f t = mkTree (treeLabel t) <$> f (treeChilds t)
 
 -- instances
 
@@ -113,24 +119,24 @@ data InfixOpTree
 instance RankedTree InfixOpTree where
   type LabelType InfixOpTree = String
 
-  treeLabel InfixOne = "one"
-  treeLabel InfixTwo = "two"
-  treeLabel (InfixPlus _ _) = "plus"
+  treeLabel InfixOne         = "one"
+  treeLabel InfixTwo         = "two"
+  treeLabel (InfixPlus _ _)  = "plus"
   treeLabel (InfixMulti _ _) = "multi"
 
-  treeChilds InfixOne = []
-  treeChilds InfixTwo = []
-  treeChilds (InfixPlus x y) = [x, y]
+  treeChilds InfixOne         = []
+  treeChilds InfixTwo         = []
+  treeChilds (InfixPlus x y)  = [x, y]
   treeChilds (InfixMulti x y) = [x, y]
 
-  treeLabelRank _ "one" = 0
-  treeLabelRank _ "two" = 0
-  treeLabelRank _ "plus" = 2
+  treeLabelRank _ "one"   = 0
+  treeLabelRank _ "two"   = 0
+  treeLabelRank _ "plus"  = 2
   treeLabelRank _ "multi" = 2
 
-  mkTree "one" [] = InfixOne
-  mkTree "two" [] = InfixTwo
-  mkTree "plus" [x, y] = InfixPlus x y
+  mkTree "one" []       = InfixOne
+  mkTree "two" []       = InfixTwo
+  mkTree "plus" [x, y]  = InfixPlus x y
   mkTree "multi" [x, y] = InfixMulti x y
 
 

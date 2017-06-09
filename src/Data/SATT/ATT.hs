@@ -1,9 +1,6 @@
-{-# LANGUAGE GADTs #-}
-{-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE RecordWildCards #-}
-
 module Data.SATT.ATT where
+
+import ClassyPrelude
 
 import Data.Tree.RankedTree
 import Data.Tree.Transducer

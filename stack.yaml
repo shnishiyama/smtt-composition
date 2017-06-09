@@ -2,9 +2,7 @@ resolver: lts-8.15
 
 packages:
 - .
-extra-deps:
-- zipper-0.4.2
-- multirec-0.7.7
+extra-deps: []
 
 flags: {}
 extra-package-dbs: []

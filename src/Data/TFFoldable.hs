@@ -1,5 +1,3 @@
-{-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE FlexibleInstances #-}
 
 module Data.TFFoldable where
