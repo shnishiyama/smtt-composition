@@ -114,7 +114,19 @@ data InfixOpTree
   | InfixTwo
   | InfixPlus InfixOpTree InfixOpTree
   | InfixMulti InfixOpTree InfixOpTree
-  deriving (Show, Eq, Ord)
+  deriving (Eq, Ord)
+
+-- | Appearance of infix operation trees
+--
+-- Examples:
+--
+-- >>> InfixMulti InfixOne (InfixPlus InfixOne InfixTwo)
+-- multi(one,plus(one,two))
+instance Show InfixOpTree where
+  show t = treeLabel t <> childsStr (treeChilds t)
+    where
+      childsStr [] = ""
+      childsStr ts = "(" <> intercalate "," (map show ts)  <> ")"
 
 instance RankedTree InfixOpTree where
   type LabelType InfixOpTree = String
