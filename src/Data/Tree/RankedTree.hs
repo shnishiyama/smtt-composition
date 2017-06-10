@@ -53,6 +53,11 @@ foldTree :: RankedTree t => (LabelType t -> [b] -> b) -> t -> b
 foldTree f = go where
   go t = f (treeLabel t) [go c | c <- treeChilds t]
 
+showTree :: (RankedTree t, Show (LabelType t)) => t -> String
+showTree t = show (treeLabel t) <> childsStr (treeChilds t)
+  where
+    childsStr [] = ""
+    childsStr ts = "(" <> intercalate "," (map showTree ts)  <> ")"
 
 -- wrapper
 
@@ -121,12 +126,9 @@ data InfixOpTree
 -- Examples:
 --
 -- >>> InfixMulti InfixOne (InfixPlus InfixOne InfixTwo)
--- multi(one,plus(one,two))
+-- "multi"("one","plus"("one","two"))
 instance Show InfixOpTree where
-  show t = treeLabel t <> childsStr (treeChilds t)
-    where
-      childsStr [] = ""
-      childsStr ts = "(" <> intercalate "," (map show ts)  <> ")"
+  show = showTree
 
 instance RankedTree InfixOpTree where
   type LabelType InfixOpTree = String
@@ -158,7 +160,16 @@ data PostfixOpTree
   | PostfixPlus PostfixOpTree
   | PostfixMulti PostfixOpTree
   | PostfixEnd
-  deriving (Show, Eq, Ord)
+  deriving (Eq, Ord)
+
+-- | Appearance of postfix operation trees
+--
+-- Examples:
+--
+-- >>> PostfixMulti $ PostfixOne $ PostfixPlus $ PostfixOne $ PostfixTwo $ PostfixEnd
+-- "multi"("one"("plus"("one"("two"("$")))))
+instance Show PostfixOpTree where
+  show = showTree
 
 instance RankedTree PostfixOpTree where
   type LabelType PostfixOpTree = String

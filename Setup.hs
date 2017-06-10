@@ -1,6 +1,6 @@
 {-# LANGUAGE CPP #-}
 {-# OPTIONS_GHC -Wall #-}
-module Main (main) where
+module Main where
 
 #ifndef MIN_VERSION_cabal_doctest
 #define MIN_VERSION_cabal_doctest(x,y,z) 0
@@ -8,27 +8,31 @@ module Main (main) where
 
 #if MIN_VERSION_cabal_doctest(1,0,0)
 
-import Distribution.Extra.Doctest ( defaultMainWithDoctests )
+import Distribution.Simple
+import Distribution.Extra.Doctest ( generateBuildModule )
 
 main :: IO ()
-main = defaultMainWithDoctests "doctests"
+main = defaultMainWithHooks simpleUserHooks
+  { buildHook = buildHookScript
+  }
+  where
+    buildHookScript pkg lbi hooks flags = do
+      generateBuildModule "doc-test" flags pkg lbi -- generate Build_doctests
+      buildHook simpleUserHooks pkg lbi hooks flags
 
-#else
-
-#ifdef MIN_VERSION_Cabal
--- If the macro is defined, we have new cabal-install,
--- but for some reason we don't have cabal-doctest in package-db
---
--- Probably we are running cabal sdist, when otherwise using new-build
--- workflow
-#warning You are configuring this package without cabal-doctest installed. \
-         The doctests test-suite will not work as a result. \
-         To fix this, install cabal-doctest before configuring.
-#endif
-
-import Distribution.Simple
+#elif MIN_VERSION_Cabal(1,24,0)
+  {-# WARNING ["You are configuring this package withou
+t cabal-doctest installed.",
+               "The doctests test-suite will not work a
+s a result.",
+               "To fix this, install cabal-doctest befo
+re configuring."] #-}
 
 main :: IO ()
 main = defaultMain
+
+#else
+
+-- does not supported
 
 #endif
