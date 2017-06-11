@@ -43,6 +43,7 @@ library
     PatternSynonyms
     RecordWildCards
     ViewPatterns
+    PolyKinds
     TypeApplications
     TypeOperators
     TypeFamilies
