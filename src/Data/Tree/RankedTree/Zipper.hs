@@ -31,6 +31,30 @@ fromTreeCrumb RTZCrumb{..} t = mkTree rtzcLabel rtzcChilds
 
     go = foldl' $ flip (:)
 
+-- |
+--
+-- >>> treeABCZipper = rtZipper (TreeA TreeC (TreeB TreeC))
+-- >>> toTree <$> zoomInRtZipper treeABCZipper
+-- Just TreeC
+--
+-- >>> toTree <$> (zoomInRtZipper >=> zoomRightRtZipper) treeABCZipper
+-- Just (TreeB TreeC)
+--
+-- >>> :{
+--   toTree <$>
+--   (   zoomInRtZipper
+--   >=> zoomRightRtZipper
+--   >=> zoomOutRtZipper
+--   ) treeABCZipper
+-- :}
+-- Just (TreeA (TreeB TreeC) TreeC)
+--
+-- >>> toTree <$> zoomOutRtZipper treeABCZipper
+-- Nothing
+--
+-- >>> toTree <$> zoomRightRtZipper treeABCZipper
+-- Nothing
+--
 data RTZipper t l = RTZipper
   { rtzTree   :: t
   , rtzCrumbs :: [RTZCrumb t l]
@@ -46,6 +70,7 @@ rtZipper t = RTZipper
 
 toTree :: RankedTree t => RankedTreeZipper t -> t
 toTree = rtzTree
+
 
 zoomInRtZipper :: RankedTree t => RankedTreeZipper t -> Maybe (RankedTreeZipper t)
 zoomInRtZipper (RTZipper t cs) = case treeChilds t of
