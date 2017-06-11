@@ -7,6 +7,7 @@ module Data.SATT.ATT where
 import ClassyPrelude
 
 import Data.Proxy
+import Data.Monoid (First(..))
 
 import Data.Tree.RankedTree
 import Data.Tree.RankedTree.Zipper
@@ -121,7 +122,25 @@ buildAttReduction' f s AttrTreeTrans{..} t = goTop s where
         redState = applyRHSToState rhs []
     in go (f state redState) (rtZipper t) (rtZipper redState)
 
-  go state taZ stateZ = undefined
+  goBot _state _stateZ = undefined
+
+  go state taZ stateZ =
+    let ta        = toTree taZ
+        redState  = toTree stateZ
+        _la       = treeLabel ta
+
+        nredState = redState
+        nstateZ   = stateZ
+        nstate    = f state nredState
+    in case nextTaZ taZ of
+      Nothing   -> goBot nstate nstateZ
+      Just ntaZ -> go nstate ntaZ nstateZ
+
+  nextTaZ tz = getFirst
+    $  First (zoomInRtZipper tz)
+    <> First (zoomRightRtZipper tz)
+    <> First (zoomOutRtZipper tz >>= nextTaZ)
+
 
 buildAttReductionSteps :: RankedTree ta =>
   AttrTreeTrans syn inh ta tb -> ta -> TreeReductionSteps syn inh ta
