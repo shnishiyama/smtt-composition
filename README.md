@@ -13,6 +13,13 @@ stack exec -- satt-composit
 stack test
 ```
 
+## TODOs
+
+* rewrite to use vector as list
+* add more examples
+* add more tests
+* add benchmarks
+
 ## Links
 
 * Original: [Composing Stack-Attributed Tree Transducer](https://link.springer.com/article/10.1007/s00224-008-9125-y)

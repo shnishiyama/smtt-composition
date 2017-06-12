@@ -1,7 +1,7 @@
 {-# OPTIONS_GHC -fno-warn-incomplete-patterns #-}
 
 {-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleContexts  #-}
 
 module Data.SATT.ATT where
 
@@ -217,16 +217,6 @@ data InhAttrUnit = InhAttrUnit
 instance Show InhAttrUnit where
   show _ = "a1"
 
-
-postfixToInfixTransducer :: AttrTreeTrans SynAttrUnit InhAttrUnit PostfixOpTree InfixOpTree
-postfixToInfixTransducer = AttrTreeTrans
-  { initialAttr     = SynAttrUnit
-  , synthesizedRule = synRule
-  , inheritedRule   = inhRule
-  }
-  where
-    synRule = undefined
-    inhRule = undefined
 
 infixToPostfixTransducer :: AttrTreeTrans SynAttrUnit InhAttrUnit InfixOpTree PostfixOpTree
 infixToPostfixTransducer = AttrTreeTrans

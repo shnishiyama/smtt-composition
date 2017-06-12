@@ -1,6 +1,6 @@
 module Data.SATT.SATT where
 
-import Data.SATT.ATT
+import qualified Data.SATT.ATT as ATT
 
 -- | Stack-Attributed Tree Transducer
 data StackAttrTreeTrans syn inh ta tb = StackAttrTreeTrans
