@@ -6,12 +6,12 @@ module Data.SATT.ATT where
 
 import ClassyPrelude
 
+import Control.Arrow
 import Data.Proxy
 
 import Data.Tree.RankedTree
 import Data.Tree.RankedTree.Zipper
 import Data.Tree.Transducer
-
 
 -- common
 
@@ -143,7 +143,7 @@ buildAttReduction' f s AttrTreeTrans{..} t = goTop s where
   go state stateZ =
     let nstate = f' state stateZ
     in case nextStateZ stateZ of
-      Nothing      -> state
+      Nothing      -> nstate
       Just nstateZ -> go' nstate nstateZ
 
   go' state stateZ =
@@ -153,7 +153,21 @@ buildAttReduction' f s AttrTreeTrans{..} t = goTop s where
         stateZ'   = setTreeZipper redState stateZ
     in go state stateZ'
 
-  nextStateZ _stateZ = undefined
+  nextStateZ = runKleisli nextStateZ'
+
+  nextStateZ'
+    =   Kleisli filterLabelStateZipper
+    <+> (Kleisli zoomInRtZipper >>> nextStateZ')
+    <+> nextStateZ''
+
+  filterLabelStateZipper :: TreeReductionStateZipper syn inh ta tb -> Maybe (TreeReductionStateZipper syn inh ta tb)
+  filterLabelStateZipper taZ = case toTree taZ of
+    RankedTreeState _ _ -> empty
+    _                   -> return taZ
+
+  nextStateZ''
+    =   (Kleisli zoomRightRtZipper >>> nextStateZ')
+    <+> (Kleisli zoomOutRtZipper   >>> nextStateZ'')
 
   nextTaZ attrState taZ = maybe (taZ, InitialLabel) (id &&& InputLabel . treeLabel . toTree)
     $ nextTaZ' attrState taZ
@@ -175,5 +189,54 @@ runAttReduction trans t = render . toTree . zoomTopRtZipper $ builder trans t wh
   render (AttrState _ _)        = error "not expected operation"
   render (RankedTreeState l ss) = mkTree l [render s | s <- ss]
 
+
+-- tree transducer
+
 instance TreeTransducer (AttrTreeTrans syn inh) where
   treeTrans = runAttReduction
+
+
+-- instances
+
+data SynAttrUnit = SynAttrUnit
+  deriving (Eq, Ord)
+
+instance Show SynAttrUnit where
+  show _ = "a0"
+
+data InhAttrUnit = InhAttrUnit
+  deriving (Eq, Ord)
+
+instance Show InhAttrUnit where
+  show _ = "a1"
+
+
+infixToPostfixTransducer :: AttrTreeTrans SynAttrUnit InhAttrUnit InfixOpTree PostfixOpTree
+infixToPostfixTransducer = AttrTreeTrans
+  { initialAttr     = SynAttrUnit
+  , synthesizedRule = infixToPostfixSynRule
+  , inheritedRule   = infixToPostfixInhRule
+  }
+  where
+    infixToPostfixSynRule = undefined
+    infixToPostfixInhRule = undefined
+
+postfixToInfixTransducer :: AttrTreeTrans SynAttrUnit InhAttrUnit InfixOpTree PostfixOpTree
+postfixToInfixTransducer = AttrTreeTrans
+  { initialAttr     = SynAttrUnit
+  , synthesizedRule = postfixToInfixSynRule
+  , inheritedRule   = postfixToInfixInhRule
+  }
+  where
+    postfixToInfixSynRule SynAttrUnit InitialLabel         = SynAttrSide SynAttrUnit 1
+    postfixToInfixSynRule SynAttrUnit (InputLabel "one")   = LabelSide "one" [InhAttrSide InhAttrUnit]
+    postfixToInfixSynRule SynAttrUnit (InputLabel "two")   = LabelSide "two" [InhAttrSide InhAttrUnit]
+    postfixToInfixSynRule SynAttrUnit (InputLabel "plus")  = SynAttrSide SynAttrUnit 1
+    postfixToInfixSynRule SynAttrUnit (InputLabel "multi") = SynAttrSide SynAttrUnit 1
+
+    postfixToInfixInhRule InhAttrUnit 1 InitialLabel         = LabelSide "$" []
+    postfixToInfixInhRule InhAttrUnit 1 (InputLabel "plus")  = SynAttrSide SynAttrUnit 2
+    postfixToInfixInhRule InhAttrUnit 2 (InputLabel "plus")  = LabelSide "plus" [InhAttrSide InhAttrUnit]
+    postfixToInfixInhRule InhAttrUnit 1 (InputLabel "multi") = SynAttrSide SynAttrUnit 2
+    postfixToInfixInhRule InhAttrUnit 2 (InputLabel "multi") = LabelSide "multi" [InhAttrSide InhAttrUnit]
+

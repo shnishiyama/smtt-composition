@@ -80,7 +80,8 @@ type instance Element (RankedTreeWrapper t) = LabelType t
 instance RankedTree t => MonoFoldable (RankedTreeWrapper t) where
   ofoldMap f = foldTree $ \a bs -> f a `mappend` mconcat bs
 
-  ofoldl' = undefined
+  ofoldl' f s t = g $ f s $ treeLabel t where
+    g s' = foldl' (ofoldl' f) s' $ treeChilds t
 
   ofoldr f s t = f (treeLabel t) child where
     child = foldr (flip $ ofoldr f) s $ treeChilds t
@@ -129,8 +130,8 @@ data InfixOpTree
 --
 -- Examples:
 --
--- >>> InfixMulti InfixOne (InfixPlus InfixOne InfixTwo)
--- "multi"("one","plus"("one","two"))
+-- >>> InfixMulti InfixOne (InfixPlus InfixTwo InfixOne)
+-- "multi"("one","plus"("two","one"))
 instance Show InfixOpTree where
   show = showTree
 
@@ -170,8 +171,8 @@ data PostfixOpTree
 --
 -- Examples:
 --
--- >>> PostfixMulti $ PostfixOne $ PostfixPlus $ PostfixOne $ PostfixTwo $ PostfixEnd
--- "multi"("one"("plus"("one"("two"("$")))))
+-- >>> PostfixTwo $ PostfixOne $ PostfixTwo $ PostfixPlus $ PostfixMulti $ PostfixEnd
+-- "two"("one"("two"("plus"("multi"("$")))))
 instance Show PostfixOpTree where
   show = showTree
 
