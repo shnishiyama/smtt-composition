@@ -34,12 +34,14 @@ library
     unordered-containers,
     hashable,
     lens,
-    mono-traversable
+    mono-traversable,
+    vector
   default-language:
     Haskell2010
   default-extensions:
     NoImplicitPrelude
     StrictData
+    BangPatterns
     PatternSynonyms
     RecordWildCards
     ViewPatterns

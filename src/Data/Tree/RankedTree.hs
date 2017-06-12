@@ -9,6 +9,12 @@ module Data.Tree.RankedTree
   , treeRank
   , foldTree
   , RankedTreeWrapper (..)
+  , RtApply
+
+  -- ranked tree wrapper
+  , RankedTreeWithInitial(..)
+  , RankedTreeLabelWithInitial(..)
+  , toRankedTreeWithInitial
 
   -- instances
   , TreeABC (..)
@@ -16,12 +22,11 @@ module Data.Tree.RankedTree
   , PostfixOpTree (..)
   ) where
 
-import ClassyPrelude
+import           ClassyPrelude
 
 import           Control.CoercionExt
 
 import           Data.Proxy
-import           Data.MonoTraversable
 
 -- | Ranked Labeled Tree Class
 --
@@ -59,6 +64,8 @@ showTree t = show (treeLabel t) <> childsStr (treeChilds t)
     childsStr [] = ""
     childsStr ts = "(" <> intercalate "," (map showTree ts)  <> ")"
 
+type RtApply tz t = tz t (LabelType t)
+
 -- wrapper
 
 newtype RankedTreeWrapper t = RankedTreeWrapper
@@ -70,7 +77,7 @@ instance RankedTree t => RankedTree (RankedTreeWrapper t) where
 
   treeLabel (RankedTreeWrapper t) = treeLabel t
   treeChilds (RankedTreeWrapper t) = coerce $ treeChilds t
-  treeLabelRank = treeLabelRank
+  treeLabelRank = coerce (treeLabelRank :: Proxy t -> LabelType t -> Int)
 
   mkTree l = RankedTreeWrapper #. mkTree l . coerce
 
@@ -92,6 +99,40 @@ instance RankedTree t => MonoFoldable (RankedTreeWrapper t) where
 
 
 -- instances
+
+data RankedTreeLabelWithInitial l
+  = InitialLabel
+  | RankedTreeLabel l
+  deriving (Eq, Ord)
+
+instance Show l => Show (RankedTreeLabelWithInitial l) where
+  show InitialLabel        = "#"
+  show (RankedTreeLabel l) = show l
+
+data RankedTreeWithInitial t l
+  = RankedTreeWithInitial (RankedTreeWithInitial t l)
+  | RankedTreeWithoutInitial l [RankedTreeWithInitial t l]
+  deriving (Show, Eq, Ord)
+
+toRankedTreeWithInitial :: RankedTree t => t -> RankedTreeWithInitial t (LabelType t)
+toRankedTreeWithInitial = RankedTreeWithInitial . go where
+  go = foldTree RankedTreeWithoutInitial
+
+instance (RankedTree t, l ~ LabelType t) => RankedTree (RankedTreeWithInitial t l) where
+  type LabelType (RankedTreeWithInitial t l) = RankedTreeLabelWithInitial l
+
+  treeLabel (RankedTreeWithInitial _)      = InitialLabel
+  treeLabel (RankedTreeWithoutInitial l _) = RankedTreeLabel l
+
+  treeChilds (RankedTreeWithInitial t)       = [t]
+  treeChilds (RankedTreeWithoutInitial _ ts) = ts
+
+  treeLabelRank _ InitialLabel        = 1
+  treeLabelRank _ (RankedTreeLabel l) = treeLabelRank (Proxy :: Proxy t) l
+
+  mkTree InitialLabel        [t] = RankedTreeWithInitial t
+  mkTree (RankedTreeLabel l) ts  = RankedTreeWithoutInitial l ts
+
 
 data TreeABC
   = TreeA TreeABC TreeABC
