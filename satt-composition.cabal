@@ -24,7 +24,6 @@ library
   ghc-options:         -Wall
   exposed-modules:
     Control.CoercionExt
-    Data.TFFoldable
     Data.Tree.RankedTree
     Data.Tree.RankedTree.Zipper
     Data.Tree.Transducer
