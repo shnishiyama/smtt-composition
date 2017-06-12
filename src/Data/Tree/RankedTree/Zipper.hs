@@ -1,9 +1,11 @@
 module Data.Tree.RankedTree.Zipper
   ( RankedTreeZipper
+  , RTZipper -- for non type family supports
   , rtZipper
   , toTree
   , zoomInRtZipper
   , zoomOutRtZipper
+  , zoomTopRtZipper
   , zoomLeftRtZipper
   , walkLeftZipper
   , zoomRightRtZipper
@@ -20,7 +22,7 @@ data RTZCrumb t l = RTZCrumb
   { rtzcLabel :: l
   , rtzcLeft  :: [t]
   , rtzcRight :: [t]
-  } deriving (Show, Eq)
+  } deriving (Show, Eq, Ord)
 
 type RankedTreeCrumb t = RTZCrumb t (LabelType t)
 
@@ -58,7 +60,7 @@ fromTreeCrumb RTZCrumb{..} t = mkTree rtzcLabel rtzcChilds
 data RTZipper t l = RTZipper
   { rtzTree   :: t
   , rtzCrumbs :: [RTZCrumb t l]
-  } deriving (Show, Eq)
+  } deriving (Show, Eq, Ord)
 
 type RankedTreeZipper t = RTZipper t (LabelType t)
 
@@ -92,6 +94,9 @@ zoomOutRtZipper (RTZipper t (c:cs)) = Just RTZipper
   { rtzTree   = fromTreeCrumb c t
   , rtzCrumbs = cs
   }
+
+zoomTopRtZipper :: RankedTree t => RankedTreeZipper t -> RankedTreeZipper t
+zoomTopRtZipper tz = maybe tz zoomTopRtZipper $ zoomOutRtZipper tz
 
 zoomLeftRtZipper :: RankedTree t => RankedTreeZipper t -> Maybe (RankedTreeZipper t)
 zoomLeftRtZipper (RTZipper _ [])     = Nothing

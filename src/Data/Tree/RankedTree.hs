@@ -21,7 +21,7 @@ import ClassyPrelude
 import           Control.CoercionExt
 
 import           Data.Proxy
-import           Data.TFFoldable
+import           Data.MonoTraversable
 
 -- | Ranked Labeled Tree Class
 --
@@ -74,16 +74,20 @@ instance RankedTree t => RankedTree (RankedTreeWrapper t) where
 
   mkTree l = RankedTreeWrapper #. mkTree l . coerce
 
-instance RankedTree t => TFFoldable (RankedTreeWrapper t) where
-  type TFFoldElem (RankedTreeWrapper t) = LabelType t
 
-  tfFoldMap f = foldTree $ \a bs -> f a `mappend` mconcat bs
+type instance Element (RankedTreeWrapper t) = LabelType t
 
-  tfFoldl f s t = foldl' (tfFoldl f) is $ treeChilds t where
-    is = f s $ treeLabel t
+instance RankedTree t => MonoFoldable (RankedTreeWrapper t) where
+  ofoldMap f = foldTree $ \a bs -> f a `mappend` mconcat bs
 
-  tfFoldr f s t = f (treeLabel t) child where
-    child = foldr (flip $ tfFoldr f) s $ treeChilds t
+  ofoldl' = undefined
+
+  ofoldr f s t = f (treeLabel t) child where
+    child = foldr (flip $ ofoldr f) s $ treeChilds t
+
+  ofoldl1Ex' = undefined
+
+  ofoldr1Ex = undefined
 
 
 -- instances

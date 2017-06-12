@@ -33,7 +33,8 @@ library
     classy-prelude,
     unordered-containers,
     hashable,
-    lens
+    lens,
+    mono-traversable
   default-language:
     Haskell2010
   default-extensions:
