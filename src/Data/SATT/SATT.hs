@@ -17,14 +17,16 @@ import Data.Tree.Transducer
 
 -- common
 
+type RTZipperWithInitial t l = RTZipper (RankedTreeWithInitial t l) (RankedTreeLabelWithInitial l)
+
 type InputLabelType t = RankedTreeLabelWithInitial (LabelType t)
-type InputRankedTreeZipper t = RTZipper (RankedTreeWithInitial t (LabelType t)) (InputLabelType t)
+type InputRankedTreeZipper t = RTZipperWithInitial t (LabelType t)
 
 data OutputRightHandSide syn inh stsyn stinh l
   = OutputSynAttrSide syn Int
   | OutputInhAttrSide inh
-  | StackHeadSide (StackRighHandSide syn inh stsyn stinh l)
   | LabelSide l [OutputRightHandSide syn inh stsyn stinh l]
+  | StackHeadSide (StackRighHandSide syn inh stsyn stinh l)
   deriving (Show, Eq, Ord)
 
 data StackRighHandSide syn inh stsyn stinh l
@@ -69,8 +71,6 @@ data StackAttrTreeTrans syn inh stsyn stinh ta tb = StackAttrTreeTrans
 
 
 -- reduction states
-
-type RTZipperWithInitial t l = RTZipper (RankedTreeWithInitial t l) (RankedTreeLabelWithInitial l)
 
 data ReductionOutputAttrState syn inh
   = OutputSynAttrState syn [Int]
@@ -163,13 +163,17 @@ instance (RankedTree ta, RankedTree tb, la ~ LabelType ta, lb ~ LabelType tb)
   mkTree StackTailStateLabel [StackReduction s] = StackReduction $ StackTailState s
 
 applyRHSToState :: (RankedTree ta, RankedTree tb)
-  => TreeRightHandSide syn inh tb
+  => TreeRightHandSide syn inh stsyn stinh tb
   -> InputRankedTreeZipper ta -> [Int]
-  -> TreeReductionState syn inh ta tb
+  -> TreeReductionState syn inh stsyn stinh ta tb
 applyRHSToState rhs z p = go rhs where
-  go (SynAttrSide a i) = AttrState z (SynAttrState a (i:p))
-  go (InhAttrSide a)   = AttrState z (InhAttrState a p)
-  go (LabelSide l cs)  = RankedTreeState l [go c | c <- cs]
+  go (OutputExpression orhs) = goOutput orhs
+  go (StackExpression srhs)  = goStack srhs
+
+  goOutput (OutputSynAttrSide a i) = AttrState z (SynAttrState a (i:p))
+  goOutput (OutputInhAttrSide a)   = AttrState z (InhAttrState a p)
+  goOutput (LabelSide l cs)        = RankedTreeState l [go c | c <- cs]
+  goOutput (StackHeadSide srhs)    = undefined
 
 
 type TreeReductionStateZipper syn inh ta tb

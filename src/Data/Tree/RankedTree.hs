@@ -89,14 +89,24 @@ instance RankedTree t => MonoFoldable (RankedTreeWrapper t) where
   ofoldMap f = foldTree $ \a bs -> f a `mappend` mconcat bs
 
   ofoldl' f s t = g $ f s $ treeLabel t where
-    g s' = foldl' (ofoldl' f) s' $ treeChilds t
+    g !s' = foldl' (ofoldl' f) s' $ treeChilds t
 
   ofoldr f s t = f (treeLabel t) child where
     child = foldr (flip $ ofoldr f) s $ treeChilds t
 
-  ofoldl1Ex' = undefined
+  ofoldl1Ex' f xs = fromMaybe errorEmpty $ ofoldl' mf Nothing xs where
+    errorEmpty = error "ofoldl1Ex': empty structure"
 
-  ofoldr1Ex = undefined
+    mf m y = Just $ case m of
+      Nothing -> y
+      Just x  -> f x y
+
+  ofoldr1Ex f xs = fromMaybe errorEmpty $ ofoldr mf Nothing xs where
+    errorEmpty = error "ofoldr1Ex: empty structure"
+
+    mf x m = Just $ case m of
+      Nothing -> x
+      Just y  -> f x y
 
 
 -- instances
