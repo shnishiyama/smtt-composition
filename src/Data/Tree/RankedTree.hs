@@ -33,6 +33,7 @@ import           Data.Proxy
 -- TODO:
 -- * To use generic for deriving instance
 -- * Builder using Template Haskell for easy building
+-- * Rewrite to use vector for indexing access
 --
 -- Conditions:
 -- * treeRank == length . treeChilds
@@ -160,6 +161,7 @@ instance RankedTree TreeABC where
   mkTree 'c' []     = TreeC
 
 
+-- | Infix operation tree
 data InfixOpTree
   = InfixOne
   | InfixTwo

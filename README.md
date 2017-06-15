@@ -16,6 +16,7 @@ stack test
 ## TODOs
 
 * rewrite to use vector as list
+* rewrite to be able to apply other constructors to ATT
 * add more examples
 * add more tests
 * add benchmarks
