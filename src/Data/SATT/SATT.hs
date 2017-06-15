@@ -28,8 +28,8 @@ data OutputRightHandSide syn inh stsyn stinh l
   deriving (Show, Eq, Ord)
 
 data StackRighHandSide syn inh stsyn stinh l
-  = StackConsSide (OutputRightHandSide syn inh stsyn stinh l) (StackRighHandSide syn inh stsyn stinh l)
-  | StackEmptySide
+  = StackEmptySide
+  | StackConsSide (OutputRightHandSide syn inh stsyn stinh l) (StackRighHandSide syn inh stsyn stinh l)
   | StackTailSide (StackRighHandSide syn inh stsyn stinh l)
   deriving (Show, Eq, Ord)
 
@@ -50,54 +50,117 @@ type OutputInheritedRuleType syn inh stsyn stinh ta tb =
   inh -> Int -> InputLabelType ta ->
     TreeOutputRightHandSide syn inh stsyn stinh tb
 
--- | Attributed Tree Transducer
-data AttrTreeTrans syn inh ta tb = AttrTreeTrans
-  { initialAttr     :: syn
-  , synthesizedRule :: SynthesizedRuleType syn inh ta tb
-  , inheritedRule   :: InheritedRuleType syn inh ta tb
+type StackSynthesizedRuleType syn inh stsyn stinh ta tb =
+  stsyn -> InputLabelType ta ->
+    TreeStackRightHandSide syn inh stsyn stinh tb
+
+type StackInheritedRuleType syn inh stsyn stinh ta tb =
+  stinh -> Int -> InputLabelType ta ->
+    TreeStackRightHandSide syn inh stsyn stinh tb
+
+-- | Stack-Attributed Tree Transducer
+data StackAttrTreeTrans syn inh stsyn stinh ta tb = StackAttrTreeTrans
+  { initialAttr           :: syn
+  , outputSynthesizedRule :: OutputSynthesizedRuleType syn inh stsyn stinh ta tb
+  , outputInheritedRule   :: OutputInheritedRuleType syn inh stsyn stinh ta tb
+  , stackSynthesizedRule  :: StackSynthesizedRuleType syn inh stsyn stinh ta tb
+  , stackInheritedRule    :: StackInheritedRuleType syn inh stsyn stinh ta tb
   }
 
 
 -- reduction states
 
-data ReductionAttrState syn inh
-  = SynAttrState syn [Int]
-  | InhAttrState inh [Int]
-  deriving (Show, Eq, Ord)
-
-data ReductionState syn inh ta la tb lb
-  = AttrState (RTZipperWithInitial ta la) (ReductionAttrState syn inh)
-  | RankedTreeState lb [ReductionState syn inh ta la tb lb]
-  deriving (Show, Eq, Ord)
-
-type TreeReductionState syn inh ta tb = ReductionState syn inh ta (LabelType ta) tb (LabelType tb)
-
 type RTZipperWithInitial t l = RTZipper (RankedTreeWithInitial t l) (RankedTreeLabelWithInitial l)
 
-data ReductionStateLabel syn inh ta la tb lb
-  = AttrStateLabel (RTZipperWithInitial ta la) (ReductionAttrState syn inh)
-  | RankedTreeStateLabel lb
+data ReductionOutputAttrState syn inh
+  = OutputSynAttrState syn [Int]
+  | OutputInhAttrState inh [Int]
   deriving (Show, Eq, Ord)
 
-type TreeReductionStateLabel syn inh ta tb = ReductionStateLabel syn inh ta (LabelType ta) tb (LabelType tb)
+data ReductionStackAttrState stsyn stinh
+  = StackSynAttrState stsyn [Int]
+  | StackInhAttrState stinh [Int]
+  deriving (Show, Eq, Ord)
+
+data OutputReductionType = OutputReductionType
+  deriving (Show, Eq, Ord)
+
+data StackReductionType  = StackReductionType
+  deriving (Show, Eq, Ord)
+
+data ReductionStackState syn inh stsyn stinh ta la tb lb
+  = StackAttrState (RTZipperWithInitial ta la) (ReductionStackAttrState stsyn stinh)
+  | StackEmptyState
+  | StackConsState (ReductionState syn inh stsyn stinh ta la tb lb) (ReductionStackState syn inh stsyn stinh ta la tb lb)
+  | StackTailState (ReductionStackState syn inh stsyn stinh ta la tb lb)
+  deriving (Show, Eq, Ord)
+
+data ReductionOutputState syn inh stsyn stinh ta la tb lb
+  = OutputAttrState (RTZipperWithInitial ta la) (ReductionOutputAttrState syn inh)
+  | RankedTreeState lb [ReductionState syn inh stsyn stinh ta la tb lb]
+  | StackHeadState (ReductionStackState syn inh stsyn stinh ta la tb lb)
+  deriving (Show, Eq, Ord)
+
+data ReductionState syn inh stsyn stinh ta la tb lb
+  = OutputReduction (ReductionOutputState syn inh stsyn stinh ta la tb lb)
+  | StackReduction (ReductionStackState syn inh stsyn stinh ta la tb lb)
+  deriving (Show, Eq, Ord)
+
+type TreeReductionState syn inh stsyn stinh ta tb = ReductionState syn inh stsyn stinh ta (LabelType ta) tb (LabelType tb)
+
+data ReductionStateLabel syn inh stsyn stinh ta la tb lb
+  = OutputAttrStateLabel (RTZipperWithInitial ta la) (ReductionOutputAttrState syn inh)
+  | StackAttrStateLabel (RTZipperWithInitial ta la) (ReductionStackAttrState stsyn stinh)
+  | RankedTreeStateLabel lb
+  | StackEmptyStateLabel
+  | StackHeadStateLabel
+  | StackConsStateLabel
+  | StackTailStateLabel
+  deriving (Show, Eq, Ord)
+
+type TreeReductionStateLabel syn inh stsyn stinh ta tb = ReductionStateLabel syn inh stsyn stinh ta (LabelType ta) tb (LabelType tb)
 
 
 instance (RankedTree ta, RankedTree tb, la ~ LabelType ta, lb ~ LabelType tb)
-  => RankedTree (ReductionState syn inh ta la tb lb) where
+  => RankedTree (ReductionState syn inh stsyn stinh ta la tb lb) where
 
-  type LabelType (ReductionState syn inh ta la tb lb) = ReductionStateLabel syn inh ta la tb lb
+  type LabelType (ReductionState syn inh stsyn stinh ta la tb lb) = ReductionStateLabel syn inh stsyn stinh ta la tb lb
 
-  treeLabel (AttrState z s)       = AttrStateLabel z s
-  treeLabel (RankedTreeState l _) = RankedTreeStateLabel l
+  treeLabel (OutputReduction os) = go os where
+    go (OutputAttrState z s) = OutputAttrStateLabel z s
+    go (RankedTreeState l _) = RankedTreeStateLabel l
+    go (StackHeadState _)    = StackHeadStateLabel
+  treeLabel (StackReduction ss) = go ss where
+    go (StackAttrState  z s) = StackAttrStateLabel z s
+    go StackEmptyState       = StackEmptyStateLabel
+    go (StackConsState _ _)  = StackConsStateLabel
+    go (StackTailState _)    = StackTailStateLabel
 
-  treeChilds (AttrState _ _)        = []
-  treeChilds (RankedTreeState _ ts) = ts
+  treeChilds (OutputReduction os) = go os where
+    go (OutputAttrState _ _)  = []
+    go (RankedTreeState _ ts) = map OutputReduction ts
+    go (StackHeadState s)     = [StackReduction s]
+  treeChilds (StackReduction ss) = go ss where
+    go (StackAttrState _ _)   = []
+    go StackEmptyState        = []
+    go (StackConsState h s)   = [OutputReduction h, StackReduction s]
+    go (StackTailState s)     = [StackReduction s]
 
-  treeLabelRank _ (AttrStateLabel _ _)     = 0
-  treeLabelRank _ (RankedTreeStateLabel l) = treeLabelRank (Proxy :: Proxy tb) l
+  treeLabelRank _ (OutputAttrStateLabel _ _) = 0
+  treeLabelRank _ (StackAttrStateLabel _ _)  = 0
+  treeLabelRank _ (RankedTreeStateLabel l)   = treeLabelRank (Proxy :: Proxy tb) l
+  treeLabelRank _ StackEmptyStateLabel       = 0
+  treeLabelRank _ StackHeadStateLabel        = 1
+  treeLabelRank _ StackConsStateLabel        = 2
+  treeLabelRank _ StackTailStateLabel        = 1
 
-  mkTree (AttrStateLabel z s) []     = AttrState z s
-  mkTree (RankedTreeStateLabel l) ts = RankedTreeState l ts
+  mkTree (OutputAttrStateLabel z s) []  = OutputReduction $ OutputAttrState z s
+  mkTree (StackAttrStateLabel z s)  []  = StackReduction $ StackAttrState z s
+  mkTree (RankedTreeStateLabel l)   ts  = OutputReduction $ RankedTreeState l ts
+  mkTree StackEmptyStateLabel       []  = StackReduction StackEmptyState
+  mkTree StackHeadStateLabel [StackReduction s] = OutputReduction $ StackHeadState s
+  mkTree StackConsStateLabel [OutputReduction h, StackReduction s] = StackReduction $ StackConsState h s
+  mkTree StackTailStateLabel [StackReduction s] = StackReduction $ StackTailState s
 
 applyRHSToState :: (RankedTree ta, RankedTree tb)
   => TreeRightHandSide syn inh tb
