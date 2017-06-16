@@ -1,4 +1,4 @@
-module Data.Tree.Transducer where
+module Data.Tree.RankedTree.Transducer where
 
 import Data.Tree.RankedTree
 

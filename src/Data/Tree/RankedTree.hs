@@ -8,8 +8,10 @@ module Data.Tree.RankedTree
     RankedTree (..)
   , treeRank
   , foldTree
+  , showTree
   , RankedTreeWrapper (..)
   , RtApply
+  , RtConstraint
 
   -- ranked tree wrapper
   , RankedTreeWithInitial(..)
@@ -24,8 +26,8 @@ module Data.Tree.RankedTree
 
 import           ClassyPrelude
 
-import           Control.CoercionExt
-
+import           Data.Profunctor.Unsafe
+import           Data.Coerce
 import           Data.Proxy
 
 -- | Ranked Labeled Tree Class
@@ -66,6 +68,7 @@ showTree t = show (treeLabel t) <> childsStr (treeChilds t)
     childsStr ts = "(" <> intercalate "," (map showTree ts)  <> ")"
 
 type RtApply tz t = tz t (LabelType t)
+type RtConstraint t l = (RankedTree t, l ~ LabelType t)
 
 -- wrapper
 
@@ -129,7 +132,7 @@ toRankedTreeWithInitial :: RankedTree t => t -> RankedTreeWithInitial t (LabelTy
 toRankedTreeWithInitial = RankedTreeWithInitial . go where
   go = foldTree RankedTreeWithoutInitial
 
-instance (RankedTree t, l ~ LabelType t) => RankedTree (RankedTreeWithInitial t l) where
+instance RtConstraint t l => RankedTree (RankedTreeWithInitial t l) where
   type LabelType (RankedTreeWithInitial t l) = RankedTreeLabelWithInitial l
 
   treeLabel (RankedTreeWithInitial _)      = InitialLabel

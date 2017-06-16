@@ -8,6 +8,8 @@ module Data.Tree.RankedTree.Zipper
     -- operators
   , zoomInIdxRtZipper
   , zoomTopRtZipper
+  , toTopTree
+  , getTreeLabel
   ) where
 
 import ClassyPrelude
@@ -164,3 +166,9 @@ zoomInIdxRtZipper = go where
 
 zoomTopRtZipper :: (RankedTree t, RankedTreeZipper tz) => RtApply tz t -> RtApply tz t
 zoomTopRtZipper tz = maybe tz zoomTopRtZipper $ zoomOutRtZipper tz
+
+toTopTree :: (RankedTree t, RankedTreeZipper tz) => RtApply tz t -> t
+toTopTree = toTree . zoomTopRtZipper
+
+getTreeLabel :: (RankedTree t, RankedTreeZipper tz) => RtApply tz t -> LabelType t
+getTreeLabel = treeLabel . toTree

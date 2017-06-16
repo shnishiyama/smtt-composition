@@ -23,11 +23,11 @@ library
   hs-source-dirs:      src
   ghc-options:         -Wall
   exposed-modules:
-    Control.CoercionExt
     Data.Tree.RankedTree
     Data.Tree.RankedTree.Zipper
-    Data.Tree.Transducer
+    Data.Tree.RankedTree.Transducer
     Data.SATT.ATT
+    Data.SATT.Demo
   build-depends:
     base >= 4.7 && < 5,
     classy-prelude,
@@ -35,7 +35,8 @@ library
     hashable,
     lens,
     mono-traversable,
-    vector
+    vector,
+    profunctors
   default-language:
     Haskell2010
   default-extensions:
@@ -53,6 +54,7 @@ library
     FunctionalDependencies
     ScopedTypeVariables
     RankNTypes
+    ConstraintKinds
 
 executable satt-composit
   hs-source-dirs:      app

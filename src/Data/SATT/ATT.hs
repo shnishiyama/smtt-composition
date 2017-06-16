@@ -5,14 +5,14 @@
 
 module Data.SATT.ATT where
 
-import ClassyPrelude
+import ClassyPrelude hiding (first, second)
 
 import Control.Arrow
 import Data.Proxy
 
 import Data.Tree.RankedTree
 import Data.Tree.RankedTree.Zipper
-import Data.Tree.Transducer
+import Data.Tree.RankedTree.Transducer
 
 -- common
 
@@ -48,12 +48,20 @@ data AttrTreeTrans syn inh ta tb = AttrTreeTrans
 data ReductionAttrState syn inh
   = SynAttrState syn [Int]
   | InhAttrState inh [Int]
-  deriving (Show, Eq, Ord)
+  deriving (Eq, Ord)
+
+instance (Show syn, Show inh) => Show (ReductionAttrState syn inh) where
+  show (SynAttrState a p) = show a ++ show p
+  show (InhAttrState a p) = show a ++ show p
 
 data ReductionState syn inh ta la tb lb
   = AttrState (RTZipperWithInitial ta la) (ReductionAttrState syn inh)
   | RankedTreeState lb [ReductionState syn inh ta la tb lb]
-  deriving (Show, Eq, Ord)
+  deriving (Eq, Ord)
+
+instance (RtConstraint ta la, RtConstraint tb lb, Show syn, Show inh, Show lb)
+  => Show (ReductionState syn inh ta la tb lb) where
+  show = showTree
 
 type TreeReductionState syn inh ta tb = ReductionState syn inh ta (LabelType ta) tb (LabelType tb)
 
@@ -62,12 +70,17 @@ type RTZipperWithInitial t l = RTZipper (RankedTreeWithInitial t l) (RankedTreeL
 data ReductionStateLabel syn inh ta la tb lb
   = AttrStateLabel (RTZipperWithInitial ta la) (ReductionAttrState syn inh)
   | RankedTreeStateLabel lb
-  deriving (Show, Eq, Ord)
+  deriving (Eq, Ord)
+
+instance (Show syn, Show inh, Show lb) => Show (ReductionStateLabel syn inh ta la tb lb) where
+
+  show (AttrStateLabel _ a) = show a
+  show (RankedTreeStateLabel l) = show l
 
 type TreeReductionStateLabel syn inh ta tb = ReductionStateLabel syn inh ta (LabelType ta) tb (LabelType tb)
 
 
-instance (RankedTree ta, RankedTree tb, la ~ LabelType ta, lb ~ LabelType tb)
+instance (RtConstraint ta la, RtConstraint tb lb)
   => RankedTree (ReductionState syn inh ta la tb lb) where
 
   type LabelType (ReductionState syn inh ta la tb lb) = ReductionStateLabel syn inh ta la tb lb
@@ -98,17 +111,7 @@ type TreeReductionStateZipper syn inh ta tb
   = RTZipper (TreeReductionState syn inh ta tb) (TreeReductionStateLabel syn inh ta tb)
 
 
--- reduction steps
-
-data ReductionStep syn inh l
-  = SynReductionStep syn l [Int]
-  | InhReductionStep inh Int l [Int]
-  deriving (Show, Eq, Ord)
-
-type ReductionSteps syn inh t = [ReductionStep syn inh t]
-
-type TreeReductionStep syn inh t = ReductionStep syn inh (InputLabelType t)
-type TreeReductionSteps syn inh t = [TreeReductionStep syn inh t]
+-- reduction systems
 
 buildStepFromAttrState :: l -> ReductionAttrState syn inh -> ReductionStep syn inh l
 buildStepFromAttrState l (SynAttrState a p)      = SynReductionStep a l p
@@ -181,17 +184,38 @@ runAttReduction trans t = render . toTree . zoomTopRtZipper $ builder t where
   render (AttrState _ _)        = error "not expected operation"
   render (RankedTreeState l ss) = mkTree l [render s | s <- ss]
 
+data ReductionStep syn inh l
+  = SynReductionStep syn l [Int]
+  | InhReductionStep inh Int l [Int]
+  deriving (Show, Eq, Ord)
+
+type TreeReductionStep syn inh t = ReductionStep syn inh (InputLabelType t)
+
+data ReductionStateStep syn inh ta la tb lb = ReductionStateStep
+  { reductionStepState :: ReductionState syn inh ta la tb lb
+  , reductionStateStep :: ReductionStep syn inh (RankedTreeLabelWithInitial la)
+  } deriving (Eq, Ord)
+
+data ReductionSteps syn inh ta la tb lb = ReductionSteps
+  { reductionSteps :: [ReductionStateStep syn inh ta la tb lb]
+  , reductionResult :: tb
+  } deriving (Eq, Ord)
+
+type TreeReductionSteps syn inh ta tb = ReductionSteps syn inh ta (LabelType ta) tb (LabelType tb)
+
 buildAttReductionSteps :: (RankedTree ta, RankedTree tb) =>
-  AttrTreeTrans syn inh ta tb -> ta -> (TreeReductionSteps syn inh ta, tb)
-buildAttReductionSteps trans t = reverse *** render $ buildAttReduction builder ([], Nothing) trans t where
+  AttrTreeTrans syn inh ta tb -> ta -> TreeReductionSteps syn inh ta tb
+buildAttReductionSteps trans = buildSteps . buildAttReduction builder ([], Nothing) trans where
+  buildSteps = uncurry ReductionSteps <<< second render
+
   builder (steps, Just sz) stateZ = (buildStepFromStateZ sz : steps, Just stateZ)
   builder (steps, Nothing) stateZ = (steps, Just stateZ)
 
   buildStepFromStateZ stateZ =
     let AttrState taZ attrState = toTree stateZ
-    in buildStepFromAttrState (treeLabel $ toTree taZ) attrState
+    in ReductionStateStep (toTopTree stateZ) $ buildStepFromAttrState (getTreeLabel taZ) attrState
 
-  render (Just stateZ) = render' . toTree $ zoomTopRtZipper stateZ
+  render (Just stateZ) = render' $ toTopTree stateZ
   render Nothing       = error "not excepted operation"
 
   render' (AttrState _ _)        = error "not expected operation"
