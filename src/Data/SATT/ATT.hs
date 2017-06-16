@@ -51,8 +51,8 @@ data ReductionAttrState syn inh
   deriving (Eq, Ord)
 
 instance (Show syn, Show inh) => Show (ReductionAttrState syn inh) where
-  show (SynAttrState a p) = show a ++ show p
-  show (InhAttrState a p) = show a ++ show p
+  show (SynAttrState a p) = show a <> show (reverse p)
+  show (InhAttrState a p) = show a <> show (reverse p)
 
 data ReductionState syn inh ta la tb lb
   = AttrState (RTZipperWithInitial ta la) (ReductionAttrState syn inh)
@@ -77,7 +77,8 @@ instance (Show syn, Show inh, Show lb) => Show (ReductionStateLabel syn inh ta l
   show (AttrStateLabel _ a) = show a
   show (RankedTreeStateLabel l) = show l
 
-type TreeReductionStateLabel syn inh ta tb = ReductionStateLabel syn inh ta (LabelType ta) tb (LabelType tb)
+type TreeReductionStateLabel syn inh ta tb
+  = ReductionStateLabel syn inh ta (LabelType ta) tb (LabelType tb)
 
 
 instance (RtConstraint ta la, RtConstraint tb lb)
@@ -102,10 +103,17 @@ applyRHSToState :: (RankedTree ta, RankedTree tb)
   -> InputRankedTreeZipper ta -> [Int]
   -> TreeReductionState syn inh ta tb
 applyRHSToState rhs z p = go rhs where
-  go (SynAttrSide a i) = AttrState z (SynAttrState a (i:p))
-  go (InhAttrSide a)   = AttrState z (InhAttrState a p)
+  go (SynAttrSide a i) = go' $ SynAttrState a (i:p)
+  go (InhAttrSide a)   = go' $ InhAttrState a p
   go (LabelSide l cs)  = RankedTreeState l [go c | c <- cs]
 
+  go' state = AttrState (nextTz state z) state
+
+  nextTz attrState tz = fromMaybe tz $ nextTz' attrState tz
+
+  nextTz' (InhAttrState _ _)     = zoomOutRtZipper
+  nextTz' (SynAttrState _ [])    = zoomInRtZipper
+  nextTz' (SynAttrState _ (x:_)) = zoomInIdxRtZipper x
 
 type TreeReductionStateZipper syn inh ta tb
   = RTZipper (TreeReductionState syn inh ta tb) (TreeReductionStateLabel syn inh ta tb)
@@ -113,16 +121,13 @@ type TreeReductionStateZipper syn inh ta tb
 
 -- reduction systems
 
-buildStepFromAttrState :: l -> ReductionAttrState syn inh -> ReductionStep syn inh l
-buildStepFromAttrState l (SynAttrState a p)      = SynReductionStep a l p
-buildStepFromAttrState l (InhAttrState a (x:xs)) = InhReductionStep a x l xs
-
 buildAttReduction :: forall b syn inh ta tb. (RankedTree ta, RankedTree tb) =>
   (b -> TreeReductionStateZipper syn inh ta tb -> b)
   -> b -> AttrTreeTrans syn inh ta tb -> ta -> b
 buildAttReduction f s AttrTreeTrans{..} t = goTop s where
-  applyAttrToState tz =
-    let l = treeLabel $ toTree tz in applyAttrToState' l tz
+  applyAttrToState tz attrState =
+    let l   = treeLabel $ toTree tz
+    in applyAttrToState' l tz attrState
 
   applyAttrToState' l tz (SynAttrState a p) =
     let rhs = synthesizedRule a l
@@ -132,32 +137,23 @@ buildAttReduction f s AttrTreeTrans{..} t = goTop s where
     in applyRHSToState rhs tz xs
   applyAttrToState' _ _ (InhAttrState _ []) = error "inherited attr is empty..."
 
-  f' x = f $! x
-
   initialAttrState = SynAttrState initialAttr []
 
   goTop state =
     let taZ      = rtZipper $ toRankedTreeWithInitial t
-        redState = applyAttrToState taZ initialAttrState
-        stateZ   = rtZipper redState
-    in go state stateZ
+        stateZ   = rtZipper $ AttrState taZ initialAttrState
+    in go' state stateZ
 
-  go state stateZ = case nextStateZ stateZ of
-      Nothing      -> f' state stateZ
+  go !state stateZ = case nextStateZ stateZ of
+      Nothing      -> f state stateZ
       Just nstateZ -> go' state nstateZ
 
   go' state stateZ =
     let AttrState taZ attrState = toTree stateZ
-        ntaZ     = nextTaZ attrState taZ
-        redState = applyAttrToState ntaZ attrState
-        nstate   = f' state stateZ
+        redState = applyAttrToState taZ attrState
+        nstate   = f state stateZ
         stateZ'  = setTreeZipper redState stateZ
     in go nstate stateZ'
-
-  nextTaZ attrState taZ = fromMaybe taZ $ nextTaZ' attrState taZ
-
-  nextTaZ' (InhAttrState _ _)     = zoomOutRtZipper
-  nextTaZ' (SynAttrState _ (x:_)) = zoomInIdxRtZipper x
 
   nextStateZ = runKleisli nextStateZ'
 
@@ -196,17 +192,33 @@ data ReductionStateStep syn inh ta la tb lb = ReductionStateStep
   , reductionStateStep :: ReductionStep syn inh (RankedTreeLabelWithInitial la)
   } deriving (Eq, Ord)
 
+instance (RtConstraint ta la, RtConstraint tb lb, Show syn, Show inh, Show la, Show lb)
+  => Show (ReductionStateStep syn inh ta la tb lb) where
+  show (ReductionStateStep state step) = show state <> " =" <> showStep step <> "=> " where
+    showStep (SynReductionStep _ l p)   = showStep' l p
+    showStep (InhReductionStep _ _ l p) = showStep' l p
+
+    showStep' l p = "{" <> show l <> "," <> show (reverse p) <> "}"
+
 data ReductionSteps syn inh ta la tb lb = ReductionSteps
   { reductionSteps :: [ReductionStateStep syn inh ta la tb lb]
   , reductionResult :: tb
   } deriving (Eq, Ord)
 
+instance (RtConstraint ta la, RtConstraint tb lb, Show syn, Show inh, Show la, Show lb, Show tb)
+  => Show (ReductionSteps syn inh ta la tb lb) where
+  show (ReductionSteps steps res) = intercalate "" (map show steps) <> " " <> show res
+
 type TreeReductionSteps syn inh ta tb = ReductionSteps syn inh ta (LabelType ta) tb (LabelType tb)
+
+buildStepFromAttrState :: l -> ReductionAttrState syn inh -> ReductionStep syn inh l
+buildStepFromAttrState l (SynAttrState a p)      = SynReductionStep a l p
+buildStepFromAttrState l (InhAttrState a (x:xs)) = InhReductionStep a x l xs
 
 buildAttReductionSteps :: (RankedTree ta, RankedTree tb) =>
   AttrTreeTrans syn inh ta tb -> ta -> TreeReductionSteps syn inh ta tb
 buildAttReductionSteps trans = buildSteps . buildAttReduction builder ([], Nothing) trans where
-  buildSteps = uncurry ReductionSteps <<< second render
+  buildSteps = uncurry ReductionSteps <<< reverse *** render
 
   builder (steps, Just sz) stateZ = (buildStepFromStateZ sz : steps, Just stateZ)
   builder (steps, Nothing) stateZ = (steps, Just stateZ)
@@ -225,7 +237,6 @@ buildAttReductionSteps trans = buildSteps . buildAttReduction builder ([], Nothi
 
 instance TreeTransducer (AttrTreeTrans syn inh) where
   treeTrans = runAttReduction
-
 
 -- instances
 
@@ -257,9 +268,11 @@ infixToPostfixTransducer = AttrTreeTrans
     synRule _ (RankedTreeLabel "two")   = LabelSide "two" [InhAttrSide a1]
     synRule _ (RankedTreeLabel "plus")  = SynAttrSide a0 1
     synRule _ (RankedTreeLabel "multi") = SynAttrSide a0 1
+    synRule _ l                         = error $ "unsupported label:" ++ show l
 
     inhRule _ 1 InitialLabel              = LabelSide "$" []
     inhRule _ 1 (RankedTreeLabel "plus")  = SynAttrSide a0 2
     inhRule _ 2 (RankedTreeLabel "plus")  = LabelSide "plus" [InhAttrSide a1]
     inhRule _ 1 (RankedTreeLabel "multi") = SynAttrSide a0 2
     inhRule _ 2 (RankedTreeLabel "multi") = LabelSide "multi" [InhAttrSide a1]
+    inhRule _ i l                         = error $ "unsupported label:" ++ show i ++ ":" ++ show l

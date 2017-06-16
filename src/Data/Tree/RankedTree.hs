@@ -126,7 +126,10 @@ instance Show l => Show (RankedTreeLabelWithInitial l) where
 data RankedTreeWithInitial t l
   = RankedTreeWithInitial (RankedTreeWithInitial t l)
   | RankedTreeWithoutInitial l [RankedTreeWithInitial t l]
-  deriving (Show, Eq, Ord)
+  deriving (Eq, Ord)
+
+instance (RtConstraint t l, Show l) => Show (RankedTreeWithInitial t l) where
+  show = showTree
 
 toRankedTreeWithInitial :: RankedTree t => t -> RankedTreeWithInitial t (LabelType t)
 toRankedTreeWithInitial = RankedTreeWithInitial . go where

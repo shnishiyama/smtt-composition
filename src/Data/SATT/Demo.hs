@@ -2,6 +2,9 @@ module Data.SATT.Demo
   ( RankedTree
   , TreeTransducer(..)
   , AttrTreeTrans
+  -- , buildAttReductionSteps
+
+    -- samples
   , InfixOpTree(..)
   , PostfixOpTree(..)
   , infixToPostfixTransducer
