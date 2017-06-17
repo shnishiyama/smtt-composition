@@ -5,7 +5,7 @@
 
 module Data.SATT.ATT where
 
-import ClassyPrelude hiding (first, second)
+import ClassyPrelude
 
 import Control.Arrow
 import Data.Proxy
@@ -16,8 +16,10 @@ import Data.Tree.RankedTree.Transducer
 
 -- common
 
+type RTZipperWithInitial t l = RTZipper (RankedTreeWithInitial t l) (RankedTreeLabelWithInitial l)
+
 type InputLabelType t = RankedTreeLabelWithInitial (LabelType t)
-type InputRankedTreeZipper t = RTZipper (RankedTreeWithInitial t (LabelType t)) (InputLabelType t)
+type InputRankedTreeZipper t = RTZipperWithInitial t (LabelType t)
 
 data RightHandSide syn inh l
   = SynAttrSide syn Int
@@ -65,7 +67,6 @@ instance (RtConstraint ta la, RtConstraint tb lb, Show syn, Show inh, Show lb)
 
 type TreeReductionState syn inh ta tb = ReductionState syn inh ta (LabelType ta) tb (LabelType tb)
 
-type RTZipperWithInitial t l = RTZipper (RankedTreeWithInitial t l) (RankedTreeLabelWithInitial l)
 
 data ReductionStateLabel syn inh ta la tb lb
   = AttrStateLabel (RTZipperWithInitial ta la) (ReductionAttrState syn inh)
@@ -97,6 +98,7 @@ instance (RtConstraint ta la, RtConstraint tb lb)
 
   mkTree (AttrStateLabel z s) []     = AttrState z s
   mkTree (RankedTreeStateLabel l) ts = RankedTreeState l ts
+  mkTree _ _ = error "not permitted operation"
 
 applyRHSToState :: (RankedTree ta, RankedTree tb)
   => TreeRightHandSide syn inh tb
