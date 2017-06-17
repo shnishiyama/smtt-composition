@@ -416,20 +416,37 @@ infixToPostfixTransducer = StackAttrTreeTrans
     a0 = OutputSynAttrUnit
     s  = StackInhAttrUnit
 
-    ouSynRule _ InitialLabel              = undefined
-    ouSynRule _ (RankedTreeLabel "one")   = undefined
-    ouSynRule _ (RankedTreeLabel "two")   = undefined
-    ouSynRule _ (RankedTreeLabel "plus")  = undefined
-    ouSynRule _ (RankedTreeLabel "multi") = undefined
+    one         = LabelSide "one" []
+    two         = LabelSide "two" []
+    plus a1 a2  = LabelSide "plus" [a1, a2]
+    multi a1 a2 = LabelSide "multi" [a1, a2]
+
+    ouSynRule _ InitialLabel              = OutputSynAttrSide a0 1
+    ouSynRule _ (RankedTreeLabel "one")   = OutputSynAttrSide a0 1
+    ouSynRule _ (RankedTreeLabel "two")   = OutputSynAttrSide a0 1
+    ouSynRule _ (RankedTreeLabel "plus")  = OutputSynAttrSide a0 1
+    ouSynRule _ (RankedTreeLabel "multi") = OutputSynAttrSide a0 1
+    ouSynRule _ (RankedTreeLabel "$")     = StackHeadSide
+      (StackInhAttrSide s)
     ouSynRule _ l                         = error $ "unsupported label: " ++ show l
 
     ouInhRule _ i l = error $ "unsupported label: (" <> show i <> "," <> show l <> ")"
 
     stSynRule _ l = error $ "unsupported label: " <> show l
 
-    stInhRule _ _ InitialLabel              = undefined
-    stInhRule _ _ (RankedTreeLabel "one")   = undefined
-    stInhRule _ _ (RankedTreeLabel "two")   = undefined
-    stInhRule _ _ (RankedTreeLabel "plus")  = undefined
-    stInhRule _ _ (RankedTreeLabel "multi") = undefined
+    stInhRule _ 1 InitialLabel              = StackEmptySide
+    stInhRule _ 1 (RankedTreeLabel "one")   = StackConsSide one $ StackInhAttrSide s
+    stInhRule _ 1 (RankedTreeLabel "two")   = StackConsSide two $ StackInhAttrSide s
+    stInhRule _ 1 (RankedTreeLabel "plus")  = StackConsSide
+      (plus
+        (StackHeadSide (StackTailSide (StackInhAttrSide s)))
+        (StackHeadSide (StackInhAttrSide s)))
+      (StackTailSide
+        (StackTailSide (StackInhAttrSide s)))
+    stInhRule _ 1 (RankedTreeLabel "multi") = StackConsSide
+      (multi
+        (StackHeadSide (StackTailSide (StackInhAttrSide s)))
+        (StackHeadSide (StackInhAttrSide s)))
+      (StackTailSide
+        (StackTailSide (StackInhAttrSide s)))
     stInhRule _ i l                         = error $ "unsupported label: (" <> show i <> "," <> show l <> ")"
