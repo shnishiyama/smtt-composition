@@ -1,5 +1,3 @@
-{-# OPTIONS_GHC -fno-warn-incomplete-patterns #-}
-
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE FlexibleContexts  #-}
 
@@ -175,12 +173,12 @@ buildAttReduction f s AttrTreeTrans{..} t = goTop s where
 
 runAttReduction :: (RankedTree ta, RankedTree tb) =>
   AttrTreeTrans syn inh ta tb -> ta -> tb
-runAttReduction trans t = render . toTree . zoomTopRtZipper $ builder t where
+runAttReduction trans = render . toTopTree . builder where
   builder = fromMaybe (error "not permitted operation")
-    . buildAttReduction (\_ s -> Just s) Nothing trans
+    . buildAttReduction (const Just) Nothing trans
 
-  render (AttrState _ _)        = error "not expected operation"
   render (RankedTreeState l ss) = mkTree l [render s | s <- ss]
+  render _                      = error "unexpected operation"
 
 data ReductionStep syn inh l
   = SynReductionStep syn l [Int]
@@ -214,8 +212,10 @@ instance (RtConstraint ta la, RtConstraint tb lb, Show syn, Show inh, Show la, S
 type TreeReductionSteps syn inh ta tb = ReductionSteps syn inh ta (LabelType ta) tb (LabelType tb)
 
 buildStepFromAttrState :: l -> ReductionAttrState syn inh -> ReductionStep syn inh l
-buildStepFromAttrState l (SynAttrState a p)      = SynReductionStep a l p
-buildStepFromAttrState l (InhAttrState a (x:xs)) = InhReductionStep a x l xs
+buildStepFromAttrState l = go where
+  go (SynAttrState a p)      = SynReductionStep a l p
+  go (InhAttrState a (x:xs)) = InhReductionStep a x l xs
+  go _                       = error "unexpected operation"
 
 buildAttReductionSteps :: (RankedTree ta, RankedTree tb) =>
   AttrTreeTrans syn inh ta tb -> ta -> TreeReductionSteps syn inh ta tb
@@ -230,9 +230,9 @@ buildAttReductionSteps trans = buildSteps . buildAttReduction builder ([], Nothi
     in ReductionStateStep (toTopTree stateZ) $ buildStepFromAttrState (getTreeLabel taZ) attrState
 
   render (Just stateZ) = render' $ toTopTree stateZ
-  render Nothing       = error "not excepted operation"
+  render Nothing       = error "unexcepted operation"
 
-  render' (AttrState _ _)        = error "not expected operation"
+  render' (AttrState _ _)        = error "unexpected operation"
   render' (RankedTreeState l ss) = mkTree l [render' s | s <- ss]
 
 -- tree transducer

@@ -43,6 +43,7 @@ library
     NoImplicitPrelude
     StrictData
     BangPatterns
+    LambdaCase
     PatternSynonyms
     RecordWildCards
     ViewPatterns

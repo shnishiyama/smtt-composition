@@ -1,5 +1,3 @@
-{-# OPTIONS_GHC -fno-warn-incomplete-patterns #-}
-
 {-# LANGUAGE FlexibleContexts    #-}
 
 module Data.Tree.RankedTree
@@ -149,6 +147,7 @@ instance RtConstraint t l => RankedTree (RankedTreeWithInitial t l) where
 
   mkTree InitialLabel        [t] = RankedTreeWithInitial t
   mkTree (RankedTreeLabel l) ts  = RankedTreeWithoutInitial l ts
+  mkTree InitialLabel        _   = error "not allowed tree"
 
 
 data TreeABC
@@ -171,10 +170,12 @@ instance RankedTree TreeABC where
   treeLabelRank _ 'a' = 2
   treeLabelRank _ 'b' = 1
   treeLabelRank _ 'c' = 0
+  treeLabelRank _ c   = error $ "not allowed label character: " <> show c
 
-  mkTree 'a' [x, y] = TreeA x y
-  mkTree 'b' [x]    = TreeB x
-  mkTree 'c' []     = TreeC
+  mkTree 'a' [x, y]  = TreeA x y
+  mkTree 'b' [x]     = TreeB x
+  mkTree 'c' []      = TreeC
+  mkTree c   ts      = error $ "not allowed tree: (" <> show c <> "," <> show ts <> ")"
 
 
 -- | Infix operation tree
@@ -211,11 +212,13 @@ instance RankedTree InfixOpTree where
   treeLabelRank _ "two"   = 0
   treeLabelRank _ "plus"  = 2
   treeLabelRank _ "multi" = 2
+  treeLabelRank _ str     = error $ "not allowed label string: " <> show str
 
-  mkTree "one" []       = InfixOne
-  mkTree "two" []       = InfixTwo
-  mkTree "plus" [x, y]  = InfixPlus x y
+  mkTree "one"   []     = InfixOne
+  mkTree "two"   []     = InfixTwo
+  mkTree "plus"  [x, y] = InfixPlus x y
   mkTree "multi" [x, y] = InfixMulti x y
+  mkTree str     ts     = error $ "not allowed tree: (" <> show str <> "," <> show ts <> ")"
 
 
 data PostfixOpTree
@@ -255,9 +258,11 @@ instance RankedTree PostfixOpTree where
   treeLabelRank _ "plus"  = 1
   treeLabelRank _ "multi" = 1
   treeLabelRank _ "$"     = 0
+  treeLabelRank _ str     = error $ "not allowed label string: " <> show str
 
   mkTree "one"   [x] = PostfixOne x
   mkTree "two"   [x] = PostfixTwo x
   mkTree "plus"  [x] = PostfixPlus x
   mkTree "multi" [x] = PostfixMulti x
   mkTree "$"     []  = PostfixEnd
+  mkTree str     ts  = error $ "not allowed tree: (" <> show str <> "," <> show ts <> ")"
