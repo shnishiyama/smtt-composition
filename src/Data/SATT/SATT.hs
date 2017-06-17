@@ -115,6 +115,11 @@ instance (RtConstraint ta la, RtConstraint tb lb, Show syn, Show inh, Show stsyn
 
 type TreeReductionState syn inh stsyn stinh ta tb = ReductionState syn inh stsyn stinh ta (LabelType ta) tb (LabelType tb)
 
+fromTreeReductionState :: RankedTree tb => TreeReductionState syn inh stsyn stinh ta tb -> Maybe tb
+fromTreeReductionState (OutputReduction ostate) = go ostate where
+  go (RankedTreeState l ss) = pure (mkTree l) <*> traverse go ss
+  go _                      = empty
+fromTreeReductionState _ = empty
 
 data ReductionStateLabel syn inh stsyn stinh ta la tb lb
   = OutputAttrStateLabel (RTZipperWithInitial ta la) (ReductionOutputAttrState syn inh)
@@ -178,7 +183,10 @@ instance (RtConstraint ta la, RtConstraint tb lb)
   mkTree (StackAttrStateLabel z s)  [] = StackReduction  $ StackAttrState  z s
   mkTree (RankedTreeStateLabel l)   ts = OutputReduction $ RankedTreeState l ts'
     where
-      ts' = map (\case OutputReduction h -> h) ts
+      ts' = map filterOutputReduction ts
+
+      filterOutputReduction (OutputReduction h) = h
+      filterOutputReduction _                   = error "unexpected operation"
   mkTree StackEmptyStateLabel [] = StackReduction StackEmptyState
   mkTree StackHeadStateLabel  [StackReduction s] = OutputReduction $ StackHeadState s
   mkTree StackConsStateLabel  [OutputReduction h, StackReduction s] = StackReduction $ StackConsState h s
@@ -275,6 +283,7 @@ buildSattReduction f s StackAttrTreeTrans{..} t = goTop s where
             applyOutputAttrToState taZ outputAttrState
           StackReduction (StackAttrState taZ stackAttrState) ->
             applyStackAttrToState taZ stackAttrState
+          _ -> error "unexpected operation"
 
         nstate   = f state stateZ
         stateZ'  = setTreeZipper redState stateZ
@@ -300,11 +309,8 @@ runSattReduction trans = render . toTopTree . builder where
   builder = fromMaybe (error "not permitted operation")
     . buildSattReduction (const Just) Nothing trans
 
-  render (OutputReduction ostate) = render' ostate
-  render _                        = error "not expected operation"
-
-  render' (RankedTreeState l ss) = mkTree l [render' s | s <- ss]
-  render' _                      = error "not expected operation"
+  render = fromMaybe (error "unexpected operation")
+    . fromTreeReductionState
 
 
 data ReductionStep syn inh stsyn stinh l
@@ -343,11 +349,10 @@ instance (RtConstraint ta la, RtConstraint tb lb, Show syn, Show inh, Show stsyn
 type TreeReductionSteps syn inh stsyn stinh ta tb = ReductionSteps syn inh stsyn stinh ta (LabelType ta) tb (LabelType tb)
 
 buildStepFromOutputAttrState :: l -> ReductionOutputAttrState syn inh -> ReductionStep syn inh stsyn stinh l
-buildStepFromAttrState l = go where
+buildStepFromOutputAttrState l = go where
   go (OutputSynAttrState a p)      = OutputSynReductionStep a l p
   go (OutputInhAttrState a (x:xs)) = OutputInhReductionStep a x l xs
   go (OutputInhAttrState _ [])     = error "output inherited attribute is empty..."
-
 
 buildStepFromStackAttrState :: l -> ReductionStackAttrState stsyn stinh -> ReductionStep syn inh stsyn stinh l
 buildStepFromStackAttrState l = go where
@@ -357,8 +362,8 @@ buildStepFromStackAttrState l = go where
 
 
 buildSattReductionSteps :: (RankedTree ta, RankedTree tb) =>
-  StackAttrTreeTrans syn inh ta tb -> ta -> TreeReductionSteps syn inh ta tb
-buildSattReductionSteps trans = buildSteps . buildAttReduction builder ([], Nothing) trans where
+  StackAttrTreeTrans syn inh stsyn stinh ta tb -> ta -> TreeReductionSteps syn inh stsyn stinh ta tb
+buildSattReductionSteps trans = buildSteps . buildSattReduction builder ([], Nothing) trans where
   buildSteps = uncurry ReductionSteps <<< reverse *** render
 
   builder (steps, Just sz) stateZ = (buildStepFromStateZ sz : steps, Just stateZ)
@@ -369,56 +374,62 @@ buildSattReductionSteps trans = buildSteps . buildAttReduction builder ([], Noth
           OutputReduction (OutputAttrState taZ outputAttrState) ->
             buildStepFromOutputAttrState (getTreeLabel taZ) outputAttrState
           StackReduction (StackAttrState taZ stackAttrState) ->
-            buildStepFromOutputAttrState (getTreeLabel taZ) stackAttrState
-
+            buildStepFromStackAttrState (getTreeLabel taZ) stackAttrState
+          _ -> error "unexpected operation"
     in ReductionStateStep (toTopTree stateZ) stateStep
 
-  render (Just stateZ) = render' $ toTopTree stateZ
-  render Nothing       = error "unexcepted operation"
+  render mstateZ = fromMaybe (error "unexpected operation") $ do
+    stateZ <- mstateZ
+    let state = toTopTree stateZ
 
-  render' (RankedTreeState l ss) = mkTree l [render' s | s <- ss]
+    fromTreeReductionState state
+
 
 -- tree transducer
 
-instance TreeTransducer (StackAttrTreeTrans syn inh) where
+instance TreeTransducer (StackAttrTreeTrans syn inh stsyn stinh) where
   treeTrans = runSattReduction
 
 -- instances
-{-
-data SynAttrUnit = SynAttrUnit
+
+data OutputSynAttrUnit = OutputSynAttrUnit
   deriving (Eq, Ord)
 
-instance Show SynAttrUnit where
+instance Show OutputSynAttrUnit where
   show _ = "a0"
 
-data InhAttrUnit = InhAttrUnit
+data StackInhAttrUnit = StackInhAttrUnit
   deriving (Eq, Ord)
 
-instance Show InhAttrUnit where
-  show _ = "a1"
+instance Show StackInhAttrUnit where
+  show _ = "s"
 
-
-infixToPostfixTransducer :: AttrTreeTrans SynAttrUnit InhAttrUnit InfixOpTree PostfixOpTree
-infixToPostfixTransducer = AttrTreeTrans
-  { initialAttr     = a0
-  , synthesizedRule = synRule
-  , inheritedRule   = inhRule
+infixToPostfixTransducer :: StackAttrTreeTrans OutputSynAttrUnit () () StackInhAttrUnit InfixOpTree PostfixOpTree
+infixToPostfixTransducer = StackAttrTreeTrans
+  { initialAttr           = a0
+  , outputSynthesizedRule = ouSynRule
+  , outputInheritedRule   = ouInhRule
+  , stackSynthesizedRule  = stSynRule
+  , stackInheritedRule    = stInhRule
   }
   where
-    a0 = SynAttrUnit
-    a1 = InhAttrUnit
+    a0 = OutputSynAttrUnit
+    s  = StackInhAttrUnit
 
-    synRule _ InitialLabel              = SynAttrSide a0 1
-    synRule _ (RankedTreeLabel "one")   = LabelSide "one" [InhAttrSide a1]
-    synRule _ (RankedTreeLabel "two")   = LabelSide "two" [InhAttrSide a1]
-    synRule _ (RankedTreeLabel "plus")  = SynAttrSide a0 1
-    synRule _ (RankedTreeLabel "multi") = SynAttrSide a0 1
-    synRule _ l                         = error $ "unsupported label:" ++ show l
+    ouSynRule _ InitialLabel              = undefined
+    ouSynRule _ (RankedTreeLabel "one")   = undefined
+    ouSynRule _ (RankedTreeLabel "two")   = undefined
+    ouSynRule _ (RankedTreeLabel "plus")  = undefined
+    ouSynRule _ (RankedTreeLabel "multi") = undefined
+    ouSynRule _ l                         = error $ "unsupported label: " ++ show l
 
-    inhRule _ 1 InitialLabel              = LabelSide "$" []
-    inhRule _ 1 (RankedTreeLabel "plus")  = SynAttrSide a0 2
-    inhRule _ 2 (RankedTreeLabel "plus")  = LabelSide "plus" [InhAttrSide a1]
-    inhRule _ 1 (RankedTreeLabel "multi") = SynAttrSide a0 2
-    inhRule _ 2 (RankedTreeLabel "multi") = LabelSide "multi" [InhAttrSide a1]
-    inhRule _ i l                         = error $ "unsupported label:" ++ show i ++ ":" ++ show l
--}
+    ouInhRule _ i l = error $ "unsupported label: (" <> show i <> "," <> show l <> ")"
+
+    stSynRule _ l = error $ "unsupported label: " <> show l
+
+    stInhRule _ _ InitialLabel              = undefined
+    stInhRule _ _ (RankedTreeLabel "one")   = undefined
+    stInhRule _ _ (RankedTreeLabel "two")   = undefined
+    stInhRule _ _ (RankedTreeLabel "plus")  = undefined
+    stInhRule _ _ (RankedTreeLabel "multi") = undefined
+    stInhRule _ i l                         = error $ "unsupported label: (" <> show i <> "," <> show l <> ")"
