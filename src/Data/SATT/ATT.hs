@@ -270,16 +270,22 @@ infixToPostfixTransducer = AttrTreeTrans
     a0 = SynAttrUnit
     a1 = InhAttrUnit
 
+    one a   = LabelSide "one" [a]
+    two a   = LabelSide "two" [a]
+    plus a  = LabelSide "plus" [a]
+    multi a = LabelSide "multi" [a]
+    end     = LabelSide "$" []
+
     synRule _ InitialLabel              = SynAttrSide a0 1
-    synRule _ (RankedTreeLabel "one")   = LabelSide "one" [InhAttrSide a1]
-    synRule _ (RankedTreeLabel "two")   = LabelSide "two" [InhAttrSide a1]
+    synRule _ (RankedTreeLabel "one")   = one $ InhAttrSide a1
+    synRule _ (RankedTreeLabel "two")   = two $ InhAttrSide a1
     synRule _ (RankedTreeLabel "plus")  = SynAttrSide a0 1
     synRule _ (RankedTreeLabel "multi") = SynAttrSide a0 1
     synRule _ l                         = error $ "unsupported label: " ++ show l
 
-    inhRule _ 1 InitialLabel              = LabelSide "$" []
+    inhRule _ 1 InitialLabel              = end
     inhRule _ 1 (RankedTreeLabel "plus")  = SynAttrSide a0 2
-    inhRule _ 2 (RankedTreeLabel "plus")  = LabelSide "plus" [InhAttrSide a1]
+    inhRule _ 2 (RankedTreeLabel "plus")  = plus $ InhAttrSide a1
     inhRule _ 1 (RankedTreeLabel "multi") = SynAttrSide a0 2
-    inhRule _ 2 (RankedTreeLabel "multi") = LabelSide "multi" [InhAttrSide a1]
+    inhRule _ 2 (RankedTreeLabel "multi") = multi $ InhAttrSide a1
     inhRule _ i l                         = error $ "unsupported label: (" <> show i <> "," <> show l <> ")"
