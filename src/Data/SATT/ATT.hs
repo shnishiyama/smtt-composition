@@ -65,6 +65,10 @@ instance (RtConstraint ta la, RtConstraint tb lb, Show syn, Show inh, Show lb)
 
 type TreeReductionState syn inh ta tb = ReductionState syn inh ta (LabelType ta) tb (LabelType tb)
 
+fromTreeReductionState :: RankedTree tb => TreeReductionState syn inh ta tb -> Maybe tb
+fromTreeReductionState (RankedTreeState l ss) = pure (mkTree l) <*> traverse fromTreeReductionState ss
+fromTreeReductionState _                      = empty
+
 
 data ReductionStateLabel syn inh ta la tb lb
   = AttrStateLabel (RTZipperWithInitial ta la) (ReductionAttrState syn inh)
@@ -177,8 +181,8 @@ runAttReduction trans = render . toTopTree . builder where
   builder = fromMaybe (error "not permitted operation")
     . buildAttReduction (const Just) Nothing trans
 
-  render (RankedTreeState l ss) = mkTree l [render s | s <- ss]
-  render _                      = error "unexpected operation"
+  render = fromMaybe (error "unexpected operation")
+    . fromTreeReductionState
 
 data ReductionStep syn inh l
   = SynReductionStep syn l [Int]
@@ -229,11 +233,12 @@ buildAttReductionSteps trans = buildSteps . buildAttReduction builder ([], Nothi
     let AttrState taZ attrState = toTree stateZ
     in ReductionStateStep (toTopTree stateZ) $ buildStepFromAttrState (getTreeLabel taZ) attrState
 
-  render (Just stateZ) = render' $ toTopTree stateZ
-  render Nothing       = error "unexcepted operation"
+  render mstateZ = fromMaybe (error "unexpected operation") $ do
+    stateZ <- mstateZ
+    let state = toTopTree stateZ
 
-  render' (AttrState _ _)        = error "unexpected operation"
-  render' (RankedTreeState l ss) = mkTree l [render' s | s <- ss]
+    fromTreeReductionState state
+
 
 -- tree transducer
 
@@ -270,11 +275,11 @@ infixToPostfixTransducer = AttrTreeTrans
     synRule _ (RankedTreeLabel "two")   = LabelSide "two" [InhAttrSide a1]
     synRule _ (RankedTreeLabel "plus")  = SynAttrSide a0 1
     synRule _ (RankedTreeLabel "multi") = SynAttrSide a0 1
-    synRule _ l                         = error $ "unsupported label:" ++ show l
+    synRule _ l                         = error $ "unsupported label: " ++ show l
 
     inhRule _ 1 InitialLabel              = LabelSide "$" []
     inhRule _ 1 (RankedTreeLabel "plus")  = SynAttrSide a0 2
     inhRule _ 2 (RankedTreeLabel "plus")  = LabelSide "plus" [InhAttrSide a1]
     inhRule _ 1 (RankedTreeLabel "multi") = SynAttrSide a0 2
     inhRule _ 2 (RankedTreeLabel "multi") = LabelSide "multi" [InhAttrSide a1]
-    inhRule _ i l                         = error $ "unsupported label:" ++ show i ++ ":" ++ show l
+    inhRule _ i l                         = error $ "unsupported label: (" <> show i <> "," <> show l <> ")"
