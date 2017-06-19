@@ -27,6 +27,7 @@ library
     Data.Tree.RankedTree.Zipper
     Data.Tree.RankedTree.Transducer
     Data.SATT.ATT
+    Data.SATT.SATT
     Data.SATT.Demo
   build-depends:
     base >= 4.7 && < 5,

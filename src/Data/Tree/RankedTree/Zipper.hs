@@ -31,7 +31,7 @@ fromTreeCrumb RTZCrumb{..} t = mkTree rtzcLabel rtzcChilds
   where
     rtzcChilds = go rtzcLeft (t:rtzcRight)
 
-    go = foldr (:)
+    go lts rts = foldl' (flip (:)) rts lts
 
 -- |
 --
@@ -50,6 +50,9 @@ fromTreeCrumb RTZCrumb{..} t = mkTree rtzcLabel rtzcChilds
 --   ) treeABCZipper
 -- :}
 -- Just (TreeA (TreeB TreeC) TreeC)
+--
+-- >>> toTopTree <$> setTreeZipper (TreeA TreeC TreeC) <$> zoomInRtZipper treeABCZipper
+-- Just (TreeA (TreeA TreeC TreeC) (TreeB TreeC))
 --
 -- >>> toTree <$> zoomOutRtZipper treeABCZipper
 -- Nothing

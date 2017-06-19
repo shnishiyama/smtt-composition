@@ -153,23 +153,26 @@ buildAttReduction f s AttrTreeTrans{..} t = goTop s where
       Just nstateZ -> go' state nstateZ
 
   go' state stateZ =
-    let AttrState taZ attrState = toTree stateZ
-        redState = applyAttrToState taZ attrState
-        nstate   = f state stateZ
-        stateZ'  = setTreeZipper redState stateZ
+    let nstate   = f state stateZ
+        stateZ' = case toTree stateZ of
+          AttrState taZ attrState ->
+            setTreeZipper (applyAttrToState taZ attrState) stateZ
+          _  ->
+            error "not permitted operation"
+
     in go nstate stateZ'
 
   nextStateZ = runKleisli nextStateZ'
 
   nextStateZ'
-    =   Kleisli filterLabelStateZipper
+    =   Kleisli filterStateZipper
     <+> (Kleisli zoomInRtZipper >>> nextStateZ')
     <+> nextStateZ''
 
-  filterLabelStateZipper :: TreeReductionStateZipper syn inh ta tb -> Maybe (TreeReductionStateZipper syn inh ta tb)
-  filterLabelStateZipper taZ = case toTree taZ of
+  filterStateZipper :: TreeReductionStateZipper syn inh ta tb -> Maybe (TreeReductionStateZipper syn inh ta tb)
+  filterStateZipper stateZ = case toTree stateZ of
     RankedTreeState _ _ -> empty
-    _                   -> return taZ
+    _                   -> return stateZ
 
   nextStateZ''
     =   (Kleisli zoomRightRtZipper >>> nextStateZ')
@@ -270,16 +273,22 @@ infixToPostfixTransducer = AttrTreeTrans
     a0 = SynAttrUnit
     a1 = InhAttrUnit
 
+    one a   = LabelSide "one" [a]
+    two a   = LabelSide "two" [a]
+    plus a  = LabelSide "plus" [a]
+    multi a = LabelSide "multi" [a]
+    end     = LabelSide "$" []
+
     synRule _ InitialLabel              = SynAttrSide a0 1
-    synRule _ (RankedTreeLabel "one")   = LabelSide "one" [InhAttrSide a1]
-    synRule _ (RankedTreeLabel "two")   = LabelSide "two" [InhAttrSide a1]
+    synRule _ (RankedTreeLabel "one")   = one $ InhAttrSide a1
+    synRule _ (RankedTreeLabel "two")   = two $ InhAttrSide a1
     synRule _ (RankedTreeLabel "plus")  = SynAttrSide a0 1
     synRule _ (RankedTreeLabel "multi") = SynAttrSide a0 1
     synRule _ l                         = error $ "unsupported label: " ++ show l
 
-    inhRule _ 1 InitialLabel              = LabelSide "$" []
+    inhRule _ 1 InitialLabel              = end
     inhRule _ 1 (RankedTreeLabel "plus")  = SynAttrSide a0 2
-    inhRule _ 2 (RankedTreeLabel "plus")  = LabelSide "plus" [InhAttrSide a1]
+    inhRule _ 2 (RankedTreeLabel "plus")  = plus $ InhAttrSide a1
     inhRule _ 1 (RankedTreeLabel "multi") = SynAttrSide a0 2
-    inhRule _ 2 (RankedTreeLabel "multi") = LabelSide "multi" [InhAttrSide a1]
+    inhRule _ 2 (RankedTreeLabel "multi") = multi $ InhAttrSide a1
     inhRule _ i l                         = error $ "unsupported label: (" <> show i <> "," <> show l <> ")"
