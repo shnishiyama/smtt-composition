@@ -153,23 +153,26 @@ buildAttReduction f s AttrTreeTrans{..} t = goTop s where
       Just nstateZ -> go' state nstateZ
 
   go' state stateZ =
-    let AttrState taZ attrState = toTree stateZ
-        redState = applyAttrToState taZ attrState
-        nstate   = f state stateZ
-        stateZ'  = setTreeZipper redState stateZ
+    let nstate   = f state stateZ
+        stateZ' = case toTree stateZ of
+          AttrState taZ attrState ->
+            setTreeZipper (applyAttrToState taZ attrState) stateZ
+          _  ->
+            error "not permitted operation"
+
     in go nstate stateZ'
 
   nextStateZ = runKleisli nextStateZ'
 
   nextStateZ'
-    =   Kleisli filterLabelStateZipper
+    =   Kleisli filterStateZipper
     <+> (Kleisli zoomInRtZipper >>> nextStateZ')
     <+> nextStateZ''
 
-  filterLabelStateZipper :: TreeReductionStateZipper syn inh ta tb -> Maybe (TreeReductionStateZipper syn inh ta tb)
-  filterLabelStateZipper taZ = case toTree taZ of
+  filterStateZipper :: TreeReductionStateZipper syn inh ta tb -> Maybe (TreeReductionStateZipper syn inh ta tb)
+  filterStateZipper stateZ = case toTree stateZ of
     RankedTreeState _ _ -> empty
-    _                   -> return taZ
+    _                   -> return stateZ
 
   nextStateZ''
     =   (Kleisli zoomRightRtZipper >>> nextStateZ')

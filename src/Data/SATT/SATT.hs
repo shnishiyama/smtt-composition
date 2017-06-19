@@ -8,6 +8,7 @@ import ClassyPrelude
 import Control.Arrow
 import Data.Proxy
 
+import qualified Data.SATT.ATT as ATT
 import Data.Tree.RankedTree
 import Data.Tree.RankedTree.Zipper
 import Data.Tree.RankedTree.Transducer
@@ -278,26 +279,41 @@ buildSattReduction f s StackAttrTreeTrans{..} t = goTop s where
       Just nstateZ -> go' state nstateZ
 
   go' state stateZ =
-    let redState = case toTree stateZ of
-          OutputReduction (OutputAttrState taZ outputAttrState) ->
-            applyOutputAttrToState taZ outputAttrState
-          StackReduction (StackAttrState taZ stackAttrState) ->
-            applyStackAttrToState taZ stackAttrState
-          _ -> error "unexpected operation"
+    let nstate   = f state stateZ
 
-        nstate   = f state stateZ
-        stateZ'  = setTreeZipper redState stateZ
+        stateZ' = case toTree stateZ of
+          OutputReduction (OutputAttrState taZ outputAttrState) ->
+            setTreeZipper (applyOutputAttrToState taZ outputAttrState) stateZ
+          StackReduction (StackAttrState taZ stackAttrState) ->
+            setTreeZipper (applyStackAttrToState taZ stackAttrState) stateZ
+          StackReduction (StackConsState hd tl) ->
+            deconstractStack hd tl stateZ
+          _ ->
+            error "not permitted operation"
+
     in go nstate stateZ'
+
+  deconstractStack hd tl stateZ = case zoomOutRtZipper stateZ of
+    Nothing -> error "not permitted operation"
+    Just nstateZ -> case toTree nstateZ of
+      OutputReduction (StackHeadState _) -> setTreeZipper (OutputReduction hd) nstateZ
+      StackReduction  (StackTailState _) -> setTreeZipper (StackReduction  tl) nstateZ
+      _ -> error "not permitted operation"
 
   nextStateZ = runKleisli nextStateZ'
 
   nextStateZ'
-    =   Kleisli filterLabelStateZipper
+    =   Kleisli filterStateZipper
     <+> (Kleisli zoomInRtZipper >>> nextStateZ')
     <+> nextStateZ''
 
-  filterLabelStateZipper :: TreeReductionStateZipper syn inh stsyn stinh ta tb -> Maybe (TreeReductionStateZipper syn inh stsyn stinh ta tb)
-  filterLabelStateZipper _taZ = undefined
+  filterStateZipper :: TreeReductionStateZipper syn inh stsyn stinh ta tb -> Maybe (TreeReductionStateZipper syn inh stsyn stinh ta tb)
+  filterStateZipper stateZ = case toTree stateZ of
+    OutputReduction (RankedTreeState _ _) -> empty
+    OutputReduction (StackHeadState _)    -> empty
+    StackReduction  (StackTailState _)    -> empty
+    StackReduction  StackEmptyState       -> empty
+    _                                     -> return stateZ
 
   nextStateZ''
     =   (Kleisli zoomRightRtZipper >>> nextStateZ')
@@ -318,6 +334,8 @@ data ReductionStep syn inh stsyn stinh l
   | StackSynReductionStep  stsyn l [Int]
   | OutputInhReductionStep inh   Int l [Int]
   | StackInhReductionStep  stinh Int l [Int]
+  | StackHeadConsDeconstract
+  | StackTailConsDeconstract
   deriving (Show, Eq, Ord)
 
 type TreeReductionStep syn inh stsyn stinh t = ReductionStep syn inh stsyn stinh (InputLabelType t)
@@ -334,6 +352,8 @@ instance (RtConstraint ta la, RtConstraint tb lb, Show syn, Show inh, Show stsyn
     showStep (StackSynReductionStep  _ l p)   = showStep' l p
     showStep (OutputInhReductionStep _ _ l p) = showStep' l p
     showStep (StackInhReductionStep  _ _ l p) = showStep' l p
+    showStep StackHeadConsDeconstract         = "HC"
+    showStep StackTailConsDeconstract         = "TC"
 
     showStep' l p = "{" <> show l <> "," <> show (reverse p) <> "}"
 
@@ -375,6 +395,10 @@ buildSattReductionSteps trans = buildSteps . buildSattReduction builder ([], Not
             buildStepFromOutputAttrState (getTreeLabel taZ) outputAttrState
           StackReduction (StackAttrState taZ stackAttrState) ->
             buildStepFromStackAttrState (getTreeLabel taZ) stackAttrState
+          StackReduction (StackConsState _ _) -> case toTree <$> zoomOutRtZipper stateZ of
+            Just (OutputReduction (StackHeadState _)) -> StackHeadConsDeconstract
+            Just (StackReduction  (StackTailState _)) -> StackTailConsDeconstract
+            _ -> error "unexpected operation"
           _ -> error "unexpected operation"
     in ReductionStateStep (toTopTree stateZ) stateStep
 
@@ -392,6 +416,26 @@ instance TreeTransducer (StackAttrTreeTrans syn inh stsyn stinh) where
 
 -- instances
 
+fromAttrTreeTrans :: ATT.AttrTreeTrans syn inh ta tb -> StackAttrTreeTrans syn inh stsyn stinh ta tb
+fromAttrTreeTrans trans = StackAttrTreeTrans
+  { initialAttr           = ATT.initialAttr trans
+  , outputSynthesizedRule = ouSynRule
+  , outputInheritedRule   = ouInhRule
+  , stackSynthesizedRule  = stSynRule
+  , stackInheritedRule    = stInhRule
+  }
+  where
+    toOutputAttr (ATT.SynAttrSide a i) = OutputSynAttrSide a i
+    toOutputAttr (ATT.InhAttrSide a)   = OutputInhAttrSide a
+    toOutputAttr (ATT.LabelSide l ts)  = LabelSide l [toOutputAttr t | t <- ts]
+
+    ouSynRule a   l = toOutputAttr $ ATT.synthesizedRule trans a l
+    ouInhRule a i l = toOutputAttr $ ATT.inheritedRule trans a i l
+
+    stSynRule _   _ = error "not supported stack attributes"
+    stInhRule _ _ _ = error "not supported stack attributes"
+
+
 data OutputSynAttrUnit = OutputSynAttrUnit
   deriving (Eq, Ord)
 
@@ -404,8 +448,8 @@ data StackInhAttrUnit = StackInhAttrUnit
 instance Show StackInhAttrUnit where
   show _ = "s"
 
-infixToPostfixTransducer :: StackAttrTreeTrans OutputSynAttrUnit () () StackInhAttrUnit InfixOpTree PostfixOpTree
-infixToPostfixTransducer = StackAttrTreeTrans
+postfixToInfixTransducer :: StackAttrTreeTrans OutputSynAttrUnit () () StackInhAttrUnit PostfixOpTree InfixOpTree
+postfixToInfixTransducer = StackAttrTreeTrans
   { initialAttr           = a0
   , outputSynthesizedRule = ouSynRule
   , outputInheritedRule   = ouInhRule
@@ -416,9 +460,9 @@ infixToPostfixTransducer = StackAttrTreeTrans
     a0 = OutputSynAttrUnit
     s  = StackInhAttrUnit
 
-    one         = LabelSide "one" []
-    two         = LabelSide "two" []
-    plus a1 a2  = LabelSide "plus" [a1, a2]
+    one         = LabelSide "one"   []
+    two         = LabelSide "two"   []
+    plus a1 a2  = LabelSide "plus"  [a1, a2]
     multi a1 a2 = LabelSide "multi" [a1, a2]
 
     ouSynRule _ InitialLabel              = OutputSynAttrSide a0 1
