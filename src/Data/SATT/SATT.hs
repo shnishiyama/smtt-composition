@@ -7,6 +7,7 @@ import ClassyPrelude
 
 import Control.Arrow
 import Data.Proxy
+import Data.Void
 
 import qualified Data.SATT.ATT as ATT
 import Data.Tree.RankedTree
@@ -448,7 +449,7 @@ data StackInhAttrUnit = StackInhAttrUnit
 instance Show StackInhAttrUnit where
   show _ = "s"
 
-postfixToInfixTransducer :: StackAttrTreeTrans OutputSynAttrUnit () () StackInhAttrUnit PostfixOpTree InfixOpTree
+postfixToInfixTransducer :: StackAttrTreeTrans OutputSynAttrUnit Void Void StackInhAttrUnit PostfixOpTree InfixOpTree
 postfixToInfixTransducer = StackAttrTreeTrans
   { initialAttr           = a0
   , outputSynthesizedRule = ouSynRule
