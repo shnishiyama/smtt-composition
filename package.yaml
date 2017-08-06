@@ -1,0 +1,123 @@
+name:        satt-composition
+version:     '0.1.0.0'
+synopsis:    Implementation of SATT Composition
+description: SATT Composition implementation
+category:    Tree
+author:      Mizunashi Mana
+maintainer:  mizunashi-mana@noreply.git
+copyright:   2017 Mizunashi Mana
+license:     MIT
+homepage:     https://gitlab.com/mizunashi-mana/satt-composition#readme
+git:         https://gitlab.com/mizunashi-mana/satt-composition
+extra-source-files:
+- README.md
+
+build-type: Custom
+
+# not supported
+# cabal-version: '>=1.24'
+
+library:
+  ghc-options: -Wall
+  source-dirs: src
+  default-extensions:
+  - NoImplicitPrelude
+  - StrictData
+  - BangPatterns
+  - LambdaCase
+  - TupleSections
+  - PatternSynonyms
+  - RecordWildCards
+  - ViewPatterns
+  - GeneralizedNewtypeDeriving
+  - EmptyDataDecls
+  - DataKinds
+  - PolyKinds
+  - TypeApplications
+  - TypeOperators
+  - TypeFamilies
+  - GADTs
+  - ExistentialQuantification
+  - FunctionalDependencies
+  - ScopedTypeVariables
+  - RankNTypes
+  - ConstraintKinds
+  exposed-modules:
+  - Data.Universe.Instances
+  - Data.Tree.RankedTree
+  - Data.Tree.RankedTree.Zipper
+  - Data.Tree.RankedTree.Transducer
+  - Data.SATT.ATT
+  - Data.SATT.ATT.Compose
+  - Data.SATT.SATT
+  - Data.SATT.SATT.Compose
+  - Data.SATT.Demo
+  dependencies:
+  - base >=4.7 && <5
+  - classy-prelude
+  - lens
+  - mono-traversable
+  - vector
+  - profunctors
+  - constraints
+  - universe-base
+
+custom-setup:
+  dependencies:
+    - base
+    - Cabal
+    - cabal-doctest
+
+executables:
+  satt-composit:
+    main:        Main.hs
+    source-dirs: app
+    default-extensions:
+    - NoImplicitPrelude
+    - TypeFamilies
+    - GADTs
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - base
+    - classy-prelude
+    - satt-composition
+
+tests:
+  lint:
+    main: Hlint.hs
+    source-dirs: test
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - base
+    - hlint
+
+  spec-test:
+    main: Spec.hs
+    source-dirs: test
+    ghc-options:
+    - -Wall
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - base
+    - satt-composition
+    - hspec
+    - QuickCheck
+
+  doc-test:
+    main: Doctest.hs
+    source-dirs: test
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - base
+    - doctest

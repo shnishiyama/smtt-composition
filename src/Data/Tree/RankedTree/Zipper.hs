@@ -25,9 +25,7 @@ data RTZCrumb t l = RTZCrumb
   , rtzcChilds :: NodeVec t
   } deriving (Show, Eq, Ord)
 
-type RankedTreeCrumb t = RTZCrumb t (LabelType t)
-
-fromTreeCrumb :: RankedTree t => RankedTreeCrumb t -> t -> t
+fromTreeCrumb :: RankedTree t => RtApply RTZCrumb t -> t -> t
 fromTreeCrumb RTZCrumb{..} t = mkTreeUnchecked rtzcLabel rtzcChilds'
   where
     rtzcChilds' = rtzcChilds V.// [(rtzcIndex, t)]
@@ -85,11 +83,15 @@ class RankedTreeZipper tz where
   zoomRightRtZipper :: RankedTree t => RtApply tz t -> Maybe (RtApply tz t)
 
   zoomInIdxRtZipper :: RankedTree t => RankNumber -> RtApply tz t -> Maybe (RtApply tz t)
-  zoomInIdxRtZipper = go where
-    go 0 = zoomInRtZipper
-    go n = go (n - 1) >=> zoomLeftRtZipper
+  zoomInIdxRtZipper n
+    | n < 0     = const Nothing
+    | otherwise = go n zoomInRtZipper
+    where
+      go 0  f = f
+      go n' f = go (n' - 1) (f >=> zoomLeftRtZipper)
 
   modifyTreeZipper :: RankedTree t => (t -> t) -> RtApply tz t -> RtApply tz t
+  modifyTreeZipper f z = setTreeZipper (f $ toTree z) z
 
   setTreeZipper :: RankedTree t => t -> RtApply tz t -> RtApply tz t
   setTreeZipper t = modifyTreeZipper $ const t

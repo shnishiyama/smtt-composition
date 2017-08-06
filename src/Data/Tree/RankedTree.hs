@@ -76,8 +76,8 @@ class RankedTree t where
 
   mkTree :: LabelType t -> NodeVec t -> t
   mkTree l ts = let r = length ts in if r == labelRank
-    then mkTreeUnchecked l ts
-    else error $ "expected rank " <> show labelRank <> " label, but actual rank " <> show r
+      then mkTreeUnchecked l ts
+      else error $ "expected rank " <> show labelRank <> " label, but actual rank " <> show r
     where
       labelRank = treeLabelRank (treeTag :: TreeTag t) l
 

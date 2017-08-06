@@ -61,7 +61,7 @@ import Data.Tree.RankedTree.Transducer
 type RTZipperWithInitial t l = RTZipper (RankedTreeWithInitial t l) (RankedTreeLabelWithInitial t l)
 
 type InputLabelType t = RtApply RankedTreeLabelWithInitial t
-type InputRankedTree t = RankedTreeWithInitial t (LabelType t)
+type InputRankedTree t = RtApply RankedTreeWithInitial t
 type InputRankedTreeZipper t = RTZipperWithInitial t (LabelType t)
 
 data RightHandSide syn inh t l

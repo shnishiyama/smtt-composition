@@ -1,2 +1,3 @@
 # for Stack
 .stack-work/
+*.cabal
