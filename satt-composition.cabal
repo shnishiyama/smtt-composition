@@ -23,21 +23,24 @@ library
   hs-source-dirs:      src
   ghc-options:         -Wall
   exposed-modules:
+    Data.Universe.Instances
     Data.Tree.RankedTree
     Data.Tree.RankedTree.Zipper
     Data.Tree.RankedTree.Transducer
     Data.SATT.ATT
+    Data.SATT.ATT.Compose
     Data.SATT.SATT
+    Data.SATT.SATT.Compose
     Data.SATT.Demo
   build-depends:
     base >= 4.7 && < 5,
     classy-prelude,
-    unordered-containers,
-    hashable,
     lens,
     mono-traversable,
     vector,
-    profunctors
+    profunctors,
+    constraints,
+    universe-base
   default-language:
     Haskell2010
   default-extensions:
@@ -45,14 +48,19 @@ library
     StrictData
     BangPatterns
     LambdaCase
+    TupleSections
     PatternSynonyms
     RecordWildCards
     ViewPatterns
+    GeneralizedNewtypeDeriving
+    EmptyDataDecls
+    DataKinds
     PolyKinds
     TypeApplications
     TypeOperators
     TypeFamilies
     GADTs
+    ExistentialQuantification
     FunctionalDependencies
     ScopedTypeVariables
     RankNTypes

@@ -6,32 +6,31 @@ module Data.Tree.RankedTree.Zipper
   , rtZipper
 
     -- operators
-  , zoomInIdxRtZipper
   , zoomTopRtZipper
   , toTopTree
   , getTreeLabel
   ) where
 
-import ClassyPrelude
+import ClassyPrelude hiding (length)
+import qualified Data.Vector as V
 
 import Data.Tree.RankedTree
 
 -- RTZipper
 
 data RTZCrumb t l = RTZCrumb
-  { rtzcLabel :: l
-  , rtzcLeft  :: [t]
-  , rtzcRight :: [t]
+  { rtzcLabel  :: l
+  , rtzcIndex  :: RankNumber
+  , rtzcLength :: RankNumber
+  , rtzcChilds :: NodeVec t
   } deriving (Show, Eq, Ord)
 
 type RankedTreeCrumb t = RTZCrumb t (LabelType t)
 
 fromTreeCrumb :: RankedTree t => RankedTreeCrumb t -> t -> t
-fromTreeCrumb RTZCrumb{..} t = mkTree rtzcLabel rtzcChilds
+fromTreeCrumb RTZCrumb{..} t = mkTreeUnchecked rtzcLabel rtzcChilds'
   where
-    rtzcChilds = go rtzcLeft (t:rtzcRight)
-
-    go lts rts = foldl' (flip (:)) rts lts
+    rtzcChilds' = rtzcChilds V.// [(rtzcIndex, t)]
 
 -- |
 --
@@ -49,7 +48,7 @@ fromTreeCrumb RTZCrumb{..} t = mkTree rtzcLabel rtzcChilds
 --   >=> zoomOutRtZipper
 --   ) treeABCZipper
 -- :}
--- Just (TreeA (TreeB TreeC) TreeC)
+-- Just (TreeA TreeC (TreeB TreeC))
 --
 -- >>> toTopTree <$> setTreeZipper (TreeA TreeC TreeC) <$> zoomInRtZipper treeABCZipper
 -- Just (TreeA (TreeA TreeC TreeC) (TreeB TreeC))
@@ -77,9 +76,19 @@ class RankedTreeZipper tz where
   toTree :: RankedTree t => RtApply tz t -> t
 
   zoomInRtZipper :: RankedTree t => RtApply tz t -> Maybe (RtApply tz t)
+  zoomInRtZipper = zoomInIdxRtZipper 0
+
   zoomOutRtZipper :: RankedTree t => RtApply tz t -> Maybe (RtApply tz t)
+
   zoomLeftRtZipper :: RankedTree t => RtApply tz t -> Maybe (RtApply tz t)
+
   zoomRightRtZipper :: RankedTree t => RtApply tz t -> Maybe (RtApply tz t)
+
+  zoomInIdxRtZipper :: RankedTree t => RankNumber -> RtApply tz t -> Maybe (RtApply tz t)
+  zoomInIdxRtZipper = go where
+    go 0 = zoomInRtZipper
+    go n = go (n - 1) >=> zoomLeftRtZipper
+
   modifyTreeZipper :: RankedTree t => (t -> t) -> RtApply tz t -> RtApply tz t
 
   setTreeZipper :: RankedTree t => t -> RtApply tz t -> RtApply tz t
@@ -101,12 +110,21 @@ class RankedTreeZipper tz where
 instance RankedTreeZipper RTZipper where
   toTree = rtzTree
 
-  zoomInRtZipper (RTZipper t cs) = case treeChilds t of
-    []       -> Nothing
-    (tc:tcs) -> Just RTZipper
-      { rtzTree   = tc
-      , rtzCrumbs = RTZCrumb (treeLabel t) [] tcs : cs
-      }
+  zoomInIdxRtZipper n (RTZipper t cs) = if n >= len
+      then Nothing
+      else Just RTZipper
+        { rtzTree   = tcs ! n
+        , rtzCrumbs = RTZCrumb
+          { rtzcLabel  = treeLabel t
+          , rtzcIndex  = n
+          , rtzcLength = len
+          , rtzcChilds = tcs
+          } : cs
+        }
+    where
+      len = length tcs
+
+      tcs = treeChilds t
 
   zoomOutRtZipper (RTZipper _ [])     = Nothing
   zoomOutRtZipper (RTZipper t (c:cs)) = Just RTZipper
@@ -114,58 +132,64 @@ instance RankedTreeZipper RTZipper where
     , rtzCrumbs = cs
     }
 
-  zoomLeftRtZipper (RTZipper _ [])     = Nothing
-  zoomLeftRtZipper (RTZipper t (c:cs)) = case rtzcLeft c of
-    []       -> Nothing
-    (tl:tls) -> Just RTZipper
-      { rtzTree   = tl
-      , rtzCrumbs = crumb tls : cs
+  zoomLeftRtZipper (RTZipper _ []) = Nothing
+  zoomLeftRtZipper (RTZipper t (c@RTZCrumb{..}:cs))
+    | rtzcIndex == 0 = Nothing
+    | otherwise      = Just RTZipper
+      { rtzTree   = rtzcChilds ! nrtzcIndex
+      , rtzCrumbs = c
+        { rtzcIndex  = nrtzcIndex
+        , rtzcChilds = nrtzcChilds
+        } : cs
       }
-    where
-      crumb ls = RTZCrumb (rtzcLabel c) ls (t : rtzcRight c)
+      where
+        nrtzcIndex = rtzcIndex - 1
 
+        nrtzcChilds = rtzcChilds V.// [(rtzcIndex, t)]
 
   walkLeftZipper _ tz@(RTZipper _ [])  = tz
-  walkLeftZipper f (RTZipper t (c:cs)) = go t (rtzcLeft c) (rtzcRight c)
+  walkLeftZipper f (RTZipper t (c@RTZCrumb{..}:cs)) = go t rtzcIndex []
     where
-      go tl []        trs = RTZipper tl $ crumb trs : cs
-      go tl (tl':tls) trs = go (f tl') tls (tl:trs)
+      go t' 0 itx = RTZipper t' $ c
+        { rtzcIndex  = 0
+        , rtzcChilds = rtzcChilds V.// itx
+        } : cs
+      go t' n itx = let n' = n - 1
+        in go (f $ rtzcChilds ! n') n' $ (n, t'):itx
 
-      crumb = RTZCrumb (rtzcLabel c) []
-
-  zoomRightRtZipper (RTZipper _ [])     = Nothing
-  zoomRightRtZipper (RTZipper t (c:cs)) = case rtzcRight c of
-    []       -> Nothing
-    (tr:trs) -> Just RTZipper
-      { rtzTree   = tr
-      , rtzCrumbs = crumb trs : cs
+  zoomRightRtZipper (RTZipper _ []) = Nothing
+  zoomRightRtZipper (RTZipper t (c@RTZCrumb{..}:cs))
+    | rtzcIndex == rtzcLength - 1 = Nothing
+    | otherwise                   = Just RTZipper
+      { rtzTree   = rtzcChilds ! nrtzcIndex
+      , rtzCrumbs = c
+        { rtzcIndex  = nrtzcIndex
+        , rtzcChilds = nrtzcChilds
+        } : cs
       }
-    where
-      crumb = RTZCrumb (rtzcLabel c) (t : rtzcLeft c)
+      where
+        nrtzcIndex = rtzcIndex + 1
+
+        nrtzcChilds = rtzcChilds V.// [(rtzcIndex, t)]
 
   walkRightZipper _ tz@(RTZipper _ [])  = tz
-  walkRightZipper f (RTZipper t (c:cs)) = go t (rtzcLeft c) (rtzcRight c)
+  walkRightZipper f (RTZipper t (c@RTZCrumb{..}:cs)) = go t rtzcIndex
     where
-      go tl tls []        = RTZipper (f tl) $ crumb tls : cs
-      go tl tls (tl':trs) = go (f tl') (tl:tls) trs
+      rtzcLength' = rtzcLength - 1
 
-      crumb tls = RTZCrumb (rtzcLabel c) tls []
+      go t' n
+        | n == rtzcLength' = RTZipper t' $
+          c { rtzcIndex = rtzcLength' } : cs
+        | otherwise        = let n' = n + 1
+          in go (f $ rtzcChilds ! n') n'
 
-  modifyTreeZipper f tz = RTZipper
+  modifyTreeZipper f tz = tz
     { rtzTree   = f $ rtzTree tz
-    , rtzCrumbs = rtzCrumbs tz
     }
 
-  setTreeZipper t tz = RTZipper
+  setTreeZipper t tz = tz
     { rtzTree   = t
-    , rtzCrumbs = rtzCrumbs tz
     }
-
-zoomInIdxRtZipper :: (RankedTree t, RankedTreeZipper tz) => Int -> RtApply tz t -> Maybe (RtApply tz t)
-zoomInIdxRtZipper = go where
-  go n | n < 1 = error "must a positive number"
-  go 1 = zoomInRtZipper
-  go n = zoomRightRtZipper <=< go (n - 1)
 
 zoomTopRtZipper :: (RankedTree t, RankedTreeZipper tz) => RtApply tz t -> RtApply tz t
 zoomTopRtZipper tz = maybe tz zoomTopRtZipper $ zoomOutRtZipper tz

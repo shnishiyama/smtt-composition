@@ -4,17 +4,13 @@ module Main where
 
 import ClassyPrelude
 
-import Data.SATT.ATT
-import Data.Tree.RankedTree
-
-infixOperators :: InfixOpTree
-infixOperators = InfixMulti InfixTwo (InfixPlus (InfixPlus InfixOne InfixTwo) InfixOne)
+import Data.SATT.Demo
 
 main :: IO ()
 main = do
-  print infixOperators
+  print postfixOpTreeSample
 
   putStrLn "->"
 
-  let postfixOperators = runAttReduction infixToPostfixTransducer infixOperators
+  let postfixOperators = treeTrans (infixToPostfixTransducer `composeSatts` postfixToInfixTransducer) postfixOpTreeSample
   print postfixOperators
