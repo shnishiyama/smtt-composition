@@ -1,71 +1,110 @@
 {-# LANGUAGE FlexibleContexts    #-}
+{-# LANGUAGE OverloadedLists #-}
 
 module Data.Tree.RankedTree
   (
-  -- main
-    RankedTree (..)
+    -- main
+    RankNumber
+  , NodeVec
+  , length
+  , empty
+  , (!)
+  , treeTag
+  , TreeTag
+  , RankedTree (..)
   , treeRank
   , foldTree
   , showTree
   , RankedTreeWrapper (..)
+  , (:$)
   , RtApply
   , RtConstraint
 
-  -- ranked tree wrapper
+    -- ranked tree wrapper
   , RankedTreeWithInitial(..)
   , RankedTreeLabelWithInitial(..)
+  , toRankedTreeWithoutInitial
   , toRankedTreeWithInitial
 
-  -- instances
+    -- bottom label
+  , bottomLabel
+
+    -- instances
   , TreeABC (..)
   , InfixOpTree (..)
   , PostfixOpTree (..)
   ) where
 
-import           ClassyPrelude
+import           ClassyPrelude hiding (length)
 
 import           Data.Profunctor.Unsafe
 import           Data.Coerce
 import           Data.Proxy
+import qualified Data.Vector as V
+
+type RankNumber = Int
+type NodeVec    = V.Vector
+
+length :: NodeVec a -> RankNumber
+length = V.length
+
+(!) :: NodeVec a -> RankNumber -> a
+(!) = (V.!)
+
+type TreeTag = Proxy
+
+treeTag :: TreeTag t
+treeTag = Proxy
 
 -- | Ranked Labeled Tree Class
 --
 -- TODO:
 -- * To use generic for deriving instance
 -- * Builder using Template Haskell for easy building
--- * Rewrite to use vector for indexing access
 --
 -- Conditions:
 -- * treeRank == length . treeChilds
--- * treeConstruct (treeLabel t) (treeChilds t) == t
+-- * mkTree (treeLabel t) (treeChilds t) == t
 --
 class RankedTree t where
   type LabelType t :: *
 
   treeLabel :: t -> LabelType t
-  treeChilds :: t -> [t]
+  treeChilds :: t -> NodeVec t
 
-  treeLabelRank :: Proxy t -> LabelType t -> Int
+  treeLabelRank :: TreeTag t -> LabelType t -> RankNumber
 
-  mkTree :: LabelType t -> [t] -> t
+  mkTree :: LabelType t -> NodeVec t -> t
+  mkTree l ts = let r = length ts in if r == labelRank
+    then mkTreeUnchecked l ts
+    else error $ "expected rank " <> show labelRank <> " label, but actual rank " <> show r
+    where
+      labelRank = treeLabelRank (treeTag :: TreeTag t) l
+
+  mkTreeUnchecked :: LabelType t -> NodeVec t -> t
+  mkTreeUnchecked = mkTree
 
   modifyChilds :: (t -> t) -> t -> t
-  modifyChilds f t = mkTree (treeLabel t) $ map f (treeChilds t)
+  modifyChilds f t = mkTreeUnchecked (treeLabel t) $ f <$> treeChilds t
 
-treeRank :: forall t. RankedTree t => t -> Int
-treeRank = treeLabelRank (Proxy :: Proxy t) . treeLabel
+treeRank :: forall t. RankedTree t => t -> RankNumber
+treeRank = treeLabelRank (treeTag :: TreeTag t) . treeLabel
 
-foldTree :: RankedTree t => (LabelType t -> [b] -> b) -> t -> b
+foldTree :: RankedTree t => (LabelType t -> NodeVec b -> b) -> t -> b
 foldTree f = go where
-  go t = f (treeLabel t) [go c | c <- treeChilds t]
+  go t = f (treeLabel t) $ go <$> treeChilds t
 
 showTree :: (RankedTree t, Show (LabelType t)) => t -> String
 showTree t = show (treeLabel t) <> childsStr (treeChilds t)
   where
-    childsStr [] = ""
-    childsStr ts = "(" <> intercalate "," (map showTree ts)  <> ")"
+    childsStr ts
+      | V.null ts = ""
+      | otherwise = "(" <> intercalate "," (showTree <$> ts)  <> ")"
 
-type RtApply tz t = tz t (LabelType t)
+type t1 :$ t2 = t1 t2
+infixr 0 :$
+
+type RtApply tz t = tz t :$ LabelType t
 type RtConstraint t l = (RankedTree t, l ~ LabelType t)
 
 -- wrapper
@@ -79,15 +118,16 @@ instance RankedTree t => RankedTree (RankedTreeWrapper t) where
 
   treeLabel (RankedTreeWrapper t) = treeLabel t
   treeChilds (RankedTreeWrapper t) = coerce $ treeChilds t
-  treeLabelRank = coerce (treeLabelRank :: Proxy t -> LabelType t -> Int)
+  treeLabelRank = coerce (treeLabelRank :: Proxy t -> LabelType t -> RankNumber)
 
   mkTree l = RankedTreeWrapper #. mkTree l . coerce
+  mkTreeUnchecked l = RankedTreeWrapper #. mkTreeUnchecked l . coerce
 
 
 type instance Element (RankedTreeWrapper t) = LabelType t
 
 instance RankedTree t => MonoFoldable (RankedTreeWrapper t) where
-  ofoldMap f = foldTree $ \a bs -> f a `mappend` mconcat bs
+  ofoldMap f = foldTree $ \a bs -> f a `mappend` ofoldMap id bs
 
   ofoldl' f s t = g $ f s $ treeLabel t where
     g !s' = foldl' (ofoldl' f) s' $ treeChilds t
@@ -109,45 +149,50 @@ instance RankedTree t => MonoFoldable (RankedTreeWrapper t) where
       Nothing -> x
       Just y  -> f x y
 
+-- bottom label
+
+bottomLabel :: l
+bottomLabel = error "rank (0) bottom label"
 
 -- instances
 
-data RankedTreeLabelWithInitial l
+data RankedTreeLabelWithInitial t l
   = InitialLabel
   | RankedTreeLabel l
   deriving (Eq, Ord)
 
-instance Show l => Show (RankedTreeLabelWithInitial l) where
+instance Show l => Show (RankedTreeLabelWithInitial t l) where
   show InitialLabel        = "#"
   show (RankedTreeLabel l) = show l
 
 data RankedTreeWithInitial t l
   = RankedTreeWithInitial (RankedTreeWithInitial t l)
-  | RankedTreeWithoutInitial l [RankedTreeWithInitial t l]
+  | RankedTreeWithoutInitial l (NodeVec :$ RankedTreeWithInitial t l)
   deriving (Eq, Ord)
 
 instance (RtConstraint t l, Show l) => Show (RankedTreeWithInitial t l) where
   show = showTree
 
-toRankedTreeWithInitial :: RankedTree t => t -> RankedTreeWithInitial t (LabelType t)
-toRankedTreeWithInitial = RankedTreeWithInitial . go where
-  go = foldTree RankedTreeWithoutInitial
+toRankedTreeWithoutInitial :: RankedTree t => t -> RtApply RankedTreeWithInitial t
+toRankedTreeWithoutInitial = foldTree RankedTreeWithoutInitial
+
+toRankedTreeWithInitial :: RankedTree t => t -> RtApply RankedTreeWithInitial t
+toRankedTreeWithInitial = RankedTreeWithInitial . toRankedTreeWithoutInitial
 
 instance RtConstraint t l => RankedTree (RankedTreeWithInitial t l) where
-  type LabelType (RankedTreeWithInitial t l) = RankedTreeLabelWithInitial l
+  type LabelType (RankedTreeWithInitial t l) = RankedTreeLabelWithInitial t l
 
   treeLabel (RankedTreeWithInitial _)      = InitialLabel
   treeLabel (RankedTreeWithoutInitial l _) = RankedTreeLabel l
 
-  treeChilds (RankedTreeWithInitial t)       = [t]
+  treeChilds (RankedTreeWithInitial t)       = V.singleton t
   treeChilds (RankedTreeWithoutInitial _ ts) = ts
 
   treeLabelRank _ InitialLabel        = 1
   treeLabelRank _ (RankedTreeLabel l) = treeLabelRank (Proxy :: Proxy t) l
 
-  mkTree InitialLabel        [t] = RankedTreeWithInitial t
-  mkTree (RankedTreeLabel l) ts  = RankedTreeWithoutInitial l ts
-  mkTree InitialLabel        _   = error "not allowed tree"
+  mkTreeUnchecked InitialLabel ts = RankedTreeWithInitial (ts ! 0)
+  mkTreeUnchecked (RankedTreeLabel l) ts = RankedTreeWithoutInitial l ts
 
 
 data TreeABC
@@ -172,10 +217,10 @@ instance RankedTree TreeABC where
   treeLabelRank _ 'c' = 0
   treeLabelRank _ c   = error $ "not allowed label character: " <> show c
 
-  mkTree 'a' [x, y]  = TreeA x y
-  mkTree 'b' [x]     = TreeB x
-  mkTree 'c' []      = TreeC
-  mkTree c   ts      = error $ "not allowed tree: (" <> show c <> "," <> show ts <> ")"
+  mkTreeUnchecked 'a' ts = TreeA (ts ! 0) (ts ! 1)
+  mkTreeUnchecked 'b' ts = TreeB (ts ! 0)
+  mkTreeUnchecked 'c' _  = TreeC
+  mkTreeUnchecked c   _  = error $ "not allowed label character: " <> show c
 
 
 -- | Infix operation tree
@@ -212,13 +257,13 @@ instance RankedTree InfixOpTree where
   treeLabelRank _ "two"   = 0
   treeLabelRank _ "plus"  = 2
   treeLabelRank _ "multi" = 2
-  treeLabelRank _ str     = error $ "not allowed label string: " <> show str
+  treeLabelRank _ s       = error $ "not allowed label string: " <> show s
 
-  mkTree "one"   []     = InfixOne
-  mkTree "two"   []     = InfixTwo
-  mkTree "plus"  [x, y] = InfixPlus x y
-  mkTree "multi" [x, y] = InfixMulti x y
-  mkTree str     ts     = error $ "not allowed tree: (" <> show str <> "," <> show ts <> ")"
+  mkTreeUnchecked "one"   _  = InfixOne
+  mkTreeUnchecked "two"   _  = InfixTwo
+  mkTreeUnchecked "plus"  ts = InfixPlus (ts ! 0) (ts ! 1)
+  mkTreeUnchecked "multi" ts = InfixMulti (ts ! 0) (ts ! 1)
+  mkTreeUnchecked s       _  = error $ "not allowed label string: " <> show s
 
 
 data PostfixOpTree
@@ -258,11 +303,11 @@ instance RankedTree PostfixOpTree where
   treeLabelRank _ "plus"  = 1
   treeLabelRank _ "multi" = 1
   treeLabelRank _ "$"     = 0
-  treeLabelRank _ str     = error $ "not allowed label string: " <> show str
+  treeLabelRank _ s       = error $ "not allowed label string: " <> show s
 
-  mkTree "one"   [x] = PostfixOne x
-  mkTree "two"   [x] = PostfixTwo x
-  mkTree "plus"  [x] = PostfixPlus x
-  mkTree "multi" [x] = PostfixMulti x
-  mkTree "$"     []  = PostfixEnd
-  mkTree str     ts  = error $ "not allowed tree: (" <> show str <> "," <> show ts <> ")"
+  mkTreeUnchecked "one"   ts = PostfixOne (ts ! 0)
+  mkTreeUnchecked "two"   ts = PostfixTwo (ts ! 0)
+  mkTreeUnchecked "plus"  ts = PostfixPlus (ts ! 0)
+  mkTreeUnchecked "multi" ts = PostfixMulti (ts ! 0)
+  mkTreeUnchecked "$"     _  = PostfixEnd
+  mkTreeUnchecked s       _  = error $ "not allowed label string: " <> show s
