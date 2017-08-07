@@ -14,7 +14,7 @@ extra-source-files:
 
 build-type: Custom
 
-# not supported
+# unsupported
 # cabal-version: '>=1.24'
 
 library:
@@ -30,28 +30,38 @@ library:
   - RecordWildCards
   - ViewPatterns
   - GeneralizedNewtypeDeriving
+  - StandaloneDeriving
+  - DeriveGeneric
+  - DeriveDataTypeable
   - EmptyDataDecls
   - DataKinds
   - PolyKinds
   - TypeApplications
   - TypeOperators
   - TypeFamilies
+  - RoleAnnotations
   - GADTs
   - ExistentialQuantification
+  # unsupported
+  #- TypeFamilyDependencies
   - FunctionalDependencies
   - ScopedTypeVariables
   - RankNTypes
   - ConstraintKinds
   exposed-modules:
   - Data.Universe.Instances
+  - Data.TypeLevel.TaggedEither
+  - Data.Pattern.Error
   - Data.Tree.RankedTree
   - Data.Tree.RankedTree.Zipper
-  - Data.Tree.RankedTree.Transducer
-  - Data.SATT.ATT
-  - Data.SATT.ATT.Compose
-  - Data.SATT.SATT
-  - Data.SATT.SATT.Compose
-  - Data.SATT.Demo
+  - Data.Tree.Transducer
+  - Data.Tree.Transducer.ATT
+  - Data.Tree.Transducer.ATT.Instances
+  #- Data.SATT.ATT.Compose
+  #- Data.SATT.SATT
+  #- Data.SATT.SATT.Compose
+  #- Data.SATT.Demo
+  other-modules: []
   dependencies:
   - base >=4.7 && <5
   - classy-prelude
@@ -68,22 +78,22 @@ custom-setup:
     - Cabal
     - cabal-doctest
 
-executables:
-  satt-composit:
-    main:        Main.hs
-    source-dirs: app
-    default-extensions:
-    - NoImplicitPrelude
-    - TypeFamilies
-    - GADTs
-    ghc-options:
-    - -threaded
-    - -rtsopts
-    - -with-rtsopts=-N
-    dependencies:
-    - base
-    - classy-prelude
-    - satt-composition
+#executables:
+#  satt-composit:
+#    main:        Main.hs
+#    source-dirs: app
+#    default-extensions:
+#    - NoImplicitPrelude
+#    - TypeFamilies
+#    - GADTs
+#    ghc-options:
+#    - -threaded
+#    - -rtsopts
+#    - -with-rtsopts=-N
+#    dependencies:
+#    - base
+#    - classy-prelude
+#    - satt-composition
 
 tests:
   lint:
