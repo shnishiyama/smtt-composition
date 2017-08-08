@@ -54,10 +54,10 @@ library:
   - Data.Pattern.Error
   - Data.Tree.RankedTree
   - Data.Tree.RankedTree.Zipper
-  - Data.Tree.Transducer
-  - Data.Tree.Transducer.ATT
-  - Data.Tree.Transducer.ATT.Instances
-  #- Data.SATT.ATT.Compose
+  - Data.Tree.Trans.Class
+  - Data.Tree.Trans.ATT
+  - Data.Tree.Trans.ATT.Instances
+  - Data.Tree.Trans.ATT.Compose
   #- Data.SATT.SATT
   #- Data.SATT.SATT.Compose
   #- Data.SATT.Demo

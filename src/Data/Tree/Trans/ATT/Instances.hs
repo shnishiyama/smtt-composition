@@ -1,12 +1,12 @@
 {-# LANGUAGE OverloadedLists   #-}
 
-module Data.Tree.Transducer.ATT.Instances where
+module Data.Tree.Trans.ATT.Instances where
 
 import ClassyPrelude
 import Data.Universe.Class
 import Data.Universe.Instances
 import Data.Tree.RankedTree
-import Data.Tree.Transducer.ATT
+import Data.Tree.Trans.ATT
 import qualified Data.Vector as V
 import Data.Pattern.Error
 
@@ -39,8 +39,8 @@ instance Show InhAttrUnit where
 
 identityTransducer :: forall t. (RankedTree t) => AttrTreeTrans SynAttrUnit EmptyType t t
 identityTransducer = AttrTreeTrans
-    { initialAttr      = a0
-    , attReductionRule = rule
+    { initialAttr   = a0
+    , reductionRule = rule
     }
   where
     a0 = SynAttrUnit
@@ -53,8 +53,8 @@ identityTransducer = AttrTreeTrans
 
 orderExchangeTransducer :: forall t. (RankedTree t) => AttrTreeTrans SynAttrUnit EmptyType t t
 orderExchangeTransducer = AttrTreeTrans
-    { initialAttr      = a0
-    , attReductionRule = rule
+    { initialAttr   = a0
+    , reductionRule = rule
     }
   where
     a0 = SynAttrUnit
@@ -68,8 +68,8 @@ orderExchangeTransducer = AttrTreeTrans
 
 infixToPostfixTransducer :: AttrTreeTrans SynAttrUnit InhAttrUnit InfixOpTree PostfixOpTree
 infixToPostfixTransducer = AttrTreeTrans
-    { initialAttr      = a0
-    , attReductionRule = rule
+    { initialAttr   = a0
+    , reductionRule = rule
     }
   where
     a0 = SynAttrUnit

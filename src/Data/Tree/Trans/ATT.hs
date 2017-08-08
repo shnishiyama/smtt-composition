@@ -2,10 +2,10 @@
 {-# LANGUAGE FlexibleContexts  #-}
 {-# LANGUAGE TypeFamilyDependencies #-}
 
-module Data.Tree.Transducer.ATT
+module Data.Tree.Trans.ATT
   (
     -- att attribute tags
-    AttAttrTag
+    AttAttrTag(..)
   , AttAttrTagLR
   , TaggedSyn
   , TaggedInh
@@ -25,6 +25,7 @@ module Data.Tree.Transducer.ATT
   , InputRankedTree
   , InputRankedTreeZipper
   , RightHandSide(..)
+  , AttrSide
   , synAttrSide
   , inhAttrSide
   , TreeRightHandSide
@@ -66,7 +67,7 @@ import Data.Pattern.Error
 
 import Data.Tree.RankedTree
 import Data.Tree.RankedTree.Zipper
-import Data.Tree.Transducer
+import Data.Tree.Trans.Class
 
 -- attibute kinds
 
@@ -144,8 +145,8 @@ type AttRuleType syn inh ta tb
 
 -- | Attributed Tree Transducer
 data AttrTreeTrans syn inh ta tb = AttrTreeTrans
-  { initialAttr      :: syn
-  , attReductionRule :: AttRuleType syn inh ta tb
+  { initialAttr   :: syn
+  , reductionRule :: AttRuleType syn inh ta tb
   }
 
 -- reduction states
@@ -255,9 +256,9 @@ buildAttReduction f s is AttrTreeTrans{..} t = goTop s
       in applyRHSToState rhs tz p
 
     applyAttrToRule l (ReductionAttrState (TaggedSynBox a) p)
-      = (attReductionRule (taggedSynBox a) l, p)
+      = (reductionRule (taggedSynBox a) l, p)
     applyAttrToRule l (ReductionAttrState (TaggedInhBox a) (x:xs))
-      = (attReductionRule (taggedInhBox (a, x)) l, xs)
+      = (reductionRule (taggedInhBox (a, x)) l, xs)
     applyAttrToRule _ _
       = error "inherited attr is empty..."
 
