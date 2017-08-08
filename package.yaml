@@ -7,7 +7,7 @@ author:      Mizunashi Mana
 maintainer:  mizunashi-mana@noreply.git
 copyright:   2017 Mizunashi Mana
 license:     MIT
-homepage:     https://gitlab.com/mizunashi-mana/satt-composition#readme
+homepage:    https://gitlab.com/mizunashi-mana/satt-composition#readme
 git:         https://gitlab.com/mizunashi-mana/satt-composition
 extra-source-files:
 - README.md
@@ -16,6 +16,12 @@ build-type: Custom
 
 # unsupported
 # cabal-version: '>=1.24'
+
+custom-setup:
+  dependencies:
+    - base
+    - Cabal
+    - cabal-doctest
 
 library:
   ghc-options: -Wall
@@ -53,6 +59,7 @@ library:
   - Data.TypeLevel.TaggedEither
   - Data.Pattern.Error
   - Data.Tree.RankedTree
+  - Data.Tree.RankedTree.Instances
   - Data.Tree.RankedTree.Zipper
   - Data.Tree.Trans.Class
   - Data.Tree.Trans.ATT
@@ -71,12 +78,6 @@ library:
   - profunctors
   - constraints
   - universe-base
-
-custom-setup:
-  dependencies:
-    - base
-    - Cabal
-    - cabal-doctest
 
 #executables:
 #  satt-composit:
@@ -131,3 +132,16 @@ tests:
     dependencies:
     - base
     - doctest
+
+benchmarks:
+  common:
+    main: CommonBench.hs
+    source-dirs: benchmark
+    ghc-options:
+    - -Wall
+    - -O2
+    - -threaded
+    dependencies:
+    - base
+    - satt-composition
+    - criterion

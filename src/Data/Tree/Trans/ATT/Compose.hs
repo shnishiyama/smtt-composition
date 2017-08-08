@@ -1,6 +1,22 @@
 {-# LANGUAGE OverloadedLists #-}
 
-module Data.Tree.Trans.ATT.Compose where
+module Data.Tree.Trans.ATT.Compose
+  (
+    -- attribute indexed value
+    IndexedValue
+  , pattern IndexedValue
+  , indexedValue
+  , AttrIndexedData
+  , AttrIndexedQueue
+  , AttrIndexedAttr
+  , AttrIndexedSynAttr
+  , AttrIndexedInhAttr
+
+    -- common
+  , composeAtts
+  , ComposedAtt
+  , ComposedAttAttr(..)
+  ) where
 
 import ClassyPrelude
 import qualified Data.Vector as V
@@ -180,6 +196,24 @@ type ComposedAtt syn1 inh1 syn2 inh2 ti to = AttrTreeTrans
   (ComposedAttInhAttr syn1 inh1 syn2 inh2)
   ti to
 
+-- | composition of atts
+--
+-- Examples:
+--
+-- >>> import Data.Tree.RankedTree.Instances
+-- >>> import Data.Tree.Trans.Class
+-- >>> import Data.Tree.Trans.ATT.Instances
+-- >>> infixOpTreeSample = InfixMulti InfixTwo (InfixPlus InfixOne InfixTwo)
+--
+-- >>> treeTrans (identityTransducer `composeAtts` infixToPostfixTransducer) infixOpTreeSample
+-- "two"("one"("two"("plus"("multi"("$")))))
+--
+-- >>> treeTrans infixToPostfixTransducer . treeTrans orderExchangeTransducer $ infixOpTreeSample
+-- "two"("one"("plus"("two"("multi"("$")))))
+--
+-- >>> treeTrans (infixToPostfixTransducer `composeAtts` orderExchangeTransducer) infixOpTreeSample
+-- "two"("one"("plus"("two"("multi"("$")))))
+--
 composeAtts :: forall syn1 inh1 ti1 to1 syn2 inh2 ti2 to2.
   ( RankedTree ti1, RankedTree to1
   , to2 ~ ti1

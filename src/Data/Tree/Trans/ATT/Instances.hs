@@ -5,10 +5,12 @@ module Data.Tree.Trans.ATT.Instances where
 import ClassyPrelude
 import Data.Universe.Class
 import Data.Universe.Instances
-import Data.Tree.RankedTree
-import Data.Tree.Trans.ATT
 import qualified Data.Vector as V
 import Data.Pattern.Error
+
+import Data.Tree.RankedTree
+import Data.Tree.RankedTree.Instances
+import Data.Tree.Trans.ATT
 
 
 data SynAttrUnit = SynAttrUnit
@@ -37,6 +39,14 @@ instance Show InhAttrUnit where
   show _ = "a1"
 
 
+-- | the identity attributed tree transducer
+--
+-- Examples:
+--
+-- >>> import Data.Tree.Trans.Class
+-- >>> treeTrans identityTransducer $ InfixMulti InfixTwo (InfixPlus InfixOne InfixTwo)
+-- "multi"("two","plus"("one","two"))
+--
 identityTransducer :: forall t. (RankedTree t) => AttrTreeTrans SynAttrUnit EmptyType t t
 identityTransducer = AttrTreeTrans
     { initialAttr   = a0
@@ -51,6 +61,15 @@ identityTransducer = AttrTreeTrans
 
     rule _ _ = error "unsupported operation"
 
+
+-- | the exchange transducer for ranked tree order
+--
+-- Examples:
+--
+-- >>> import Data.Tree.Trans.Class
+-- >>> treeTrans orderExchangeTransducer $ InfixMulti InfixTwo (InfixPlus InfixOne InfixTwo)
+-- "multi"("plus"("two","one"),"two")
+--
 orderExchangeTransducer :: forall t. (RankedTree t) => AttrTreeTrans SynAttrUnit EmptyType t t
 orderExchangeTransducer = AttrTreeTrans
     { initialAttr   = a0
@@ -66,6 +85,15 @@ orderExchangeTransducer = AttrTreeTrans
 
     rule _ _ = error "unsupported operation"
 
+
+-- | a transducer from infix operators to postfix operators
+--
+-- Examples:
+--
+-- >>> import Data.Tree.Trans.Class
+-- >>> treeTrans infixToPostfixTransducer $ InfixMulti InfixTwo (InfixPlus InfixOne InfixTwo)
+-- "two"("one"("two"("plus"("multi"("$")))))
+--
 infixToPostfixTransducer :: AttrTreeTrans SynAttrUnit InhAttrUnit InfixOpTree PostfixOpTree
 infixToPostfixTransducer = AttrTreeTrans
     { initialAttr   = a0

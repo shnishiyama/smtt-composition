@@ -80,57 +80,53 @@ import Data.Tree.RankedTree
 import Data.Tree.RankedTree.Zipper
 import Data.Tree.RankedTree.Transducer
 
+-- attibute kinds
+
+data SattAttrTag
+  = OutputAttrTag
+  | StackAttrTag
+  deriving (Eq, Ord, Show, Enum, Bounded)
+
+type family SattAttrTagLR (tag :: SattAttrTag) = (e :: EitherTag) | e -> tag where
+  SattAttrTagLR 'OutputAttrTag = 'LeftTag
+  SattAttrTagLR 'StackAttrTag = 'RightTag
+
+type TaggedOutput = SattAttrEither 'OutputAttrTag
+type TaggedStack  = SattAttrEither 'StackAttrTag
+type SattAttrEither tag = TaggedEither (SattAttrTagLR tag)
+type SattAttrEitherBox = TaggedEitherBox
+
+taggedOutput :: o -> TaggedOutput o s
+taggedOutput = TaggedLeft
+
+taggedStack :: s -> TaggedStack o s
+taggedStack = TaggedRight
+
+taggedOutputBox :: o -> SattAttrEitherBox o s
+taggedOutputBox = taggedLeftBox
+
+taggedStackBox :: s -> SattAttrEitherBox o s
+taggedStackBox = taggedRightBox
+
+pattern TaggedOutput :: o -> TaggedOutput o s
+pattern TaggedOutput x = TaggedLeft x
+
+pattern TaggedStack :: s -> TaggedStack o s
+pattern TaggedStack x = TaggedRight x
+
+pattern TaggedOutputBox :: o -> SattAttrEitherBox o s
+pattern TaggedOutputBox x = TaggedLeftBox x
+
+pattern TaggedStackBox :: s -> SattAttrEitherBox o s
+pattern TaggedStackBox x = TaggedRightBox x
+
 -- common
 
 type RTZipperWithInitial t l = RTZipper (RankedTreeWithInitial t l) (RankedTreeLabelWithInitial t l)
 
 type InputLabelType t = RtApply RankedTreeLabelWithInitial t
-type InputRankedTree t = RankedTreeWithInitial t (LabelType t)
+type InputRankedTree t = RtApply RankedTreeWithInitial t
 type InputRankedTreeZipper t = RTZipperWithInitial t (LabelType t)
-
-data SattAttrTag
-  = OutputAttrTag
-  | StackAttrTag
-  deriving (Eq, Ord, Enum, Bounded, Show)
-
-type SattAttrOutputIdentity = SattAttrIdentity 'OutputAttrTag
-type SattAttrStackIdentity  = SattAttrIdentity 'StackAttrTag
-
-data SattAttrIdentity (tag :: SattAttrTag) outattr stattr where
-  OutputAttrIdentity :: outattr -> SattAttrOutputIdentity outattr stattr
-  StackAttrIdentity  :: stattr  -> SattAttrStackIdentity  outattr stattr
-
-instance (Eq outattr, Eq stattr) => Eq (SattAttrIdentity tag outattr stattr) where
-  OutputAttrIdentity x == OutputAttrIdentity y = x == y
-  StackAttrIdentity  x == StackAttrIdentity  y = x == y
-
-instance (Ord outattr, Ord stattr) => Ord (SattAttrIdentity tag outattr stattr) where
-  OutputAttrIdentity x `compare` OutputAttrIdentity y = compare x y
-  StackAttrIdentity  x `compare` StackAttrIdentity  y = compare x y
-
-instance (Show outattr, Show stattr) => Show (SattAttrIdentity tag outattr stattr) where
-  show (OutputAttrIdentity x) = show x
-  show (StackAttrIdentity  x) = show x
-
-data SattAttrBox (f :: SattAttrTag -> *) where
-  OutputSattAttrBox :: f 'OutputAttrTag -> SattAttrBox f
-  StackSattAttrBox  :: f 'StackAttrTag  -> SattAttrBox f
-
-outputSattAttrBox :: SattAttrBox f -> Maybe (f 'OutputAttrTag)
-outputSattAttrBox (OutputSattAttrBox x) = Just x
-outputSattAttrBox _                     = Nothing
-
-outputSattAttrBoxUnsafe :: SattAttrBox f -> f 'OutputAttrTag
-outputSattAttrBoxUnsafe = fromMaybe (error "it is not output tagged value")
-  . outputSattAttrBox
-
-stackSattAttrBox :: SattAttrBox f -> Maybe (f 'StackAttrTag)
-stackSattAttrBox (StackSattAttrBox x) = Just x
-stackSattAttrBox _                    = Nothing
-
-stackSattAttrBoxUnsafe :: SattAttrBox f -> f 'StackAttrTag
-stackSattAttrBoxUnsafe = fromMaybe (error "it is not stack tagged value")
-  . stackSattAttrBox
 
 type OutputRightHandSide = RightHandSide 'OutputAttrTag
 type StackRightHandSide  = RightHandSide 'StackAttrTag

@@ -30,8 +30,11 @@ fromTreeCrumb RTZCrumb{..} t = mkTreeUnchecked rtzcLabel rtzcChilds'
   where
     rtzcChilds' = rtzcChilds V.// [(rtzcIndex, t)]
 
--- |
+-- | Common ranked tree zipper
 --
+-- Examples
+--
+-- >>> import Data.Tree.RankedTree.Instances
 -- >>> treeABCZipper = rtZipper (TreeA TreeC (TreeB TreeC))
 -- >>> toTree <$> zoomInRtZipper treeABCZipper
 -- Just TreeC

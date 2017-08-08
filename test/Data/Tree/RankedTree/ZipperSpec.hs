@@ -3,7 +3,7 @@ module Data.Tree.RankedTree.ZipperSpec where
 import Test.Hspec
 
 import Control.Monad
-import Data.Tree.RankedTree
+import Data.Tree.RankedTree.Instances
 import Data.Tree.RankedTree.Zipper
 
 spec :: Spec
