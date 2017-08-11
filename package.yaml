@@ -24,7 +24,8 @@ custom-setup:
     - cabal-doctest
 
 library:
-  ghc-options: -Wall
+  ghc-options:
+  - -Wall
   source-dirs: src
   default-extensions:
   - NoImplicitPrelude
@@ -48,8 +49,7 @@ library:
   - RoleAnnotations
   - GADTs
   - ExistentialQuantification
-  # unsupported
-  #- TypeFamilyDependencies
+  - TypeFamilyDependencies
   - FunctionalDependencies
   - ScopedTypeVariables
   - RankNTypes
@@ -88,6 +88,7 @@ library:
 #    - TypeFamilies
 #    - GADTs
 #    ghc-options:
+#    - -Wall
 #    - -threaded
 #    - -rtsopts
 #    - -with-rtsopts=-N
@@ -98,11 +99,12 @@ library:
 
 tests:
   lint:
-    main: Hlint.hs
+    main: Lint.hs
     source-dirs: test
+    other-modules: []
     ghc-options:
+    - -Wall
     - -threaded
-    - -rtsopts
     - -with-rtsopts=-N
     dependencies:
     - base
@@ -111,10 +113,11 @@ tests:
   spec-test:
     main: Spec.hs
     source-dirs: test
+    other-modules:
+    - Data.Tree.RankedTree.ZipperSpec
     ghc-options:
     - -Wall
     - -threaded
-    - -rtsopts
     - -with-rtsopts=-N
     dependencies:
     - base
@@ -125,9 +128,11 @@ tests:
   doc-test:
     main: Doctest.hs
     source-dirs: test
+    other-modules:
+    - Build_doctests
     ghc-options:
+    - -Wall
     - -threaded
-    - -rtsopts
     - -with-rtsopts=-N
     dependencies:
     - base
@@ -135,12 +140,13 @@ tests:
 
 benchmarks:
   common:
-    main: CommonBench.hs
+    main: Common.hs
     source-dirs: benchmark
     ghc-options:
     - -Wall
     - -O2
     - -threaded
+    - -with-rtsopts=-N
     dependencies:
     - base
     - satt-composition

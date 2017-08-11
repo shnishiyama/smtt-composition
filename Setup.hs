@@ -20,16 +20,13 @@ main = defaultMainWithHooks simpleUserHooks
       generateBuildModule "doc-test" flags pkg lbi -- generate Build_doctests
       buildHook simpleUserHooks pkg lbi hooks flags
 
-#elif MIN_VERSION_Cabal(1,24,0)
+#else
+
   {-# WARNING ["You are configuring this package without cabal-doctest installed.",
                "The doctests test-suite will not work as a result.",
                "To fix this, install cabal-doctest before configuring."] #-}
 
 main :: IO ()
 main = defaultMain
-
-#else
-
--- does not supported
 
 #endif
