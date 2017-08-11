@@ -1,6 +1,4 @@
 {-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE FlexibleContexts  #-}
-{-# LANGUAGE TypeFamilyDependencies #-}
 
 module Data.Tree.Trans.ATT
   (
@@ -10,13 +8,13 @@ module Data.Tree.Trans.ATT
   , TaggedSyn
   , TaggedInh
   , AttAttrEither
-  , AttAttrEitherBox
   , taggedSyn
   , taggedInh
-  , taggedSynBox
-  , taggedInhBox
   , pattern TaggedSyn
   , pattern TaggedInh
+  , AttAttrEitherBox
+  , taggedSynBox
+  , taggedInhBox
   , pattern TaggedSynBox
   , pattern TaggedInhBox
 
@@ -59,16 +57,16 @@ module Data.Tree.Trans.ATT
   , bottomLabelSide
   ) where
 
-import ClassyPrelude
+import           ClassyPrelude
 
-import Control.Arrow
-import Data.Profunctor.Unsafe
-import Data.TypeLevel.TaggedEither
-import Data.Pattern.Error
+import           Control.Arrow
+import           Data.Pattern.Error
+import           Data.Profunctor.Unsafe
+import           Data.TypeLevel.TaggedEither
 
-import Data.Tree.RankedTree
-import Data.Tree.RankedTree.Zipper
-import Data.Tree.Trans.Class
+import           Data.Tree.RankedTree
+import           Data.Tree.RankedTree.Zipper
+import           Data.Tree.Trans.Class
 
 -- attibute kinds
 
@@ -213,7 +211,7 @@ instance (Ord syn, Ord inh, Ord lb) => Ord (ReductionStateLabel tz syn inh ta la
   _                  `compare` _ = GT
 
 instance (Show syn, Show inh, Show lb) => Show (ReductionStateLabel tz syn inh ta la tb lb) where
-  show (AttrStateLabel _ a) = show a
+  show (AttrStateLabel _ a)     = show a
   show (RankedTreeStateLabel l) = show l
 
 type TreeReductionStateLabel tz syn inh ta tb
@@ -310,9 +308,9 @@ buildAttReduction f s is AttrTreeTrans{..} t = goTop s
       <+> nextStateZ''
 
     filterStateZipper stateZ = case toTree stateZ of
-      RankedTreeState _ _                                    -> empty
+      RankedTreeState _ _                                  -> empty
       AttrState _ (ReductionAttrState (TaggedInhBox _) []) -> empty
-      _                                                      -> pure stateZ
+      _                                                    -> pure stateZ
 
     nextStateZ''
       =   (Kleisli zoomRightRtZipper >>> nextStateZ')
@@ -355,7 +353,7 @@ instance (RtConstraint ta la, RtConstraint tb lb, Show syn, Show inh, Show la, S
         showStep' l p = "{" <> show l <> "," <> show (reverse p) <> "}"
 
 data ReductionSteps tz syn inh ta la tb lb = ReductionSteps
-  { reductionSteps :: [ReductionStateStep tz syn inh ta la tb lb]
+  { reductionSteps  :: [ReductionStateStep tz syn inh ta la tb lb]
   , reductionResult :: ReductionState tz syn inh ta la tb lb
   }
 

@@ -18,14 +18,15 @@ module Data.Tree.Trans.ATT.Compose
   , ComposedAttAttr(..)
   ) where
 
-import ClassyPrelude
-import qualified Data.Vector as V
-import Data.TypeLevel.TaggedEither
-import Data.Pattern.Error
+import           ClassyPrelude
 
-import Data.Tree.RankedTree
-import Data.Tree.RankedTree.Zipper
-import Data.Tree.Trans.ATT
+import           Data.Pattern.Error
+import           Data.TypeLevel.TaggedEither
+import qualified Data.Vector                 as V
+
+import           Data.Tree.RankedTree
+import           Data.Tree.RankedTree.Zipper
+import           Data.Tree.Trans.ATT
 
 
 type ExtendedAttAttr syn inh = AttrSide syn inh

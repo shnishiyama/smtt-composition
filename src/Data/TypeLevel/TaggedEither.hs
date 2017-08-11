@@ -1,8 +1,8 @@
 module Data.TypeLevel.TaggedEither where
 
-import ClassyPrelude
+import           ClassyPrelude
 
-import Data.Pattern.Error
+import           Data.Pattern.Error
 
 data EitherTag
   = LeftTag

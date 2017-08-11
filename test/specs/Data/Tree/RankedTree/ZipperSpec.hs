@@ -1,10 +1,10 @@
 module Data.Tree.RankedTree.ZipperSpec where
 
-import Test.Hspec
+import           ClassyPrelude
+import           Test.Hspec
 
-import Control.Monad
-import Data.Tree.RankedTree.Instances
-import Data.Tree.RankedTree.Zipper
+import           Data.Tree.RankedTree.Instances
+import           Data.Tree.RankedTree.Zipper
 
 spec :: Spec
 spec = do

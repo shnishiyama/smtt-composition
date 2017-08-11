@@ -15,7 +15,7 @@ extra-source-files:
 build-type: Custom
 
 # unsupported
-# cabal-version: '>=1.24'
+# cabal-version: '>=2.0.0.0'
 
 custom-setup:
   dependencies:
@@ -52,6 +52,7 @@ library:
   - TypeFamilyDependencies
   - FunctionalDependencies
   - ScopedTypeVariables
+  - FlexibleContexts
   - RankNTypes
   - ConstraintKinds
   exposed-modules:
@@ -65,9 +66,10 @@ library:
   - Data.Tree.Trans.ATT
   - Data.Tree.Trans.ATT.Instances
   - Data.Tree.Trans.ATT.Compose
-  #- Data.SATT.SATT
-  #- Data.SATT.SATT.Compose
-  #- Data.SATT.Demo
+  #- Data.Tree.Trans.SATT
+  #- Data.Tree.Trans.SATT.Instances
+  #- Data.Tree.Trans.SATT.Compose
+  #- Data.Tree.Trans.Demo
   other-modules: []
   dependencies:
   - base >=4.7 && <5
@@ -79,23 +81,23 @@ library:
   - constraints
   - universe-base
 
-#executables:
-#  satt-composit:
-#    main:        Main.hs
-#    source-dirs: app
-#    default-extensions:
-#    - NoImplicitPrelude
-#    - TypeFamilies
-#    - GADTs
-#    ghc-options:
-#    - -Wall
-#    - -threaded
-#    - -rtsopts
-#    - -with-rtsopts=-N
-#    dependencies:
-#    - base
-#    - classy-prelude
-#    - satt-composition
+executables:
+  satt-composit:
+    main: Main.hs
+    source-dirs: app
+    default-extensions:
+    - NoImplicitPrelude
+    - TypeFamilies
+    - GADTs
+    ghc-options:
+    - -Wall
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - base
+    - classy-prelude
+    - satt-composition
 
 tests:
   lint:
@@ -111,19 +113,20 @@ tests:
     - hlint
 
   spec-test:
-    main: Spec.hs
-    source-dirs: test
-    other-modules:
-    - Data.Tree.RankedTree.ZipperSpec
+    main: ../Spec.hs
+    source-dirs: test/specs
     ghc-options:
     - -Wall
     - -threaded
     - -with-rtsopts=-N
     dependencies:
     - base
+    - classy-prelude
     - satt-composition
     - hspec
     - QuickCheck
+    default-extensions:
+    - NoImplicitPrelude
 
   doc-test:
     main: Doctest.hs

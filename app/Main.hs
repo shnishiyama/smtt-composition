@@ -2,15 +2,9 @@
 
 module Main where
 
-import ClassyPrelude
+import           ClassyPrelude
 
-import Data.SATT.Demo
+-- import Data.Tree.Trans.Demo
 
 main :: IO ()
-main = do
-  print postfixOpTreeSample
-
-  putStrLn "->"
-
-  let postfixOperators = treeTrans (infixToPostfixTransducer `composeSatts` postfixToInfixTransducer) postfixOpTreeSample
-  print postfixOperators
+main = error "not implemented"

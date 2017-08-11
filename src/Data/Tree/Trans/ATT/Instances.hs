@@ -1,16 +1,17 @@
-{-# LANGUAGE OverloadedLists   #-}
+{-# LANGUAGE OverloadedLists #-}
 
 module Data.Tree.Trans.ATT.Instances where
 
-import ClassyPrelude
-import Data.Universe.Class
-import Data.Universe.Instances
-import qualified Data.Vector as V
-import Data.Pattern.Error
+import           ClassyPrelude
 
-import Data.Tree.RankedTree
-import Data.Tree.RankedTree.Instances
-import Data.Tree.Trans.ATT
+import           Data.Pattern.Error
+import           Data.Universe.Class
+import           Data.Universe.Instances
+import qualified Data.Vector                    as V
+
+import           Data.Tree.RankedTree
+import           Data.Tree.RankedTree.Instances
+import           Data.Tree.Trans.ATT
 
 
 data SynAttrUnit = SynAttrUnit

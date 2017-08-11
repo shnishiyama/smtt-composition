@@ -11,10 +11,11 @@ module Data.Tree.RankedTree.Zipper
   , getTreeLabel
   ) where
 
-import ClassyPrelude hiding (length)
-import qualified Data.Vector as V
+import           ClassyPrelude        hiding (length)
 
-import Data.Tree.RankedTree
+import qualified Data.Vector          as V
+
+import           Data.Tree.RankedTree
 
 -- RTZipper
 

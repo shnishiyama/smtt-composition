@@ -1,13 +1,13 @@
 {-# LANGUAGE OverloadedLists #-}
 
-module Data.SATT.SATT.Compose where
+module Data.Tree.Trans.SATT.Compose where
 
-import ClassyPrelude
+import           ClassyPrelude
 
-import Data.Tree.RankedTree
-import qualified Data.SATT.ATT as ATT
+import qualified Data.SATT.ATT         as ATT
 import qualified Data.SATT.ATT.Compose as ATTC
-import Data.SATT.SATT
+import           Data.SATT.SATT
+import           Data.Tree.RankedTree
 
 data SimuratedAttSynAttr syn stsyn
   = SimSynAttr syn

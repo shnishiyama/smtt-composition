@@ -2,9 +2,9 @@
 
 module Data.Tree.RankedTree.Instances where
 
-import ClassyPrelude
+import           ClassyPrelude
 
-import Data.Tree.RankedTree
+import           Data.Tree.RankedTree
 
 data TreeABC
   = TreeA TreeABC TreeABC

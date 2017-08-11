@@ -1,4 +1,4 @@
-module Data.SATT.Demo
+module Data.Tree.Trans.Demo
   (
     -- ranked tree
     RankedTree
@@ -35,14 +35,14 @@ module Data.SATT.Demo
   , postfixOpTreeSample
   ) where
 
-import ClassyPrelude
+import           ClassyPrelude
 
-import Data.Tree.RankedTree
-import Data.Tree.RankedTree.Transducer
-import Data.SATT.ATT
-import Data.SATT.ATT.Compose
-import Data.SATT.SATT
-import Data.SATT.SATT.Compose
+import           Data.Tree.RankedTree
+import           Data.Tree.RankedTree.Transducer
+import           Data.Tree.Trans.ATT
+import           Data.Tree.Trans.ATT.Compose
+import           Data.Tree.Trans.SATT
+import           Data.Tree.Trans.SATT.Compose
 
 -- | Demo Examples
 --

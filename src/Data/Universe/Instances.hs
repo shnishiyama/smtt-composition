@@ -1,8 +1,8 @@
 module Data.Universe.Instances where
 
-import ClassyPrelude
+import           ClassyPrelude
 
-import Data.Universe.Class
+import           Data.Universe.Class
 
 data EmptyType
 

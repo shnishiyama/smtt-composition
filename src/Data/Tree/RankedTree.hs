@@ -1,5 +1,3 @@
-{-# LANGUAGE FlexibleContexts    #-}
-
 module Data.Tree.RankedTree
   (
     -- main
@@ -32,12 +30,12 @@ module Data.Tree.RankedTree
   , bottomLabel
   ) where
 
-import           ClassyPrelude hiding (length)
+import           ClassyPrelude          hiding (length)
 
-import           Data.Profunctor.Unsafe
 import           Data.Coerce
+import           Data.Profunctor.Unsafe
 import           Data.Proxy
-import qualified Data.Vector as V
+import qualified Data.Vector            as V
 
 type RankNumber = Int
 type NodeVec    = V.Vector
@@ -91,7 +89,7 @@ foldTree :: RankedTree t => (LabelType t -> NodeVec b -> b) -> t -> b
 foldTree f = go where
   go t = f (treeLabel t) $ go <$> treeChilds t
 
-showTree :: (RankedTree t, Show (LabelType t)) => t -> String
+showTree :: (RankedTree t, Show :$ LabelType t) => t -> String
 showTree t = show (treeLabel t) <> childsStr (treeChilds t)
   where
     childsStr ts
@@ -202,5 +200,5 @@ instance RtConstraint t l => RankedTree (RankedTreeWithInitial t l) where
   treeLabelRank _ InitialLabel        = 1
   treeLabelRank _ (RankedTreeLabel l) = treeLabelRank (treeTag @t) l
 
-  mkTreeUnchecked InitialLabel ts = RankedTreeWithInitial (ts ! 0)
+  mkTreeUnchecked InitialLabel        ts = RankedTreeWithInitial (ts ! 0)
   mkTreeUnchecked (RankedTreeLabel l) ts = RankedTreeWithoutInitial l ts

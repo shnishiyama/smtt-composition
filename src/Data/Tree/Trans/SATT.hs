@@ -1,17 +1,22 @@
 {-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE FlexibleContexts  #-}
-{-# LANGUAGE OverloadedLists   #-}
 
-module Data.SATT.SATT
+module Data.Tree.Trans.SATT
   (
-    -- satt attr tag
+    -- satt attribute tags
     SattAttrTag(..)
-  , SattAttrIdentity(..)
-  , SattAttrBox(..)
-  , outputSattAttrBox
-  , outputSattAttrBoxUnsafe
-  , stackSattAttrBox
-  , stackSattAttrBoxUnsafe
+  , SattAttrTagLR
+  , TaggedOutput
+  , TaggedStack
+  , SattAttrEither
+  , taggedOutput
+  , taggedStack
+  , pattern TaggedOutput
+  , pattern TaggedStack
+  , SattAttrEitherBox
+  , taggedOutputBox
+  , taggedStackBox
+  , pattern TaggedOutputBox
+  , pattern TaggedStackBox
 
     -- common
   , InputLabelType
@@ -20,8 +25,6 @@ module Data.SATT.SATT
   , OutputRightHandSide
   , StackRightHandSide
   , RightHandSide(..)
-  , RightHandSideF(..)
-  , RightHandSideBox
   , outputRHS
   , stackRHS
   , TreeOutputRightHandSide
@@ -53,32 +56,20 @@ module Data.SATT.SATT
   , buildSattReductionSteps
   , buildSattReductionSteps'
 
-    -- from att to satt
-  , fromAttrTreeTrans
-
     -- bottom label
   , bottomLabelSide
-
-    -- instances
-  , ATT.SynAttrUnit(..)
-  , ATT.InhAttrUnit(..)
-  , StSynAttrUnit(..)
-  , StInhAttrUnit(..)
-  , postfixToInfixTransducer
   ) where
 
-import ClassyPrelude
+import           ClassyPrelude
 
-import Control.Arrow
-import Data.Universe.Class
-import Data.Universe.Instances
-import Data.Coerce
-import Data.Profunctor.Unsafe
+import           Control.Arrow
+import           Data.Coerce
+import           Data.Profunctor.Unsafe
 
-import qualified Data.SATT.ATT as ATT
-import Data.Tree.RankedTree
-import Data.Tree.RankedTree.Zipper
-import Data.Tree.RankedTree.Transducer
+import qualified Data.SATT.ATT                   as ATT
+import           Data.Tree.RankedTree
+import           Data.Tree.RankedTree.Transducer
+import           Data.Tree.RankedTree.Zipper
 
 -- attibute kinds
 
@@ -264,12 +255,12 @@ data ReductionStateLabel tag syn inh stsyn stinh ta la tb lb where
 
 instance (Show syn, Show inh, Show stsyn, Show stinh, Show lb)
   => Show (ReductionStateLabel tag syn inh stsyn stinh ta la tb lb) where
-    show (AttrStateLabel _ a)       = show a
-    show (RankedTreeStateLabel l)   = show l
-    show StackEmptyStateLabel       = "Empty"
-    show StackHeadStateLabel        = "Head"
-    show StackConsStateLabel        = "Cons"
-    show StackTailStateLabel        = "Tail"
+    show (AttrStateLabel _ a)     = show a
+    show (RankedTreeStateLabel l) = show l
+    show StackEmptyStateLabel     = "Empty"
+    show StackHeadStateLabel      = "Head"
+    show StackConsStateLabel      = "Cons"
+    show StackTailStateLabel      = "Tail"
 
 data ReductionStateLabelBox syn inh stsyn stinh ta la tb lb = forall tag.
   ReductionStateLabelBox (ReductionStateLabel tag syn inh stsyn stinh ta la tb lb)
@@ -449,12 +440,12 @@ buildSattReduction f s is StackAttrTreeTrans{..} t = goTop s where
     Nothing      -> error "not permitted operation"
     Just nstateZ -> case toTree nstateZ of
       OutputSattAttrBox x -> case coerce x of
-          StackHeadState _    -> setTreeZipper (outputReductionState hd) nstateZ
-          _                   -> error "not permitted operation"
+          StackHeadState _ -> setTreeZipper (outputReductionState hd) nstateZ
+          _                -> error "not permitted operation"
 
       StackSattAttrBox  x -> case coerce x of
-          StackTailState _    -> setTreeZipper (stackReductionState  tl) nstateZ
-          _                   -> error "not permitted operation"
+          StackTailState _ -> setTreeZipper (stackReductionState  tl) nstateZ
+          _                -> error "not permitted operation"
 
   nextStateZ = runKleisli nextStateZ'
 
@@ -519,7 +510,7 @@ instance (RtConstraint ta la, RtConstraint tb lb, Show syn, Show inh, Show stsyn
         showStep' l p = "{" <> show l <> "," <> show (reverse p) <> "}"
 
 data ReductionSteps syn inh stsyn stinh ta la tb lb = ReductionSteps
-  { reductionSteps :: [ReductionStateStep syn inh stsyn stinh ta la tb lb]
+  { reductionSteps  :: [ReductionStateStep syn inh stsyn stinh ta la tb lb]
   , reductionResult :: ReductionStateBox syn inh stsyn stinh ta la tb lb
   }
 
@@ -536,7 +527,7 @@ buildStepFromAttrState l = go where
   go (OutputInhAttrState a (x:xs)) = OutputInhReductionStep a x l xs
   go (StackSynAttrState a p)       = StackSynReductionStep a l p
   go (StackInhAttrState a (x:xs))  = StackInhReductionStep a x l xs
-  go _ = error "unexpected operation"
+  go _                             = error "unexpected operation"
 
 buildSattReductionSteps :: (RankedTree ta, RankedTree tb)
   => OutputReductionAttrState syn inh stsyn stinh
@@ -588,90 +579,3 @@ instance TreeTransducer (StackAttrTreeTrans syn inh stsyn stinh) where
 
 bottomLabelSide :: RankedTree t => TreeOutputRightHandSide syn inh stsyn stinh t
 bottomLabelSide = LabelSide bottomLabel []
-
--- instances
-
-fromAttrTreeTrans :: ATT.AttrTreeTrans syn inh ta tb -> StackAttrTreeTrans syn inh EmptyType EmptyType ta tb
-fromAttrTreeTrans trans = StackAttrTreeTrans
-  { initialAttr           = ATT.initialAttr trans
-  , outputSynthesizedRule = ouSynRule
-  , outputInheritedRule   = ouInhRule
-  , stackSynthesizedRule  = stSynRule
-  , stackInheritedRule    = stInhRule
-  }
-  where
-    toOutputAttr (ATT.SynAttrSide a i) = OutputSynAttrSide a i
-    toOutputAttr (ATT.InhAttrSide a)   = OutputInhAttrSide a
-    toOutputAttr (ATT.LabelSide l ts)  = LabelSide l $ toOutputAttr <$> ts
-
-    ouSynRule a   l = toOutputAttr $ ATT.synthesizedRule trans a l
-    ouInhRule a i l = toOutputAttr $ ATT.inheritedRule trans a i l
-
-    stSynRule _   _ = error "not supported stack attributes"
-    stInhRule _ _ _ = error "not supported stack attributes"
-
-
-data StSynAttrUnit = StSynAttrUnit
-  deriving (Eq, Ord, Enum, Bounded)
-
-instance Universe StSynAttrUnit
-instance Finite StSynAttrUnit
-
-instance Show StSynAttrUnit where
-  show _ = "s0"
-
-data StInhAttrUnit = StInhAttrUnit
-  deriving (Eq, Ord, Enum, Bounded)
-
-instance Universe StInhAttrUnit
-instance Finite StInhAttrUnit
-
-instance Show StInhAttrUnit where
-  show _ = "s1"
-
-postfixToInfixTransducer :: StackAttrTreeTrans ATT.SynAttrUnit EmptyType EmptyType StInhAttrUnit PostfixOpTree InfixOpTree
-postfixToInfixTransducer = StackAttrTreeTrans
-  { initialAttr           = a0
-  , outputSynthesizedRule = ouSynRule
-  , outputInheritedRule   = ouInhRule
-  , stackSynthesizedRule  = stSynRule
-  , stackInheritedRule    = stInhRule
-  }
-  where
-    a0 = ATT.SynAttrUnit
-    s  = StInhAttrUnit
-
-    one         = LabelSide "one"   []
-    two         = LabelSide "two"   []
-    plus  t1 t2 = LabelSide "plus"  [t1, t2]
-    multi t1 t2 = LabelSide "multi" [t1, t2]
-
-    ouSynRule _ InitialLabel              = OutputSynAttrSide a0 0
-    ouSynRule _ (RankedTreeLabel "one")   = OutputSynAttrSide a0 0
-    ouSynRule _ (RankedTreeLabel "two")   = OutputSynAttrSide a0 0
-    ouSynRule _ (RankedTreeLabel "plus")  = OutputSynAttrSide a0 0
-    ouSynRule _ (RankedTreeLabel "multi") = OutputSynAttrSide a0 0
-    ouSynRule _ (RankedTreeLabel "$")     = StackHeadSide
-      (StackInhAttrSide s)
-    ouSynRule _ l                         = error $ "unsupported label: " <> show l
-
-    ouInhRule _ i l = error $ "unsupported label: (" <> show i <> "," <> show l <> ")"
-
-    stSynRule _ l = error $ "unsupported label: " <> show l
-
-    stInhRule _ 0 InitialLabel              = StackEmptySide
-    stInhRule _ 0 (RankedTreeLabel "one")   = StackConsSide one $ StackInhAttrSide s
-    stInhRule _ 0 (RankedTreeLabel "two")   = StackConsSide two $ StackInhAttrSide s
-    stInhRule _ 0 (RankedTreeLabel "plus")  = StackConsSide
-      (plus
-        (StackHeadSide (StackTailSide (StackInhAttrSide s)))
-        (StackHeadSide (StackInhAttrSide s)))
-      (StackTailSide
-        (StackTailSide (StackInhAttrSide s)))
-    stInhRule _ 0 (RankedTreeLabel "multi") = StackConsSide
-      (multi
-        (StackHeadSide (StackTailSide (StackInhAttrSide s)))
-        (StackHeadSide (StackInhAttrSide s)))
-      (StackTailSide
-        (StackTailSide (StackInhAttrSide s)))
-    stInhRule _ i l                         = error $ "unsupported label: (" <> show i <> "," <> show l <> ")"
