@@ -24,6 +24,7 @@ import Data.TypeLevel.TaggedEither
 import Data.Pattern.Error
 
 import Data.Tree.RankedTree
+import Data.Tree.RankedTree.Zipper
 import Data.Tree.Trans.ATT
 
 
@@ -230,7 +231,7 @@ composeAtts t1 t2 = AttrTreeTrans
     composeBasedAtt = toComposeBasedAtt t1
     attrIndexedAtt  = toAttrIndexedAtt t2
 
-    runReduction t s = runAttReduction s composeBasedAtt t
+    runReduction t s = runAttReduction @RTZipper s composeBasedAtt t
     runReductionWithRep f t s = replaceReductionState f $ runReduction t s
 
     replaceReductionState f (RankedTreeState el ss) = case el of

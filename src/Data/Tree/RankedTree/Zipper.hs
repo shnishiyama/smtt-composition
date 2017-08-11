@@ -74,6 +74,7 @@ rtZipper t = RTZipper
 -- operators
 
 class RankedTreeZipper tz where
+  toZipper :: RankedTree t => t -> RtApply tz t
   toTree :: RankedTree t => RtApply tz t -> t
 
   zoomInRtZipper :: RankedTree t => RtApply tz t -> Maybe (RtApply tz t)
@@ -113,6 +114,7 @@ class RankedTreeZipper tz where
 
 
 instance RankedTreeZipper RTZipper where
+  toZipper = rtZipper
   toTree = rtzTree
 
   zoomInIdxRtZipper n (RTZipper t cs) = if n >= len

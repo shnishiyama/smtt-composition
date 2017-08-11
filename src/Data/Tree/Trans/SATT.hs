@@ -96,28 +96,28 @@ type TaggedStack  = SattAttrEither 'StackAttrTag
 type SattAttrEither tag = TaggedEither (SattAttrTagLR tag)
 type SattAttrEitherBox = TaggedEitherBox
 
-taggedOutput :: o -> TaggedOutput o s
+taggedOutput :: out -> TaggedOutput out st
 taggedOutput = TaggedLeft
 
-taggedStack :: s -> TaggedStack o s
+taggedStack :: st -> TaggedStack out st
 taggedStack = TaggedRight
 
-taggedOutputBox :: o -> SattAttrEitherBox o s
+taggedOutputBox :: out -> SattAttrEitherBox out st
 taggedOutputBox = taggedLeftBox
 
-taggedStackBox :: s -> SattAttrEitherBox o s
+taggedStackBox :: st -> SattAttrEitherBox out st
 taggedStackBox = taggedRightBox
 
-pattern TaggedOutput :: o -> TaggedOutput o s
+pattern TaggedOutput :: out -> TaggedOutput out st
 pattern TaggedOutput x = TaggedLeft x
 
-pattern TaggedStack :: s -> TaggedStack o s
+pattern TaggedStack :: st -> TaggedStack out st
 pattern TaggedStack x = TaggedRight x
 
-pattern TaggedOutputBox :: o -> SattAttrEitherBox o s
+pattern TaggedOutputBox :: out -> SattAttrEitherBox out st
 pattern TaggedOutputBox x = TaggedLeftBox x
 
-pattern TaggedStackBox :: s -> SattAttrEitherBox o s
+pattern TaggedStackBox :: st -> SattAttrEitherBox out st
 pattern TaggedStackBox x = TaggedRightBox x
 
 -- common
@@ -128,68 +128,48 @@ type InputLabelType t = RtApply RankedTreeLabelWithInitial t
 type InputRankedTree t = RtApply RankedTreeWithInitial t
 type InputRankedTreeZipper t = RTZipperWithInitial t (LabelType t)
 
+type SattAttrSide tag syn inh stsyn stinh
+  = SattAttrEither tag (AttAttrSide syn inh) (AttAttrSide stsyn stinh)
+type AttAttrSide syn inh = ATT.AttrSide syn inh
+
 type OutputRightHandSide = RightHandSide 'OutputAttrTag
 type StackRightHandSide  = RightHandSide 'StackAttrTag
 
 data RightHandSide (tag :: SattAttrTag) syn inh stsyn stinh t l where
-  OutputSynAttrSide :: syn -> RankNumber   -> OutputRightHandSide syn inh stsyn stinh t l
-  OutputInhAttrSide :: inh                 -> OutputRightHandSide syn inh stsyn stinh t l
-  StackSynAttrSide  :: stsyn -> RankNumber -> StackRightHandSide syn inh stsyn stinh t l
-  StackInhAttrSide  :: stinh               -> StackRightHandSide syn inh stsyn stinh t l
-  LabelSide         :: l -> (NodeVec :$ OutputRightHandSide syn inh stsyn stinh t l)
-                        -> OutputRightHandSide syn inh stsyn stinh t l
-  StackHeadSide     :: StackRightHandSide syn inh stsyn stinh t l
-                        -> OutputRightHandSide syn inh stsyn stinh t l
-  StackConsSide     :: OutputRightHandSide syn inh stsyn stinh t l -> StackRightHandSide syn inh stsyn stinh t l
-                        -> StackRightHandSide syn inh stsyn stinh t l
-  StackTailSide     :: StackRightHandSide syn inh stsyn stinh t l
-                        -> StackRightHandSide syn inh stsyn stinh t l
-  StackEmptySide    :: StackRightHandSide syn inh stsyn stinh t l
+  AttrSide       :: SattAttrSide tag syn inh stsyn stinh
+    -> RightHandSide tag syn inh stsyn stinh t l
+  LabelSide      :: l -> (NodeVec :$ OutputRightHandSide syn inh stsyn stinh t l)
+    -> OutputRightHandSide syn inh stsyn stinh t l
+  StackHeadSide  :: StackRightHandSide syn inh stsyn stinh t l
+    -> OutputRightHandSide syn inh stsyn stinh t l
+  StackConsSide  :: OutputRightHandSide syn inh stsyn stinh t l
+    -> StackRightHandSide syn inh stsyn stinh t l
+    -> StackRightHandSide syn inh stsyn stinh t l
+  StackTailSide  :: StackRightHandSide syn inh stsyn stinh t l
+    -> StackRightHandSide syn inh stsyn stinh t l
+  StackEmptySide :: StackRightHandSide syn inh stsyn stinh t l
 
-newtype RightHandSideF syn inh stsyn stinh t l tag
-  = RightHandSideF (RightHandSide tag syn inh stsyn stinh t l)
-
-type RightHandSideBox syn inh stsyn stinh t l = SattAttrBox (RightHandSideF syn inh stsyn stinh t l)
-
-outputRHS
-  :: RightHandSide 'OutputAttrTag syn inh stsyn stinh t l
-  -> RightHandSideBox syn inh stsyn stinh t l
-outputRHS = OutputSattAttrBox .# RightHandSideF
-
-stackRHS
-  :: RightHandSide 'StackAttrTag syn inh stsyn stinh t l
-  -> RightHandSideBox syn inh stsyn stinh t l
-stackRHS = StackSattAttrBox .# RightHandSideF
+data RightHandSideBox syn inh stsyn stinh t l
+  = forall tag. RightHandSideBox (RightHandSide tag syn inh stsyn stinh t l)
 
 
 type TreeOutputRightHandSide syn inh stsyn stinh t = TreeRightHandSide 'OutputAttrTag syn inh stsyn stinh t
 type TreeStackRightHandSide syn inh stsyn stinh t = TreeRightHandSide 'StackAttrTag syn inh stsyn stinh t
 type TreeRightHandSide tag syn inh stsyn stinh t = RtApply (RightHandSide tag syn inh stsyn stinh) t
-type TreeRightHandSideBox syn inh stsyn stinh t = RightHandSideBox syn inh stsyn stinh t (LabelType t)
+type TreeRightHandSideBox syn inh stsyn stinh t = RtApply (RightHandSideBox syn inh stsyn stinh) t
 
-type OutputSynthesizedRuleType syn inh stsyn stinh ta tb =
-  syn -> InputLabelType ta ->
-    TreeOutputRightHandSide syn inh stsyn stinh tb
+type SattInputAttr tag syn inh stsyn stinh
+  = SattAttrEither tag (ATT.AttInputAttr syn inh) (ATT.AttInputAttr stsyn stinh)
+type AttInputAttr syn inh = ATT.InputAttr syn inh
 
-type OutputInheritedRuleType syn inh stsyn stinh ta tb =
-  inh -> RankNumber -> InputLabelType ta ->
-    TreeOutputRightHandSide syn inh stsyn stinh tb
-
-type StackSynthesizedRuleType syn inh stsyn stinh ta tb =
-  stsyn -> InputLabelType ta ->
-    TreeStackRightHandSide syn inh stsyn stinh tb
-
-type StackInheritedRuleType syn inh stsyn stinh ta tb =
-  stinh -> RankNumber -> InputLabelType ta ->
-    TreeStackRightHandSide syn inh stsyn stinh tb
+type SattRuleType tag syn inh stsyn stinh ta tb
+  = SattInputAttr tag syn inh stsyn stinh -> InputLabelType ta
+  -> TreeRightHandSide tag syn inh stsyn stinh tb
 
 -- | Stack-Attributed Tree Transducer
 data StackAttrTreeTrans syn inh stsyn stinh ta tb = StackAttrTreeTrans
-  { initialAttr           :: syn
-  , outputSynthesizedRule :: OutputSynthesizedRuleType syn inh stsyn stinh ta tb
-  , outputInheritedRule   :: OutputInheritedRuleType syn inh stsyn stinh ta tb
-  , stackSynthesizedRule  :: StackSynthesizedRuleType syn inh stsyn stinh ta tb
-  , stackInheritedRule    :: StackInheritedRuleType syn inh stsyn stinh ta tb
+  { initialAttr   :: syn
+  , reductionRule :: forall tag. SattRuleType tag syn inh stsyn stinh ta tb
   }
 
 
@@ -198,92 +178,84 @@ data StackAttrTreeTrans syn inh stsyn stinh ta tb = StackAttrTreeTrans
 type OutputReductionAttrState = ReductionAttrState 'OutputAttrTag
 type StackReductionAttrState  = ReductionAttrState 'StackAttrTag
 
-data ReductionAttrState (tag :: SattAttrTag) syn inh stsyn stinh where
-  OutputSynAttrState :: syn   -> [RankNumber] -> OutputReductionAttrState syn inh stsyn stinh
-  OutputInhAttrState :: inh   -> [RankNumber] -> OutputReductionAttrState syn inh stsyn stinh
-  StackSynAttrState  :: stsyn -> [RankNumber] -> StackReductionAttrState syn inh stsyn stinh
-  StackInhAttrState  :: stinh -> [RankNumber] -> StackReductionAttrState syn inh stsyn stinh
+data ReductionAttrState tag syn inh stsyn stinh = ReductionAttrState
+  { reductionAttrState :: SattAttrEither tag
+    (ATT.AttAttrEitherBox syn inh) (ATT.AttAttrEitherBox stsyn stinh)
+  , reductionPathState :: [RankNumber]
+  } deriving (Eq, Ord)
 
 instance (Show syn, Show inh, Show stsyn, Show stinh) => Show (ReductionAttrState tag syn inh stsyn stinh) where
-  show (OutputSynAttrState a p) = show a <> show (reverse p)
-  show (OutputInhAttrState a p) = show a <> show (reverse p)
-  show (StackSynAttrState  a p) = show a <> show (reverse p)
-  show (StackInhAttrState  a p) = show a <> show (reverse p)
+  show (ReductionAttrState (TaggedOutput (TaggedSynBox a)) p) = show a <> show (reverse p)
+  show (ReductionAttrState (TaggedOutput (TaggedInhBox a)) p) = show a <> show (reverse p)
+  show (ReductionAttrState (TaggedStack  (TaggedSynBox a)) p) = show a <> show (reverse p)
+  show (ReductionAttrState (TaggedStack  (TaggedInhBox a)) p) = show a <> show (reverse p)
+
 
 type ReductionOutputState = ReductionState 'OutputAttrTag
 type ReductionStackState  = ReductionState 'StackAttrTag
 
-newtype ReductionStateF syn inh stsyn stinh ta la tb lb tag
-  = ReductionStateF (ReductionState tag syn inh stsyn stinh ta la tb lb)
-
-type ReductionStateBox syn inh stsyn stinh ta la tb lb
-  = SattAttrBox (ReductionStateF syn inh stsyn stinh ta la tb lb)
-
-outputReductionState
-  :: ReductionState 'OutputAttrTag syn inh stsyn stinh ta la tb lb
-  -> ReductionStateBox syn inh stsyn stinh ta la tb lb
-outputReductionState = OutputSattAttrBox .# ReductionStateF
-
-stackReductionState
-  :: ReductionState 'StackAttrTag syn inh stsyn stinh ta la tb lb
-  -> ReductionStateBox syn inh stsyn stinh ta la tb lb
-stackReductionState = StackSattAttrBox .# ReductionStateF
-
-
-data ReductionState (tag :: SattAttrTag) syn inh stsyn stinh ta la tb lb where
+data ReductionState tag syn inh stsyn stinh ta la tb lb where
   AttrState       :: RTZipperWithInitial ta la -> ReductionAttrState tag syn inh stsyn stinh
-                      -> ReductionState tag syn inh stsyn stinh ta la tb lb
+    -> ReductionState tag syn inh stsyn stinh ta la tb lb
   RankedTreeState :: lb -> (NodeVec :$ ReductionOutputState syn inh stsyn stinh ta la tb lb)
-                      -> ReductionOutputState syn inh stsyn stinh ta la tb lb
+    -> ReductionOutputState syn inh stsyn stinh ta la tb lb
   StackHeadState  :: ReductionStackState syn inh stsyn stinh ta la tb lb
-                      -> ReductionOutputState syn inh stsyn stinh ta la tb lb
+    -> ReductionOutputState syn inh stsyn stinh ta la tb lb
   StackConsState  :: ReductionOutputState syn inh stsyn stinh ta la tb lb
-                      -> ReductionStackState syn inh stsyn stinh ta la tb lb
-                      -> ReductionStackState syn inh stsyn stinh ta la tb lb
+    -> ReductionStackState syn inh stsyn stinh ta la tb lb
+    -> ReductionStackState syn inh stsyn stinh ta la tb lb
   StackTailState  :: ReductionStackState syn inh stsyn stinh ta la tb lb
-                      -> ReductionStackState syn inh stsyn stinh ta la tb lb
+    -> ReductionStackState syn inh stsyn stinh ta la tb lb
   StackEmptyState :: ReductionStackState syn inh stsyn stinh ta la tb lb
+
+deriving instance (Eq syn, Eq inh, Eq stsyn, Eq stinh, Eq ta, Eq la, Eq tb, Eq lb)
+  => Eq (ReductionState tag syn inh stsyn stinh ta la tb lb)
+deriving instance (Ord syn, Ord inh, Ord stsyn, Ord stinh, Ord ta, Ord la, Ord tb, Ord lb)
+  => Ord (ReductionState tag syn inh stsyn stinh ta la tb lb)
 
 instance (RtConstraint ta la, RtConstraint tb lb, Show syn, Show inh, Show stsyn, Show stinh, Show lb)
   => Show (ReductionStateBox syn inh stsyn stinh ta la tb lb) where
     show = showTree
 
+data ReductionStateBox syn inh stsyn stinh ta la tb lb = forall tag.
+  ReductionStateBox (ReductionState tag syn inh stsyn stinh ta la tb lb)
+
+reductionStateBox
+  :: ReductionStateBox syn inh stsyn stinh ta la tb lb
+  -> SattAttrEitherBox
+    (ReductionOutputState syn inh stsyn stinh ta la tb lb)
+    (ReductionStackState syn inh stsyn stinh ta la tb lb)
+reductionStateBox (ReductionStateBox x) = case x of
+  AttrState _ (ReductionAttrState (TaggedOutput _) _) -> TaggedOutputBox x
+  AttrState _ (ReductionAttrState (TaggedStack  _) _) -> TaggedStackBox x
+  RankedTreeState _ _                                 -> TaggedOutputBox x
+  StackHeadState _                                    -> TaggedOutputBox x
+  StackConsState _ _                                  -> TaggedStackBox x
+  StackTailState _                                    -> TaggedStackBox x
+  StackEmptyState                                     -> TaggedStackBox x
+
 type TreeReductionOutputState syn inh stsyn stinh ta tb = TreeReductionState 'OutputAttrTag syn inh stsyn stinh ta tb
 type TreeReductionStackState syn inh stsyn stinh ta tb = TreeReductionState 'StackAttrTag syn inh stsyn stinh ta tb
-type TreeReductionState tag syn inh stsyn stinh ta tb = RtApply (RtApply (ReductionState tag syn inh stsyn stinh) ta) tb
-type TreeReductionStateBox syn inh stsyn stinh ta tb = ReductionStateBox syn inh stsyn stinh ta (LabelType ta) tb (LabelType tb)
+type TreeReductionState tag syn inh stsyn stinh ta tb
+  = RtApply (RtApply (ReductionState tag syn inh stsyn stinh) ta) tb
+type TreeReductionStateBox syn inh stsyn stinh ta tb
+  = RtApply (RtApply (ReductionStateBox syn inh stsyn stinh) ta) tb
 
 fromTreeReductionState :: RankedTree tb => TreeReductionState tag syn inh stsyn stinh ta tb -> Maybe tb
 fromTreeReductionState (RankedTreeState l ss) = pure (mkTree l) <*> traverse fromTreeReductionState ss
 fromTreeReductionState _                      = empty
 
 initialSattReductionState :: StackAttrTreeTrans syn inh stsyn stinh ta tb -> OutputReductionAttrState syn inh stsyn stinh
-initialSattReductionState StackAttrTreeTrans{ initialAttr = a0 } = OutputSynAttrState a0 []
+initialSattReductionState StackAttrTreeTrans{ initialAttr = a0 }
+  = ReductionAttrState (taggedOutput (taggedSynBox a0)) []
 
 
 type ReductionOutputStateLabel = ReductionStateLabel 'OutputAttrTag
 type ReductionStackStateLabel  = ReductionStateLabel 'StackAttrTag
 
-newtype ReductionStateLabelF syn inh stsyn stinh ta la tb lb tag
-  = ReductionStateLabelF (ReductionStateLabel tag syn inh stsyn stinh ta la tb lb)
-  deriving (Show)
-
-type ReductionStateLabelBox syn inh stsyn stinh ta la tb lb
-  = SattAttrBox (ReductionStateLabelF syn inh stsyn stinh ta la tb lb)
-
-outputReductionStateLabel
-  :: ReductionStateLabel 'OutputAttrTag syn inh stsyn stinh ta la tb lb
-  -> ReductionStateLabelBox syn inh stsyn stinh ta la tb lb
-outputReductionStateLabel = OutputSattAttrBox .# ReductionStateLabelF
-
-stackReductionStateLabel
-  :: ReductionStateLabel 'StackAttrTag syn inh stsyn stinh ta la tb lb
-  -> ReductionStateLabelBox syn inh stsyn stinh ta la tb lb
-stackReductionStateLabel = StackSattAttrBox .# ReductionStateLabelF
-
-data ReductionStateLabel (tag :: SattAttrTag) syn inh stsyn stinh ta la tb lb where
+data ReductionStateLabel tag syn inh stsyn stinh ta la tb lb where
   AttrStateLabel        :: RTZipperWithInitial ta la -> ReductionAttrState tag syn inh stsyn stinh
-                            -> ReductionStateLabel tag syn inh stsyn stinh ta la tb lb
+    -> ReductionStateLabel tag syn inh stsyn stinh ta la tb lb
   RankedTreeStateLabel  :: lb -> ReductionOutputStateLabel syn inh stsyn stinh ta la tb lb
   StackHeadStateLabel   :: ReductionOutputStateLabel syn inh stsyn stinh ta la tb lb
   StackConsStateLabel   :: ReductionStackStateLabel syn inh stsyn stinh ta la tb lb
@@ -299,14 +271,15 @@ instance (Show syn, Show inh, Show stsyn, Show stinh, Show lb)
     show StackConsStateLabel        = "Cons"
     show StackTailStateLabel        = "Tail"
 
+data ReductionStateLabelBox syn inh stsyn stinh ta la tb lb = forall tag.
+  ReductionStateLabelBox (ReductionStateLabel tag syn inh stsyn stinh ta la tb lb)
+
 instance (Show syn, Show inh, Show stsyn, Show stinh, Show lb)
   => Show (ReductionStateLabelBox syn inh stsyn stinh ta la tb lb) where
-    show (OutputSattAttrBox x) = show (coerce x :: ReductionOutputStateLabel syn inh stsyn stinh ta la tb lb)
-    show (StackSattAttrBox  x) = show (coerce x :: ReductionStackStateLabel syn inh stsyn stinh ta la tb lb)
-
+    show (ReductionStateLabelBox x) = show x
 
 type TreeReductionStateLabelBox syn inh stsyn stinh ta tb
-  = ReductionStateLabelBox syn inh stsyn stinh ta (LabelType ta) tb (LabelType tb)
+  = RtApply (RtApply (ReductionStateLabelBox syn inh stsyn stinh) ta) tb
 
 instance (RtConstraint ta la, RtConstraint tb lb)
   => RankedTree (ReductionStateBox syn inh stsyn stinh ta la tb lb) where
@@ -314,9 +287,7 @@ instance (RtConstraint ta la, RtConstraint tb lb)
     type LabelType (ReductionStateBox syn inh stsyn stinh ta la tb lb)
       = ReductionStateLabelBox syn inh stsyn stinh ta la tb lb
 
-    treeLabel s = case s of
-        OutputSattAttrBox x -> outputReductionStateLabel . treeLabel' $ coerce x
-        StackSattAttrBox  x -> stackReductionStateLabel  . treeLabel' $ coerce x
+    treeLabel (ReductionStateBox x) = ReductionStateLabelBox $ treeLabel' x
       where
         treeLabel'
           :: ReductionState tag syn inh stsyn stinh ta la tb lb
@@ -328,23 +299,19 @@ instance (RtConstraint ta la, RtConstraint tb lb)
         treeLabel' (StackTailState _)    = StackTailStateLabel
         treeLabel' StackEmptyState       = StackEmptyStateLabel
 
-    treeChilds s = case s of
-        OutputSattAttrBox x -> treeChilds' $ coerce x
-        StackSattAttrBox  x -> treeChilds' $ coerce x
+    treeChilds (ReductionStateBox x) = ReductionStateLabelBox $ treeChilds' x
       where
         treeChilds'
           :: ReductionState tag syn inh stsyn stinh ta la tb lb
           -> (NodeVec :$ ReductionStateBox syn inh stsyn stinh ta la tb lb)
         treeChilds' (AttrState _ _)        = []
-        treeChilds' (RankedTreeState _ ts) = outputReductionState <$> ts
-        treeChilds' (StackHeadState t)     = [stackReductionState t]
-        treeChilds' (StackConsState h t)   = [outputReductionState h, stackReductionState t]
-        treeChilds' (StackTailState t)     = [stackReductionState t]
+        treeChilds' (RankedTreeState _ ts) = ReductionStateBox <$> ts
+        treeChilds' (StackHeadState t)     = [ReductionStateBox t]
+        treeChilds' (StackConsState h t)   = [ReductionStateBox h, ReductionStateBox t]
+        treeChilds' (StackTailState t)     = [ReductionStateBox t]
         treeChilds' StackEmptyState        = []
 
-    treeLabelRank _ l = case l of
-        OutputSattAttrBox x -> treeLabelRank' $ coerce x
-        StackSattAttrBox  x -> treeLabelRank' $ coerce x
+    treeLabelRank _ (ReductionStateLabelBox l) = treeLabelRank' l
       where
         treeLabelRank'
           :: ReductionStateLabel tag syn inh stsyn stinh ta la tb lb -> RankNumber
@@ -355,10 +322,14 @@ instance (RtConstraint ta la, RtConstraint tb lb)
         treeLabelRank' StackTailStateLabel       = 1
         treeLabelRank' StackEmptyStateLabel      = 0
 
-    mkTreeUnchecked l = case l of
-        OutputSattAttrBox x -> outputReductionState . mkTreeUnchecked' (coerce x)
-        StackSattAttrBox  x -> stackReductionState  . mkTreeUnchecked' (coerce x)
+    mkTreeUnchecked (ReductionStateLabelBox l) = ReductionStateBox . mkTreeUnchecked' l
       where
+        outputReductionStateBoxUnsafe = taggedEither id
+          (const $ error "not permitted operation") . reductionStateBox
+
+        stackReductionStateBoxUnsafe = taggedEither
+          (const $ error "not permitted operation") id . reductionStateBox
+
         mkTreeUnchecked'
           :: ReductionStateLabel tag syn inh stsyn stinh ta la tb lb
           -> (NodeVec :$ ReductionStateBox syn inh stsyn stinh ta la tb lb)
@@ -366,19 +337,22 @@ instance (RtConstraint ta la, RtConstraint tb lb)
         mkTreeUnchecked' (AttrStateLabel z s)      _  = AttrState z s
         mkTreeUnchecked' (RankedTreeStateLabel lb) ts = RankedTreeState lb ts'
           where
-            ts' = coerce $ outputSattAttrBoxUnsafe <$> ts
+            ts' = outputReductionStateBoxUnsafe <$> ts
 
         mkTreeUnchecked' StackHeadStateLabel       ts = StackHeadState t'
           where
-            t' = coerce $ stackSattAttrBoxUnsafe $ ts ! 0
+            t' = stackSattAttrBoxUnsafe $ ts ! 0
 
         mkTreeUnchecked' StackConsStateLabel       ts = StackConsState t1' t2'
           where
-            (t1', t2') = coerce (outputSattAttrBoxUnsafe $ ts ! 0, stackSattAttrBoxUnsafe $ ts ! 1)
+            (t1', t2') =
+              ( outputSattAttrBoxUnsafe $ ts ! 0
+              , stackSattAttrBoxUnsafe $ ts ! 1
+              )
 
         mkTreeUnchecked' StackTailStateLabel       ts = StackTailState t'
           where
-            t' = coerce $ stackSattAttrBoxUnsafe $ ts ! 0
+            t' = stackSattAttrBoxUnsafe $ ts ! 0
 
         mkTreeUnchecked' StackEmptyStateLabel      _  = StackEmptyState
 
@@ -389,10 +363,7 @@ applyRHSToState :: forall tag syn inh stsyn stinh ta tb.
   -> TreeReductionState tag syn inh stsyn stinh ta tb
 applyRHSToState rhs z p = go rhs where
   go :: TreeRightHandSide tg syn inh stsyn stinh tb -> TreeReductionState tg syn inh stsyn stinh ta tb
-  go (OutputSynAttrSide a i)   = go' $ OutputSynAttrState a (i:p)
-  go (OutputInhAttrSide a)     = go' $ OutputInhAttrState a p
-  go (StackSynAttrSide  a i)   = go' $ StackSynAttrState  a (i:p)
-  go (StackInhAttrSide  a)     = go' $ StackInhAttrState  a p
+  go (AttrSide a)              = go' $ OutputSynAttrState a (i:p)
   go (LabelSide l cs)          = RankedTreeState l $ go <$> cs
   go (StackHeadSide srhs)      = StackHeadState $ go srhs
   go (StackConsSide orhs srhs) = StackConsState (go orhs) (go srhs)

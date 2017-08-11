@@ -14,12 +14,15 @@ module Data.Tree.RankedTree
   , treeRank
   , foldTree
   , showTree
-  , RankedTreeWrapper (..)
   , (:$)
   , RtApply
   , RtConstraint
 
     -- ranked tree wrapper
+  , RankedTreeWrapper (..)
+  , wrapRankedTree
+
+    -- ranked tree with initial
   , RankedTreeWithInitial(..)
   , RankedTreeLabelWithInitial(..)
   , toRankedTreeWithoutInitial
@@ -103,24 +106,38 @@ type RtConstraint t l = (RankedTree t, l ~ LabelType t)
 
 -- wrapper
 
-newtype RankedTreeWrapper t = RankedTreeWrapper
+newtype RankedTreeWrapper t l = RankedTreeWrapper
   { unwrapRankedTree :: t
-  } deriving (Show, Eq, Ord)
+  }
 
-instance RankedTree t => RankedTree (RankedTreeWrapper t) where
-  type LabelType (RankedTreeWrapper t) = LabelType t
+wrapRankedTree :: RankedTree t => t -> RtApply RankedTreeWrapper t
+wrapRankedTree = coerce
+
+instance (RtConstraint t l, Eq l) => Eq (RankedTreeWrapper t l) where
+  t1 == t2 = treeLabel t1 == treeLabel t2 && treeChilds t1 == treeChilds t2
+
+instance (RtConstraint t l, Ord l) => Ord (RankedTreeWrapper t l) where
+  t1 `compare` t2 = case treeLabel t1 `compare` treeLabel t2 of
+    EQ -> treeChilds t1 `compare` treeChilds t2
+    r  -> r
+
+instance (RtConstraint t l, Show l) => Show (RankedTreeWrapper t l) where
+  show = showTree
+
+instance RtConstraint t l => RankedTree (RankedTreeWrapper t l) where
+  type LabelType (RankedTreeWrapper t l) = l
 
   treeLabel (RankedTreeWrapper t) = treeLabel t
   treeChilds (RankedTreeWrapper t) = coerce $ treeChilds t
-  treeLabelRank = coerce (treeLabelRank :: Proxy t -> LabelType t -> RankNumber)
+  treeLabelRank = coerce (treeLabelRank @ t)
 
   mkTree l = RankedTreeWrapper #. mkTree l . coerce
   mkTreeUnchecked l = RankedTreeWrapper #. mkTreeUnchecked l . coerce
 
 
-type instance Element (RankedTreeWrapper t) = LabelType t
+type instance Element (RankedTreeWrapper t l) = l
 
-instance RankedTree t => MonoFoldable (RankedTreeWrapper t) where
+instance RtConstraint t l => MonoFoldable (RankedTreeWrapper t l) where
   ofoldMap f = foldTree $ \a bs -> f a `mappend` ofoldMap id bs
 
   ofoldl' f s t = g $ f s $ treeLabel t where
