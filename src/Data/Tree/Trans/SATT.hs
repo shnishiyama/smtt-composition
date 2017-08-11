@@ -63,13 +63,14 @@ module Data.Tree.Trans.SATT
 import           ClassyPrelude
 
 import           Control.Arrow
-import           Data.Coerce
+import           Data.Pattern.Error
 import           Data.Profunctor.Unsafe
+import           Data.TypeLevel.TaggedEither
 
-import qualified Data.SATT.ATT                   as ATT
 import           Data.Tree.RankedTree
-import           Data.Tree.RankedTree.Transducer
 import           Data.Tree.RankedTree.Zipper
+import qualified Data.Tree.Trans.ATT         as ATT
+import           Data.Tree.Trans.Class
 
 -- attibute kinds
 
@@ -113,21 +114,20 @@ pattern TaggedStackBox x = TaggedRightBox x
 
 -- common
 
-type RTZipperWithInitial t l = RTZipper (RankedTreeWithInitial t l) (RankedTreeLabelWithInitial t l)
+type RTZipperWithInitial tz t l = tz (RankedTreeWithInitial t l) (RankedTreeLabelWithInitial t l)
 
 type InputLabelType t = RtApply RankedTreeLabelWithInitial t
 type InputRankedTree t = RtApply RankedTreeWithInitial t
-type InputRankedTreeZipper t = RTZipperWithInitial t (LabelType t)
+type InputRankedTreeZipper tz t = RTZipperWithInitial tz t (LabelType t)
 
-type SattAttrSide tag syn inh stsyn stinh
-  = SattAttrEither tag (AttAttrSide syn inh) (AttAttrSide stsyn stinh)
-type AttAttrSide syn inh = ATT.AttrSide syn inh
+type AttrSide tag syn inh stsyn stinh
+  = SattAttrEither tag (ATT.AttrSide syn inh) (ATT.AttrSide stsyn stinh)
 
 type OutputRightHandSide = RightHandSide 'OutputAttrTag
 type StackRightHandSide  = RightHandSide 'StackAttrTag
 
 data RightHandSide (tag :: SattAttrTag) syn inh stsyn stinh t l where
-  AttrSide       :: SattAttrSide tag syn inh stsyn stinh
+  AttrSide       :: AttrSide tag syn inh stsyn stinh
     -> RightHandSide tag syn inh stsyn stinh t l
   LabelSide      :: l -> (NodeVec :$ OutputRightHandSide syn inh stsyn stinh t l)
     -> OutputRightHandSide syn inh stsyn stinh t l
@@ -143,18 +143,45 @@ data RightHandSide (tag :: SattAttrTag) syn inh stsyn stinh t l where
 data RightHandSideBox syn inh stsyn stinh t l
   = forall tag. RightHandSideBox (RightHandSide tag syn inh stsyn stinh t l)
 
+synAttrSide :: syn -> RankNumber -> OutputRightHandSide syn inh stsyn stinh t l
+synAttrSide a i = AttrSide . taggedOutput $ taggedSynBox (a, i)
+
+inhAttrSide :: inh -> OutputRightHandSide syn inh stsyn stinh t l
+inhAttrSide a = AttrSide . taggedOutput $ TaggedInhBox a
+
+stsynAttrSide :: stsyn -> RankNumber -> StackRightHandSide syn inh stsyn stinh t l
+stsynAttrSide a i = AttrSide . taggedStack $ taggedSynBox (a, i)
+
+stinhAttrSide :: stinh -> StackRightHandSide syn inh stsyn stinh t l
+stinhAttrSide a = AttrSide . taggedStack $ TaggedInhBox a
 
 type TreeOutputRightHandSide syn inh stsyn stinh t = TreeRightHandSide 'OutputAttrTag syn inh stsyn stinh t
 type TreeStackRightHandSide syn inh stsyn stinh t = TreeRightHandSide 'StackAttrTag syn inh stsyn stinh t
 type TreeRightHandSide tag syn inh stsyn stinh t = RtApply (RightHandSide tag syn inh stsyn stinh) t
 type TreeRightHandSideBox syn inh stsyn stinh t = RtApply (RightHandSideBox syn inh stsyn stinh) t
 
-type SattInputAttr tag syn inh stsyn stinh
-  = SattAttrEither tag (ATT.AttInputAttr syn inh) (ATT.AttInputAttr stsyn stinh)
-type AttInputAttr syn inh = ATT.InputAttr syn inh
+type InputAttr tag syn inh stsyn stinh
+  = SattAttrEither tag (ATT.InputAttr syn inh) (ATT.InputAttr stsyn stinh)
+
+type InputOutputAttr syn inh stsyn stinh
+  = InputAttr 'OutputAttrTag syn inh stsyn stinh
+type InputStackAttr syn inh stsyn stinh
+  = InputAttr 'StackAttrTag syn inh stsyn stinh
+
+pattern SynAttr :: syn -> InputOutputAttr syn inh stsyn stinh
+pattern SynAttr a = TaggedOutput (ATT.SynAttr a)
+
+pattern InhAttr :: inh -> RankNumber -> InputOutputAttr syn inh stsyn stinh
+pattern InhAttr b i = TaggedOutput (ATT.InhAttr b i)
+
+pattern StSynAttr :: stsyn -> InputStackAttr syn inh stsyn stinh
+pattern StSynAttr a = TaggedStack (ATT.SynAttr a)
+
+pattern StInhAttr :: stinh -> RankNumber -> InputOutputAttr syn inh stsyn stinh
+pattern StInhAttr b i = TaggedStack (ATT.InhAttr b i)
 
 type SattRuleType tag syn inh stsyn stinh ta tb
-  = SattInputAttr tag syn inh stsyn stinh -> InputLabelType ta
+  = InputAttr tag syn inh stsyn stinh -> InputLabelType ta
   -> TreeRightHandSide tag syn inh stsyn stinh tb
 
 -- | Stack-Attributed Tree Transducer

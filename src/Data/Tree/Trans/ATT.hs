@@ -137,7 +137,7 @@ pattern SynAttr :: syn -> InputAttr syn inh
 pattern SynAttr a = TaggedSynBox a
 
 pattern InhAttr :: inh -> RankNumber -> InputAttr syn inh
-pattern InhAttr a i = TaggedInhBox (a, i)
+pattern InhAttr b i = TaggedInhBox (b, i)
 
 type AttRuleType syn inh ta tb
   = InputAttr syn inh -> InputLabelType ta -> TreeRightHandSide syn inh tb

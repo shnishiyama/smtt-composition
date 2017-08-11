@@ -50,7 +50,7 @@ instance Show InhAttrUnit where
 --
 identityTransducer :: forall t. (RankedTree t) => AttrTreeTrans SynAttrUnit EmptyType t t
 identityTransducer = AttrTreeTrans
-    { initialAttr   = a0
+    { initialAttr   = minBound
     , reductionRule = rule
     }
   where
@@ -73,16 +73,16 @@ identityTransducer = AttrTreeTrans
 --
 orderExchangeTransducer :: forall t. (RankedTree t) => AttrTreeTrans SynAttrUnit EmptyType t t
 orderExchangeTransducer = AttrTreeTrans
-    { initialAttr   = a0
+    { initialAttr   = minBound
     , reductionRule = rule
     }
   where
-    a0 = SynAttrUnit
+    a0 = synAttrSide SynAttrUnit
 
-    rule A0 InitialLabel        = synAttrSide a0 0
+    rule A0 InitialLabel        = a0 0
     rule A0 (RankedTreeLabel l) =
       let k = treeLabelRank (treeTag @t) l
-      in LabelSide l $ V.generate k $ synAttrSide a0 . (k - 1 -)
+      in LabelSide l $ V.generate k $ a0 . (k - 1 -)
 
     rule _ _ = error "unsupported operation"
 
@@ -97,12 +97,12 @@ orderExchangeTransducer = AttrTreeTrans
 --
 infixToPostfixTransducer :: AttrTreeTrans SynAttrUnit InhAttrUnit InfixOpTree PostfixOpTree
 infixToPostfixTransducer = AttrTreeTrans
-    { initialAttr   = a0
+    { initialAttr   = minBound
     , reductionRule = rule
     }
   where
-    a0 = SynAttrUnit
-    a1 = InhAttrUnit
+    a0 = synAttrSide SynAttrUnit
+    a1 = inhAttrSide InhAttrUnit
 
     one   a = LabelSide "one"   [a]
     two   a = LabelSide "two"   [a]
@@ -110,18 +110,18 @@ infixToPostfixTransducer = AttrTreeTrans
     multi a = LabelSide "multi" [a]
     end     = LabelSide "$"     []
 
-    rule A0 InitialLabel              = synAttrSide a0 0
-    rule A0 (RankedTreeLabel "one")   = one $ inhAttrSide a1
-    rule A0 (RankedTreeLabel "two")   = two $ inhAttrSide a1
-    rule A0 (RankedTreeLabel "plus")  = synAttrSide a0 0
-    rule A0 (RankedTreeLabel "multi") = synAttrSide a0 0
+    rule A0 InitialLabel              = a0 0
+    rule A0 (RankedTreeLabel "one")   = one a1
+    rule A0 (RankedTreeLabel "two")   = two a1
+    rule A0 (RankedTreeLabel "plus")  = a0 0
+    rule A0 (RankedTreeLabel "multi") = a0 0
     rule A0 l                         = error $ "unsupported label: " <> show l
 
     rule (A1 0) InitialLabel              = end
-    rule (A1 0) (RankedTreeLabel "plus")  = synAttrSide a0 1
-    rule (A1 1) (RankedTreeLabel "plus")  = plus $ inhAttrSide a1
-    rule (A1 0) (RankedTreeLabel "multi") = synAttrSide a0 1
-    rule (A1 1) (RankedTreeLabel "multi") = multi $ inhAttrSide a1
+    rule (A1 0) (RankedTreeLabel "plus")  = a0 1
+    rule (A1 1) (RankedTreeLabel "plus")  = plus a1
+    rule (A1 0) (RankedTreeLabel "multi") = a0 1
+    rule (A1 1) (RankedTreeLabel "multi") = multi a1
     rule (A1 i) l                         = error $ "unsupported label: (" <> show i <> "," <> show l <> ")"
 
     rule _ _ = unreachable
