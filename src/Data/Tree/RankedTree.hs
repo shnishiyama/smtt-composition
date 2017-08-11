@@ -76,7 +76,7 @@ class RankedTree t where
       then mkTreeUnchecked l ts
       else error $ "expected rank " <> show labelRank <> " label, but actual rank " <> show r
     where
-      labelRank = treeLabelRank (treeTag :: TreeTag t) l
+      labelRank = treeLabelRank (treeTag @t) l
 
   mkTreeUnchecked :: LabelType t -> NodeVec t -> t
   mkTreeUnchecked = mkTree
@@ -85,7 +85,7 @@ class RankedTree t where
   modifyChilds f t = mkTreeUnchecked (treeLabel t) $ f <$> treeChilds t
 
 treeRank :: forall t. RankedTree t => t -> RankNumber
-treeRank = treeLabelRank (treeTag :: TreeTag t) . treeLabel
+treeRank = treeLabelRank (treeTag @t) . treeLabel
 
 foldTree :: RankedTree t => (LabelType t -> NodeVec b -> b) -> t -> b
 foldTree f = go where
@@ -200,7 +200,7 @@ instance RtConstraint t l => RankedTree (RankedTreeWithInitial t l) where
   treeChilds (RankedTreeWithoutInitial _ ts) = ts
 
   treeLabelRank _ InitialLabel        = 1
-  treeLabelRank _ (RankedTreeLabel l) = treeLabelRank (Proxy :: Proxy t) l
+  treeLabelRank _ (RankedTreeLabel l) = treeLabelRank (treeTag @t) l
 
   mkTreeUnchecked InitialLabel ts = RankedTreeWithInitial (ts ! 0)
   mkTreeUnchecked (RankedTreeLabel l) ts = RankedTreeWithoutInitial l ts

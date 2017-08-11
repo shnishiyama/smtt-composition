@@ -57,7 +57,7 @@ identityTransducer = AttrTreeTrans
 
     rule A0 InitialLabel        = synAttrSide a0 0
     rule A0 (RankedTreeLabel l) = LabelSide l $
-      V.generate (treeLabelRank (treeTag :: TreeTag t) l) (synAttrSide a0)
+      V.generate (treeLabelRank (treeTag @t) l) (synAttrSide a0)
 
     rule _ _ = error "unsupported operation"
 
@@ -80,7 +80,7 @@ orderExchangeTransducer = AttrTreeTrans
 
     rule A0 InitialLabel        = synAttrSide a0 0
     rule A0 (RankedTreeLabel l) =
-      let k = treeLabelRank (treeTag :: TreeTag t) l
+      let k = treeLabelRank (treeTag @t) l
       in LabelSide l $ V.generate k $ synAttrSide a0 . (k - 1 -)
 
     rule _ _ = error "unsupported operation"

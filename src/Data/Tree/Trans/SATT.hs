@@ -89,7 +89,7 @@ data SattAttrTag
 
 type family SattAttrTagLR (tag :: SattAttrTag) = (e :: EitherTag) | e -> tag where
   SattAttrTagLR 'OutputAttrTag = 'LeftTag
-  SattAttrTagLR 'StackAttrTag = 'RightTag
+  SattAttrTagLR 'StackAttrTag  = 'RightTag
 
 type TaggedOutput = SattAttrEither 'OutputAttrTag
 type TaggedStack  = SattAttrEither 'StackAttrTag
@@ -316,7 +316,7 @@ instance (RtConstraint ta la, RtConstraint tb lb)
         treeLabelRank'
           :: ReductionStateLabel tag syn inh stsyn stinh ta la tb lb -> RankNumber
         treeLabelRank' (AttrStateLabel _ _)      = 0
-        treeLabelRank' (RankedTreeStateLabel lb) = treeLabelRank (treeTag :: TreeTag tb) lb
+        treeLabelRank' (RankedTreeStateLabel lb) = treeLabelRank (treeTag @tb) lb
         treeLabelRank' StackHeadStateLabel       = 1
         treeLabelRank' StackConsStateLabel       = 2
         treeLabelRank' StackTailStateLabel       = 1

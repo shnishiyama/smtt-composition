@@ -233,7 +233,7 @@ instance (RtConstraint tb lb)
     treeChilds (RankedTreeState _ ts) = ts
 
     treeLabelRank _ (AttrStateLabel _ _)     = 0
-    treeLabelRank _ (RankedTreeStateLabel l) = treeLabelRank (treeTag :: TreeTag tb) l
+    treeLabelRank _ (RankedTreeStateLabel l) = treeLabelRank (treeTag @tb) l
 
     mkTreeUnchecked (AttrStateLabel z s)     _  = AttrState z s
     mkTreeUnchecked (RankedTreeStateLabel l) ts = RankedTreeState l ts

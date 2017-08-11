@@ -50,7 +50,7 @@ instance (RtConstraint t1 l1) => RankedTree (ExtendedInputTree syn2 inh2 t1 l1) 
   treeChilds (OriginalInputTree _ ts) = ts
   treeChilds ExtendedAttrNode{}       = []
 
-  treeLabelRank _ (OriginalInputLabel l) = treeLabelRank (treeTag :: TreeTag t1) l
+  treeLabelRank _ (OriginalInputLabel l) = treeLabelRank (treeTag @t1) l
   treeLabelRank _ ExtendedAttrLabel{}    = 0
 
   mkTreeUnchecked (OriginalInputLabel l) ts = OriginalInputTree l ts
@@ -76,7 +76,7 @@ instance (RtConstraint t l) => RankedTree (ExtendedOutputTree syn1 inh1 syn2 inh
   treeChilds (OriginalOutputTree _ ts) = ts
   treeChilds ExtendedOutAttrNode{}     = []
 
-  treeLabelRank _ (OriginalOutputLabel l) = treeLabelRank (treeTag :: TreeTag t) l
+  treeLabelRank _ (OriginalOutputLabel l) = treeLabelRank (treeTag @t) l
   treeLabelRank _ ExtendedOutAttrLabel{}  = 0
 
   mkTreeUnchecked (OriginalOutputLabel l)      ts = OriginalOutputTree l ts
