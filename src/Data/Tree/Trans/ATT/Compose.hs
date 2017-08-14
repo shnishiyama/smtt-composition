@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedLists #-}
+{-# LANGUAGE TypeInType      #-}
 
 module Data.Tree.Trans.ATT.Compose
   (
@@ -134,8 +135,8 @@ instance (Show a) => Show (IndexedValue i a) where
 type AttrIndexedQueue syn inh = [AttrIndexedData syn inh]
 type AttrIndexedAttr tag syn inh = IndexedValue (AttrIndexedQueue syn inh) (AttAttrEither tag syn inh)
 
-type AttrIndexedSynAttr syn inh = AttrIndexedAttr 'SynAttrTag syn inh
-type AttrIndexedInhAttr syn inh = AttrIndexedAttr 'InhAttrTag syn inh
+type AttrIndexedSynAttr syn inh = AttrIndexedAttr SynAttrTag syn inh
+type AttrIndexedInhAttr syn inh = AttrIndexedAttr InhAttrTag syn inh
 
 indexedRHS :: forall tag syn inh t. RankedTree t
   => AttAttrEither tag syn (inh, RankNumber) -> AttrIndexedQueue syn inh
@@ -176,8 +177,8 @@ toAttrIndexedAtt AttrTreeTrans{..} = AttrTreeTrans
     rule' q a = indexedRHS a q . reductionRule (TaggedEitherBox a)
 
 
-type ComposedAttSynAttr = ComposedAttAttr 'SynAttrTag
-type ComposedAttInhAttr = ComposedAttAttr 'InhAttrTag
+type ComposedAttSynAttr = ComposedAttAttr SynAttrTag
+type ComposedAttInhAttr = ComposedAttAttr InhAttrTag
 data ComposedAttAttr (tag :: AttAttrTag) syn1 inh1 syn2 inh2 where
   SynSynAttr :: syn1 -> AttrIndexedSynAttr syn2 inh2 -> ComposedAttSynAttr syn1 inh1 syn2 inh2
   InhInhAttr :: inh1 -> AttrIndexedInhAttr syn2 inh2 -> ComposedAttSynAttr syn1 inh1 syn2 inh2

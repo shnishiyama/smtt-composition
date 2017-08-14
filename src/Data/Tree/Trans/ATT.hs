@@ -3,8 +3,9 @@
 module Data.Tree.Trans.ATT
   (
     -- att attribute tags
-    AttAttrTag(..)
-  , AttAttrTagLR
+    AttAttrTag
+  , SynAttrTag
+  , InhAttrTag
   , TaggedSyn
   , TaggedInh
   , AttAttrEither
@@ -70,18 +71,14 @@ import           Data.Tree.Trans.Class
 
 -- attibute kinds
 
-data AttAttrTag
-  = SynAttrTag
-  | InhAttrTag
-  deriving (Eq, Ord, Show, Enum, Bounded)
+type AttAttrTag = EitherTag
+type SynAttrTag = 'LeftTag
+type InhAttrTag = 'RightTag
 
-type family AttAttrTagLR (tag :: AttAttrTag) = (e :: EitherTag) | e -> tag where
-  AttAttrTagLR 'SynAttrTag = 'LeftTag
-  AttAttrTagLR 'InhAttrTag = 'RightTag
+type TaggedSyn = AttAttrEither SynAttrTag
+type TaggedInh = AttAttrEither InhAttrTag
 
-type TaggedSyn = AttAttrEither 'SynAttrTag
-type TaggedInh = AttAttrEither 'InhAttrTag
-type AttAttrEither tag = TaggedEither (AttAttrTagLR tag)
+type AttAttrEither = TaggedEither
 type AttAttrEitherBox = TaggedEitherBox
 
 taggedSyn :: syn -> TaggedSyn syn inh
@@ -96,10 +93,10 @@ taggedSynBox = taggedLeftBox
 taggedInhBox :: inh -> AttAttrEitherBox syn inh
 taggedInhBox = taggedRightBox
 
-pattern TaggedSyn :: syn -> TaggedSyn syn inh
+pattern TaggedSyn :: () => tag ~ SynAttrTag => syn -> AttAttrEither tag syn inh
 pattern TaggedSyn x = TaggedLeft x
 
-pattern TaggedInh :: inh -> TaggedInh syn inh
+pattern TaggedInh :: () => tag ~ InhAttrTag => inh -> AttAttrEither tag syn inh
 pattern TaggedInh x = TaggedRight x
 
 pattern TaggedSynBox :: syn -> AttAttrEitherBox syn inh
@@ -176,7 +173,7 @@ instance (Ord syn, Ord inh, Ord lb, RtConstraint tb lb)
   => Ord (ReductionState tz syn inh ta la tb lb) where
     t1 `compare` t2 = wrapRankedTree t1 `compare` wrapRankedTree t2
 
-instance (RtConstraint tb lb, Show syn, Show inh, Show lb)
+instance (Show syn, Show inh, Show lb, RtConstraint tb lb)
   => Show (ReductionState tz syn inh ta la tb lb) where
     show = show .# wrapRankedTree
 
@@ -190,7 +187,7 @@ initialAttReductionState :: AttrTreeTrans syn inh ta tb -> ReductionAttrState sy
 initialAttReductionState AttrTreeTrans{ initialAttr = a0 } = ReductionAttrState (taggedSynBox a0) []
 
 toReductionAttrState :: AttrSide syn inh -> [RankNumber] -> ReductionAttrState syn inh
-toReductionAttrState (TaggedSynBox (a,i)) p = ReductionAttrState (taggedSynBox a) (i:p)
+toReductionAttrState (TaggedSynBox (a, i)) p = ReductionAttrState (taggedSynBox a) (i:p)
 toReductionAttrState (TaggedInhBox a)     p = ReductionAttrState (taggedInhBox a) p
 toReductionAttrState _                    _ = unreachable
 
