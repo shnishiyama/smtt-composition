@@ -72,6 +72,7 @@ import           Data.Tree.Trans.Class
 -- attibute kinds
 
 type AttAttrTag = EitherTag
+
 type SynAttrTag = 'LeftTag
 type InhAttrTag = 'RightTag
 
@@ -93,10 +94,14 @@ taggedSynBox = taggedLeftBox
 taggedInhBox :: inh -> AttAttrEitherBox syn inh
 taggedInhBox = taggedRightBox
 
-pattern TaggedSyn :: () => tag ~ SynAttrTag => syn -> AttAttrEither tag syn inh
+pattern TaggedSyn
+  :: () => tag ~ SynAttrTag
+  => syn -> AttAttrEither tag syn inh
 pattern TaggedSyn x = TaggedLeft x
 
-pattern TaggedInh :: () => tag ~ InhAttrTag => inh -> AttAttrEither tag syn inh
+pattern TaggedInh
+  :: () => tag ~ 'RightTag
+  => inh -> AttAttrEither tag syn inh
 pattern TaggedInh x = TaggedRight x
 
 pattern TaggedSynBox :: syn -> AttAttrEitherBox syn inh
