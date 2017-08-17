@@ -31,6 +31,7 @@ module Data.Tree.Trans.ATT
   , InputAttr
   , pattern SynAttr
   , pattern InhAttr
+  , toInputAttr
   , AttRuleType
   , AttrTreeTrans(..)
 
@@ -60,7 +61,7 @@ module Data.Tree.Trans.ATT
 
 import           ClassyPrelude
 
-import           Control.Arrow
+import           Control.Arrow               hiding (first, second)
 import           Data.Pattern.Error
 import           Data.Profunctor.Unsafe
 import           Data.TypeLevel.TaggedEither
@@ -140,6 +141,11 @@ pattern SynAttr a = TaggedSynBox a
 
 pattern InhAttr :: inh -> RankNumber -> InputAttr syn inh
 pattern InhAttr b i = TaggedInhBox (b, i)
+
+toInputAttr :: AttAttrEitherBox syn inh -> [RankNumber] -> (InputAttr syn inh, [RankNumber])
+toInputAttr (TaggedSynBox a) p      = (taggedSynBox a, p)
+toInputAttr (TaggedInhBox a) (x:xs) = (taggedInhBox (a, x), xs)
+toInputAttr _                _      = error "an inherited attribute has empty path"
 
 type AttRuleType syn inh ta tb
   = InputAttr syn inh -> InputLabelType ta -> TreeRightHandSide syn inh tb
@@ -247,14 +253,12 @@ applyRHSToState rhs z p = go rhs where
   go (AttrSide abox)  = go' $ toReductionAttrState abox p
   go (LabelSide l cs) = RankedTreeState l $ go <$> cs
 
-  go' state = AttrState (nextTz state z) state
+  go' state = AttrState (fromMaybe z $ nextTz state z) state
 
-  nextTz attrState tz = fromMaybe tz $ nextTz' attrState tz
-
-  nextTz' (ReductionAttrState (TaggedInhBox _) _)     = zoomOutRtZipper
-  nextTz' (ReductionAttrState (TaggedSynBox _) [])    = zoomInRtZipper
-  nextTz' (ReductionAttrState (TaggedSynBox _) (n:_)) = zoomInIdxRtZipper n
-  nextTz' _                                           = unreachable
+  nextTz (ReductionAttrState (TaggedInhBox _) _)     = zoomOutRtZipper
+  nextTz (ReductionAttrState (TaggedSynBox _) [])    = zoomInRtZipper
+  nextTz (ReductionAttrState (TaggedSynBox _) (n:_)) = zoomInIdxRtZipper n
+  nextTz _                                           = unreachable
 
 type TreeReductionStateZipper tz syn inh ta tb
   = tz (TreeReductionState tz syn inh ta tb) (TreeReductionStateLabel tz syn inh ta tb)
@@ -276,12 +280,8 @@ buildAttReduction f s is AttrTreeTrans{..} t = goTop s
           (rhs, p) = applyAttrToRule l attrState
       in applyRHSToState rhs tz p
 
-    applyAttrToRule l (ReductionAttrState (TaggedSynBox a) p)
-      = (reductionRule (taggedSynBox a) l, p)
-    applyAttrToRule l (ReductionAttrState (TaggedInhBox a) (x:xs))
-      = (reductionRule (taggedInhBox (a, x)) l, xs)
-    applyAttrToRule _ _
-      = error "inherited attr is empty..."
+    applyAttrToRule l (ReductionAttrState abox p) =
+      first (\a -> reductionRule a l) $ toInputAttr abox p
 
     goTop state =
       let taZ      = toZipper t
@@ -372,19 +372,18 @@ type TreeReductionSteps tz syn inh ta tb = RtApply (RtApply (ReductionSteps tz s
 
 buildStepFromAttrState :: RankedTree t
   => LabelType t -> ReductionAttrState syn inh -> TreeReductionStep syn inh t
-buildStepFromAttrState l = go where
-  go (ReductionAttrState (TaggedSynBox a) p)      = ReductionStep (taggedSynBox a)      l p
-  go (ReductionAttrState (TaggedInhBox a) (x:xs)) = ReductionStep (taggedInhBox (a, x)) l xs
-  go _                                              = error "unexpected operation"
+buildStepFromAttrState l (ReductionAttrState abox p) =
+  let (a, p') = toInputAttr abox p in ReductionStep a l p'
 
-buildAttReductionSteps :: (RankedTree ta, RankedTree tb, RankedTreeZipper tz)
+buildAttReductionSteps :: forall tz syn inh ta tb.
+  (RankedTree ta, RankedTree tb, RankedTreeZipper tz)
   => ReductionAttrState syn inh
   -> AttrTreeTrans syn inh ta tb
   -> InputRankedTree ta -> TreeReductionSteps tz syn inh ta tb
 buildAttReductionSteps is trans = buildSteps
     . buildAttReduction builder ([], Nothing) is trans
   where
-    buildSteps = uncurry ReductionSteps <<< reverse *** (toTree . fromMaybe (error "unexpected operation"))
+    buildSteps = uncurry ReductionSteps <<< reverse *** (toTopTree . fromMaybe (error "unexpected operation"))
 
     builder (steps, Just sz) stateZ = (buildStepFromStateZ sz : steps, Just stateZ)
     builder (steps, Nothing) stateZ = (steps, Just stateZ)
@@ -393,7 +392,8 @@ buildAttReductionSteps is trans = buildSteps
       let AttrState taZ attrState = toTree stateZ
       in ReductionStateStep (toTopTree stateZ) $ buildStepFromAttrState (getTreeLabel taZ) attrState
 
-buildAttReductionSteps' :: (RankedTree ta, RankedTree tb, RankedTreeZipper tz)
+buildAttReductionSteps' :: forall tz syn inh ta tb.
+  (RankedTree ta, RankedTree tb, RankedTreeZipper tz)
   => (AttrTreeTrans syn inh ta tb -> ReductionAttrState syn inh)
   -> AttrTreeTrans syn inh ta tb
   -> InputRankedTree ta -> TreeReductionSteps tz syn inh ta tb

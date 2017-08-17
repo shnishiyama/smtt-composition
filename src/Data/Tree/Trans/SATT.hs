@@ -45,6 +45,7 @@ module Data.Tree.Trans.SATT
   , pattern InhAttr
   , pattern StSynAttr
   , pattern StInhAttr
+  , toInputAttr
   , SattRuleType
   , StackAttrTreeTrans(..)
 
@@ -57,31 +58,43 @@ module Data.Tree.Trans.SATT
   , ReductionState(..)
   , TreeReductionOutState
   , TreeReductionStkState
+  , ReductionStateBox(..)
   , TreeReductionStateBox
   , fromTreeReductionState
   , ReductionStateLabel(..)
+  , ReductionStateLabelBox(..)
   , TreeReductionStateLabelBox
   , reductionStateLabelBox
+  , TreeReductionStateZipper
+
+    -- reduction system
+  , buildSattReduction
+  , runSattReduction
+  , ReductionStep(..)
+  , TreeReductionStep
+  , ReductionStateStep(..)
+  , ReductionSteps(..)
+  , TreeReductionSteps
+  , buildSattReductionSteps
+  , buildSattReductionSteps'
+
+    -- bottom label
+  , bottomLabelSide
   ) where
 
 import           ClassyPrelude
 
-import           Control.Arrow
+import           Control.Arrow               hiding (first, second)
 import           Data.Pattern.Error
 import           Data.Profunctor.Unsafe
 import           Data.TypeLevel.TaggedEither
 
 import           Data.Tree.RankedTree
 import           Data.Tree.RankedTree.Zipper
-import           Data.Tree.Trans.ATT         (AttAttrEither, AttAttrEitherBox,
-                                              AttAttrTag, InhAttrTag,
-                                              SynAttrTag, TaggedInh,
-                                              pattern TaggedInh,
-                                              pattern TaggedInhBox, TaggedSyn,
-                                              pattern TaggedSyn,
-                                              pattern TaggedSynBox, taggedInh,
-                                              taggedInhBox, taggedSyn,
-                                              taggedSynBox)
+import           Data.Tree.Trans.ATT         (AttAttrEitherBox, InhAttrTag,
+                                              SynAttrTag, pattern TaggedInhBox,
+                                              pattern TaggedSynBox,
+                                              taggedInhBox, taggedSynBox)
 import qualified Data.Tree.Trans.ATT         as ATT
 import           Data.Tree.Trans.Class
 
@@ -194,6 +207,13 @@ pattern StSynAttr a = TaggedStk (ATT.SynAttr a)
 pattern StInhAttr :: stinh -> RankNumber -> InputStkAttr syn inh stsyn stinh
 pattern StInhAttr b i = TaggedStk (ATT.InhAttr b i)
 
+toInputAttr
+  :: SattAttrEither tag (AttAttrEitherBox syn inh) (AttAttrEitherBox stsyn stinh) -> [RankNumber]
+  -> (InputAttr tag syn inh stsyn stinh, [RankNumber])
+toInputAttr (TaggedOut a) = first TaggedOut . ATT.toInputAttr a
+toInputAttr (TaggedStk a) = first TaggedStk . ATT.toInputAttr a
+toInputAttr _             = unreachable
+
 type SattRuleType tag syn inh stsyn stinh ta tb
   = InputAttr tag syn inh stsyn stinh -> InputLabelType ta
   -> TreeRightHandSide tag syn inh stsyn stinh tb
@@ -232,7 +252,7 @@ instance (Show syn, Show inh, Show stsyn, Show stinh) => Show (ReductionAttrStat
     where
       showAttAttrState (TaggedSynBox a) = showAttrState a
       showAttAttrState (TaggedInhBox a) = showAttrState a
-      showAttAttrState _ = unreachable
+      showAttAttrState _                = unreachable
 
       showAttrState :: Show a => a -> String
       showAttrState x = show x <> show (reverse p)
@@ -278,12 +298,12 @@ reductionStateBox
 reductionStateBox (ReductionStateBox x) = case x of
   AttrState _ (ReductionOutAttrState _ _) -> TaggedOutBox x
   AttrState _ (ReductionStkAttrState _ _) -> TaggedStkBox x
-  AttrState _ _                -> unreachable
-  RankedTreeState _ _                              -> TaggedOutBox x
-  StackHeadState _                                 -> TaggedOutBox x
-  StackConsState _ _                               -> TaggedStkBox x
-  StackTailState _                                 -> TaggedStkBox x
-  StackEmptyState                                  -> TaggedStkBox x
+  AttrState _ _                           -> unreachable
+  RankedTreeState _ _                     -> TaggedOutBox x
+  StackHeadState _                        -> TaggedOutBox x
+  StackConsState _ _                      -> TaggedStkBox x
+  StackTailState _                        -> TaggedStkBox x
+  StackEmptyState                         -> TaggedStkBox x
 
 instance (Eq syn, Eq inh, Eq stsyn, Eq stinh, Eq lb, RtConstraint tb lb)
   => Eq (ReductionStateBox tz syn inh stsyn stinh ta la tb lb) where
@@ -295,7 +315,7 @@ instance (Ord syn, Ord inh, Ord stsyn, Ord stinh, Ord lb, RtConstraint tb lb)
 
 instance (Show syn, Show inh, Show stsyn, Show stinh, Show lb, RtConstraint tb lb)
   => Show (ReductionStateBox tz syn inh stsyn stinh ta la tb lb) where
-    show = showTree
+    show = show .# wrapRankedTree
 
 type TreeReductionOutState tz syn inh stsyn stinh ta tb = TreeReductionState OutAttrTag tz syn inh stsyn stinh ta tb
 type TreeReductionStkState tz syn inh stsyn stinh ta tb = TreeReductionState StkAttrTag tz syn inh stsyn stinh ta tb
@@ -323,7 +343,7 @@ toReductionAttrState as p = case as of
     toAttAttrState :: ATT.AttrSide s i -> (AttAttrEitherBox s i, [RankNumber])
     toAttAttrState (TaggedSynBox (a, i)) = (taggedSynBox a, i:p)
     toAttAttrState (TaggedInhBox a)      = (taggedInhBox a, p)
-    toAttAttrState _      = unreachable
+    toAttAttrState _                     = unreachable
 
 
 type ReductionOutStateLabel = ReductionStateLabel OutAttrTag
@@ -366,12 +386,12 @@ reductionStateLabelBox
 reductionStateLabelBox (ReductionStateLabelBox x) = case x of
   AttrStateLabel _ (ReductionOutAttrState _ _) -> TaggedOutBox x
   AttrStateLabel _ (ReductionStkAttrState _ _) -> TaggedStkBox x
-  AttrStateLabel _ _            -> unreachable
-  RankedTreeStateLabel _                                -> TaggedOutBox x
-  StackHeadStateLabel                                   -> TaggedOutBox x
-  StackConsStateLabel                                   -> TaggedStkBox x
-  StackTailStateLabel                                   -> TaggedStkBox x
-  StackEmptyStateLabel                                  -> TaggedStkBox x
+  AttrStateLabel _ _                           -> unreachable
+  RankedTreeStateLabel _                       -> TaggedOutBox x
+  StackHeadStateLabel                          -> TaggedOutBox x
+  StackConsStateLabel                          -> TaggedStkBox x
+  StackTailStateLabel                          -> TaggedStkBox x
+  StackEmptyStateLabel                         -> TaggedStkBox x
 
 instance (Eq syn, Eq inh, Eq stsyn, Eq stinh, Eq lb)
   => Eq (ReductionStateLabelBox tz syn inh stsyn stinh ta la tb lb) where
@@ -423,8 +443,8 @@ instance (Show syn, Show inh, Show stsyn, Show stinh, Show lb)
   => Show (ReductionStateLabelBox tz syn inh stsyn stinh ta la tb lb) where
     show (ReductionStateLabelBox x) = show x
 
-type TreeReductionStateLabelBox syn inh stsyn stinh ta tb
-  = RtApply (RtApply (ReductionStateLabelBox syn inh stsyn stinh) ta) tb
+type TreeReductionStateLabelBox tz syn inh stsyn stinh ta tb
+  = RtApply (RtApply (ReductionStateLabelBox tz syn inh stsyn stinh) ta) tb
 
 instance (RtConstraint tb lb)
   => RankedTree (ReductionStateBox tz syn inh stsyn stinh ta la tb lb) where
@@ -492,49 +512,52 @@ instance (RtConstraint tb lb)
         mkTreeUnchecked' StackEmptyStateLabel      _  = StackEmptyState
 
 
-applyRHSToState :: (RankedTree ta, RankedTree tb, RankedTreeZipper tz)
+applyRHSToState :: forall tag tz syn inh stsyn stinh ta tb.
+  (RankedTree ta, RankedTree tb, RankedTreeZipper tz)
   => TreeRightHandSide tag syn inh stsyn stinh tb
   -> InputRankedTreeZipper tz ta -> [RankNumber]
   -> TreeReductionState tag tz syn inh stsyn stinh ta tb
 applyRHSToState rhs z p = go rhs where
-  go :: TreeRightHandSide tag syn inh stsyn stinh tb -> TreeReductionState tag tz syn inh stsyn stinh ta tb
-  go (AttrSide abox)              = go' $ toReductionAttrState abox p
+  go :: TreeRightHandSide tg syn inh stsyn stinh tb -> TreeReductionState tg tz syn inh stsyn stinh ta tb
+  go (AttrSide abox)           = go' $ toReductionAttrState abox p
   go (LabelSide l cs)          = RankedTreeState l $ go <$> cs
   go (StackHeadSide srhs)      = StackHeadState $ go srhs
   go (StackConsSide orhs srhs) = StackConsState (go orhs) (go srhs)
   go (StackTailSide srhs)      = StackTailState $ go srhs
   go StackEmptySide            = StackEmptyState
 
-  go' :: ReductionAttrState tag syn inh stsyn stinh -> TreeReductionState tag tz syn inh stsyn stinh ta tb
+  go' :: ReductionAttrState tg syn inh stsyn stinh -> TreeReductionState tg tz syn inh stsyn stinh ta tb
   go' state = AttrState (fromMaybe z $ nextTz state z) state
 
-  nextTz :: ReductionAttrState tag syn inh stsyn stinh -> InputRankedTreeZipper tz ta -> Maybe (InputRankedTreeZipper tz ta)
-  nextTz (ReductionOutAttrState abox p) = nextTz' abox p
-  nextTz (ReductionStkAttrState abox p) = nextTz' abox p
+  nextTz :: ReductionAttrState tg syn inh stsyn stinh -> InputRankedTreeZipper tz ta -> Maybe (InputRankedTreeZipper tz ta)
+  nextTz (ReductionOutAttrState abox p') = nextTz' abox p'
+  nextTz (ReductionStkAttrState abox p') = nextTz' abox p'
+  nextTz _                               = unreachable
 
-  nextTz' :: AttAttrEitherBox syn inh stsyn stinh -> [RankNumber] -> InputRankedTreeZipper ta -> Maybe (InputRankedTreeZipper ta)
+  nextTz' :: AttAttrEitherBox sa ia -> [RankNumber] -> InputRankedTreeZipper tz ta -> Maybe (InputRankedTreeZipper tz ta)
   nextTz' (TaggedSynBox _) []    = zoomInRtZipper
   nextTz' (TaggedSynBox _) (n:_) = zoomInIdxRtZipper n
   nextTz' (TaggedInhBox _) _     = zoomOutRtZipper
+  nextTz' _                _     = unreachable
 
 type TreeReductionStateZipper tz syn inh stsyn stinh ta tb
   = tz (TreeReductionStateBox tz syn inh stsyn stinh ta tb) (TreeReductionStateLabelBox tz syn inh stsyn stinh ta tb)
 
 
 -- reduction systems
-{-
-buildSattReduction :: forall b syn inh stsyn stinh ta tb.
-  (RankedTree ta, RankedTree tb)
-  => (b -> TreeReductionStateZipper syn inh stsyn stinh ta tb -> b)
+
+buildSattReduction :: forall b tz syn inh stsyn stinh ta tb.
+  (RankedTree ta, RankedTree tb, RankedTreeZipper tz)
+  => (b -> TreeReductionStateZipper tz syn inh stsyn stinh ta tb -> b)
   -> b
-  -> OutputReductionAttrState syn inh stsyn stinh
+  -> ReductionOutAttrState syn inh stsyn stinh
   -> StackAttrTreeTrans syn inh stsyn stinh ta tb
   -> InputRankedTree ta -> b
 buildSattReduction f s is StackAttrTreeTrans{..} t = goTop s where
   applyAttrToState
-    :: InputRankedTreeZipper ta
+    :: InputRankedTreeZipper tz ta
     -> ReductionAttrState tag syn inh stsyn stinh
-    -> TreeReductionState tag syn inh stsyn stinh ta tb
+    -> TreeReductionState tag tz syn inh stsyn stinh ta tb
   applyAttrToState tz attrState =
     let l = treeLabel $ toTree tz
         (rhs, p) = applyAttrToRule l attrState
@@ -544,53 +567,42 @@ buildSattReduction f s is StackAttrTreeTrans{..} t = goTop s where
     :: InputLabelType ta
     -> ReductionAttrState tag syn inh stsyn stinh
     -> (TreeRightHandSide tag syn inh stsyn stinh tb, [RankNumber])
-  applyAttrToRule l (OutputSynAttrState a p)      =
-    (outputSynthesizedRule a l, p)
-  applyAttrToRule l (StackSynAttrState  a p)      =
-    (stackSynthesizedRule a l, p)
-  applyAttrToRule l (OutputInhAttrState a (x:xs)) =
-    (outputInheritedRule a x l, xs)
-  applyAttrToRule l (StackInhAttrState  a (x:xs)) =
-    (stackInheritedRule a x l, xs)
-  applyAttrToRule _ _ = error "inherited attr is empty..."
+  applyAttrToRule l (ReductionAttrState abox p) =
+    first (\a -> reductionRule a l) $ toInputAttr abox p
 
   goTop state =
-    let taZ      = rtZipper t
-        stateZ   = rtZipper . outputReductionState $ AttrState taZ is
-    in go' state stateZ
+    let taZ      = toZipper t
+        stateZ   = toZipper . ReductionStateBox $ AttrState taZ is
+    in case is of
+      ReductionOutAttrState (TaggedInhBox _) [] -> f state stateZ
+      _                                         -> go' state stateZ
 
   go !state stateZ = case nextStateZ stateZ of
-      Nothing      -> f state stateZ
-      Just nstateZ -> go' state nstateZ
+    Nothing      -> f state stateZ
+    Just nstateZ -> go' state nstateZ
 
   go' state stateZ =
     let nstate   = f state stateZ
         stateZ' = reductState stateZ $ toTree stateZ
     in go nstate stateZ'
 
-  reductState stZ (OutputSattAttrBox x) = case coerce x of
-    AttrState taZ attrState -> setTreeZipper (outputReductionState $ applyAttrToState taZ attrState) stZ
-    _                       -> error "not permitted operation"
-  reductState stZ (StackSattAttrBox  x) = case coerce x of
-    AttrState taZ attrState -> setTreeZipper (stackReductionState $ applyAttrToState taZ attrState) stZ
+  reductState stZ (ReductionStateBox x) = case x of
+    AttrState taZ attrState -> setTreeZipper (ReductionStateBox $ applyAttrToState taZ attrState) stZ
     StackConsState hd tl    -> deconstractStack hd tl stZ
     _                       -> error "not permitted operation"
 
   deconstractStack
-    :: TreeReductionOutputState syn inh stsyn stinh ta tb
-    -> TreeReductionStackState syn inh stsyn stinh ta tb
-    -> TreeReductionStateZipper syn inh stsyn stinh ta tb
-    -> TreeReductionStateZipper syn inh stsyn stinh ta tb
+    :: TreeReductionOutState tz syn inh stsyn stinh ta tb
+    -> TreeReductionStkState tz syn inh stsyn stinh ta tb
+    -> TreeReductionStateZipper tz syn inh stsyn stinh ta tb
+    -> TreeReductionStateZipper tz syn inh stsyn stinh ta tb
   deconstractStack hd tl stateZ = case zoomOutRtZipper stateZ of
     Nothing      -> error "not permitted operation"
     Just nstateZ -> case toTree nstateZ of
-      OutputSattAttrBox x -> case coerce x of
-          StackHeadState _ -> setTreeZipper (outputReductionState hd) nstateZ
-          _                -> error "not permitted operation"
-
-      StackSattAttrBox  x -> case coerce x of
-          StackTailState _ -> setTreeZipper (stackReductionState  tl) nstateZ
-          _                -> error "not permitted operation"
+      ReductionStateBox x -> case x of
+        StackHeadState _ -> setTreeZipper (ReductionStateBox hd) nstateZ
+        StackTailState _ -> setTreeZipper (ReductionStateBox tl) nstateZ
+        _                -> error "not permitted operation"
 
   nextStateZ = runKleisli nextStateZ'
 
@@ -600,128 +612,141 @@ buildSattReduction f s is StackAttrTreeTrans{..} t = goTop s where
     <+> nextStateZ''
 
   filterStateZipper stateZ = case toTree stateZ of
-    OutputSattAttrBox x -> filterStateZipper' stateZ $ coerce x
-    StackSattAttrBox  x -> filterStateZipper' stateZ $ coerce x
+    ReductionStateBox x -> filterStateZipper' stateZ x
 
-  filterStateZipper' :: a -> TreeReductionState tag syn inh stsyn stinh ta tb -> Maybe a
-  filterStateZipper' _ (RankedTreeState _ _)                   = empty
-  filterStateZipper' _ (StackHeadState _)                      = empty
-  filterStateZipper' _ (StackTailState _)                      = empty
-  filterStateZipper' _ StackEmptyState                         = empty
-  filterStateZipper' _ (AttrState _ (OutputInhAttrState _ [])) = empty
-  filterStateZipper' _ (AttrState _ (StackInhAttrState _ []))  = empty
-  filterStateZipper' stZ _                                     = pure stZ
+  filterStateZipper' :: a -> TreeReductionState tag tz syn inh stsyn stinh ta tb -> Maybe a
+  filterStateZipper' _   (RankedTreeState _ _) = empty
+  filterStateZipper' _   (StackHeadState _)    = empty
+  filterStateZipper' _   (StackTailState _)    = empty
+  filterStateZipper' _   StackEmptyState       = empty
+  filterStateZipper' _   (AttrState _ (ReductionOutAttrState (TaggedInhBox _) [])) = empty
+  filterStateZipper' _   (AttrState _ (ReductionStkAttrState (TaggedInhBox _) [])) = empty
+  filterStateZipper' stZ _ = pure stZ
 
   nextStateZ''
     =   (Kleisli zoomRightRtZipper >>> nextStateZ')
     <+> (Kleisli zoomOutRtZipper   >>> nextStateZ'')
 
-runSattReduction :: (RankedTree ta, RankedTree tb)
-  => OutputReductionAttrState syn inh stsyn stinh -> StackAttrTreeTrans syn inh stsyn stinh ta tb
-  -> InputRankedTree ta -> TreeReductionStateBox syn inh stsyn stinh ta tb
+runSattReduction :: forall tz syn inh stsyn stinh ta tb.
+  (RankedTree ta, RankedTree tb, RankedTreeZipper tz)
+  => ReductionOutAttrState syn inh stsyn stinh -> StackAttrTreeTrans syn inh stsyn stinh ta tb
+  -> InputRankedTree ta -> TreeReductionStateBox tz syn inh stsyn stinh ta tb
 runSattReduction is trans t = toTopTree $ builder t where
-  initialStateZ = rtZipper . outputReductionState $ AttrState (rtZipper t) is
+  initialStateZ = toZipper . ReductionStateBox $ AttrState (toZipper t) is
 
   builder = buildSattReduction (const id) initialStateZ is trans
 
 
+type InputAttrBox syn inh stsyn stinh
+  = SattAttrEitherBox (ATT.InputAttr syn inh) (ATT.InputAttr stsyn stinh)
+
+inputAttrBox :: InputAttr tag syn inh stsyn stinh -> InputAttrBox syn inh stsyn stinh
+inputAttrBox = TaggedEitherBox
+
 data ReductionStep syn inh stsyn stinh t l
-  = OutputSynReductionStep syn   l [RankNumber]
-  | StackSynReductionStep  stsyn l [RankNumber]
-  | OutputInhReductionStep inh   RankNumber l [RankNumber]
-  | StackInhReductionStep  stinh RankNumber l [RankNumber]
+  = AttrReductionStep (InputAttrBox syn inh stsyn stinh) l [RankNumber]
   | StackHeadConsDeconstract
   | StackTailConsDeconstract
-  deriving (Show, Eq, Ord)
+  deriving (Eq, Ord)
+
+instance (Show syn, Show inh, Show stsyn, Show stinh, Show l)
+  => Show (ReductionStep syn inh stsyn stinh t l) where
+    show StackHeadConsDeconstract  = "HC"
+    show StackTailConsDeconstract  = "TC"
+    show (AttrReductionStep a l p) = showAttrStep a
+      where
+        showAttrStep (TaggedOutBox a') = showAttr a'
+          <> " ={" <> show l <> "," <> show (reverse p) <> "}=> "
+        showAttrStep (TaggedStkBox a') = showAttr a'
+          <> " ={" <> show l <> "," <> show (reverse p) <> "}=> "
+        showAttrStep _                 = unreachable
+
+        showAttr (TaggedSynBox a') = show a'
+        showAttr (TaggedInhBox a') = show a'
+        showAttr _                 = unreachable
+
 
 type TreeReductionStep syn inh stsyn stinh t = RtApply (ReductionStep syn inh stsyn stinh) t
 
-data ReductionStateStep syn inh stsyn stinh ta la tb lb = ReductionStateStep
-  { reductionStepState :: ReductionStateBox syn inh stsyn stinh ta la tb lb
-  , reductionStateStep :: ReductionStep syn inh stsyn stinh (RankedTreeWithInitial ta la) (RankedTreeLabelWithInitial ta la)
+data ReductionStateStep tz syn inh stsyn stinh ta la tb lb = ReductionStateStep
+  { reductionStepState :: ReductionStateBox tz syn inh stsyn stinh ta la tb lb
+  , reductionStateStep :: ReductionStep syn inh stsyn stinh
+    (RankedTreeWithInitial ta la) (RankedTreeLabelWithInitial ta la)
   }
 
 instance (RtConstraint ta la, RtConstraint tb lb, Show syn, Show inh, Show stsyn, Show stinh, Show la, Show lb)
-  => Show (ReductionStateStep syn inh stsyn stinh ta la tb lb) where
+  => Show (ReductionStateStep tz syn inh stsyn stinh ta la tb lb) where
     show (ReductionStateStep state step) = show state <> " =" <> showStep step <> "=> "
       where
-        showStep (OutputSynReductionStep _ l p)   = showStep' l p
-        showStep (StackSynReductionStep  _ l p)   = showStep' l p
-        showStep (OutputInhReductionStep _ _ l p) = showStep' l p
-        showStep (StackInhReductionStep  _ _ l p) = showStep' l p
-        showStep StackHeadConsDeconstract         = "HC"
-        showStep StackTailConsDeconstract         = "TC"
+        showStep (AttrReductionStep _ l p) = showStep' l p
+        showStep StackHeadConsDeconstract  = "HC"
+        showStep StackTailConsDeconstract  = "TC"
 
         showStep' l p = "{" <> show l <> "," <> show (reverse p) <> "}"
 
-data ReductionSteps syn inh stsyn stinh ta la tb lb = ReductionSteps
-  { reductionSteps  :: [ReductionStateStep syn inh stsyn stinh ta la tb lb]
-  , reductionResult :: ReductionStateBox syn inh stsyn stinh ta la tb lb
+data ReductionSteps tz syn inh stsyn stinh ta la tb lb = ReductionSteps
+  { reductionSteps  :: [ReductionStateStep tz syn inh stsyn stinh ta la tb lb]
+  , reductionResult :: ReductionStateBox tz syn inh stsyn stinh ta la tb lb
   }
 
 instance (RtConstraint ta la, RtConstraint tb lb, Show syn, Show inh, Show stsyn, Show stinh, Show la, Show lb)
-  => Show (ReductionSteps syn inh stsyn stinh ta la tb lb) where
+  => Show (ReductionSteps tz syn inh stsyn stinh ta la tb lb) where
     show (ReductionSteps steps res) = intercalate "" (show <$> steps) <> show res
 
-type TreeReductionSteps syn inh stsyn stinh ta tb = RtApply (RtApply (ReductionSteps syn inh stsyn stinh) ta) tb
+type TreeReductionSteps tz syn inh stsyn stinh ta tb = RtApply (RtApply (ReductionSteps tz syn inh stsyn stinh) ta) tb
 
-buildStepFromAttrState :: RankedTree t
+buildStepFromAttrState :: forall tag syn inh stsyn stinh t.
+  (RankedTree t)
   => LabelType t -> ReductionAttrState tag syn inh stsyn stinh -> TreeReductionStep syn inh stsyn stinh t
-buildStepFromAttrState l = go where
-  go (OutputSynAttrState a p)      = OutputSynReductionStep a l p
-  go (OutputInhAttrState a (x:xs)) = OutputInhReductionStep a x l xs
-  go (StackSynAttrState a p)       = StackSynReductionStep a l p
-  go (StackInhAttrState a (x:xs))  = StackInhReductionStep a x l xs
-  go _                             = error "unexpected operation"
+buildStepFromAttrState l (ReductionAttrState abox p) =
+    let (a, p') = toInputAttr abox p
+    in AttrReductionStep (inputAttrBox a) l p'
 
-buildSattReductionSteps :: (RankedTree ta, RankedTree tb)
-  => OutputReductionAttrState syn inh stsyn stinh
+buildSattReductionSteps :: forall tz syn inh stsyn stinh ta tb.
+  (RankedTree ta, RankedTree tb, RankedTreeZipper tz)
+  => ReductionOutAttrState syn inh stsyn stinh
   -> StackAttrTreeTrans syn inh stsyn stinh ta tb
-  -> InputRankedTree ta -> TreeReductionSteps syn inh stsyn stinh ta tb
+  -> InputRankedTree ta -> TreeReductionSteps tz syn inh stsyn stinh ta tb
 buildSattReductionSteps is trans = buildSteps
     . buildSattReduction builder ([], Nothing) is trans
   where
-    buildSteps = uncurry ReductionSteps <<< reverse *** (toTree . fromMaybe (error "unexpected operation"))
+    buildSteps = uncurry ReductionSteps <<< reverse *** (toTopTree . fromMaybe (error "unexpected operation"))
 
     builder (steps, Just sz) stateZ = (buildStepFromStateZ sz : steps, Just stateZ)
     builder (steps, Nothing) stateZ = (steps, Just stateZ)
 
     buildStepFromStateZ stateZ =
       let stateStep = case toTree stateZ of
-            OutputSattAttrBox x -> case coerce x of
-              AttrState taZ attrState ->
-                buildStepFromAttrState (getTreeLabel taZ) attrState
-              _ -> error "unexpected operation"
-            StackSattAttrBox  x -> case coerce x of
-              AttrState taZ attrState ->
-                buildStepFromAttrState (getTreeLabel taZ) attrState
+            ReductionStateBox x -> case x of
+              AttrState taZ attrState -> buildStepFromAttrState (getTreeLabel taZ) attrState
               StackConsState _ _      -> case toTree <$> zoomOutRtZipper stateZ of
-                Just (OutputSattAttrBox _) -> StackHeadConsDeconstract
-                Just (StackSattAttrBox  _) -> StackTailConsDeconstract
-                _                          -> error "unexpected operation"
+                Just (ReductionStateBox (StackHeadState _)) -> StackHeadConsDeconstract
+                Just (ReductionStateBox (StackTailState _)) -> StackTailConsDeconstract
+                _ -> error "unexpected operation"
               _ -> error "unexpected operation"
       in ReductionStateStep (toTopTree stateZ) stateStep
 
-buildSattReductionSteps' :: (RankedTree ta, RankedTree tb)
-  => (StackAttrTreeTrans syn inh stsyn stinh ta tb -> OutputReductionAttrState syn inh stsyn stinh)
+buildSattReductionSteps' :: forall tz syn inh stsyn stinh ta tb.
+  (RankedTree ta, RankedTree tb, RankedTreeZipper tz)
+  => (StackAttrTreeTrans syn inh stsyn stinh ta tb -> ReductionOutAttrState syn inh stsyn stinh)
   -> StackAttrTreeTrans syn inh stsyn stinh ta tb
-  -> InputRankedTree ta -> TreeReductionSteps syn inh stsyn stinh ta tb
+  -> InputRankedTree ta -> TreeReductionSteps tz syn inh stsyn stinh ta tb
 buildSattReductionSteps' f trans = buildSattReductionSteps (f trans) trans
 
 -- tree transducer
 
 instance TreeTransducer (StackAttrTreeTrans syn inh stsyn stinh) where
-  treeTrans trans = render . runSattReduction (initialSattReductionState trans) trans . toRankedTreeWithInitial
+  treeTrans trans = render
+      . runSattReduction @RTZipper (initialSattReductionState trans) trans
+      . toRankedTreeWithInitial
     where
       render = fromMaybe (error "The input tree transducer is illegal.")
         . fromTreeReductionStateBox
 
-      fromTreeReductionStateBox :: RankedTree tb => TreeReductionStateBox syn inh stsyn stinh ta tb -> Maybe tb
-      fromTreeReductionStateBox (OutputSattAttrBox x) = fromTreeReductionState $ coerce x
-      fromTreeReductionStateBox (StackSattAttrBox  x) = fromTreeReductionState $ coerce x
+      fromTreeReductionStateBox :: RankedTree tb => TreeReductionStateBox tz syn inh stsyn stinh ta tb -> Maybe tb
+      fromTreeReductionStateBox (ReductionStateBox x) = fromTreeReductionState x
 
 -- bottom label
 
-bottomLabelSide :: RankedTree t => TreeOutputRightHandSide syn inh stsyn stinh t
-bottomLabelSide = LabelSide bottomLabel []
--}
+bottomLabelSide :: RankedTree t => TreeOutRightHandSide syn inh stsyn stinh t
+bottomLabelSide = LabelSide bottomLabel empty
