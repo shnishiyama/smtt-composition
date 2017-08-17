@@ -67,7 +67,7 @@ library:
   - Data.Tree.Trans.ATT.Instances
   - Data.Tree.Trans.ATT.Compose
   - Data.Tree.Trans.SATT
-  #- Data.Tree.Trans.SATT.Instances
+  - Data.Tree.Trans.SATT.Instances
   #- Data.Tree.Trans.SATT.Compose
   #- Data.Tree.Trans.Demo
   other-modules: []

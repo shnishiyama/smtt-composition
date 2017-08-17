@@ -110,18 +110,20 @@ infixToPostfixTransducer = AttrTreeTrans
     multi a = LabelSide "multi" [a]
     end     = LabelSide "$"     []
 
-    rule A0 InitialLabel              = a0 0
-    rule A0 (RankedTreeLabel "one")   = one a1
-    rule A0 (RankedTreeLabel "two")   = two a1
-    rule A0 (RankedTreeLabel "plus")  = a0 0
-    rule A0 (RankedTreeLabel "multi") = a0 0
-    rule A0 l                         = error $ "unsupported label: " <> show l
-
+    rule A0     InitialLabel              = a0 0
     rule (A1 0) InitialLabel              = end
+
+    rule A0     (RankedTreeLabel "one")   = one a1
+    rule A0     (RankedTreeLabel "two")   = two a1
+
+    rule A0     (RankedTreeLabel "plus")  = a0 0
     rule (A1 0) (RankedTreeLabel "plus")  = a0 1
     rule (A1 1) (RankedTreeLabel "plus")  = plus a1
+
+    rule A0     (RankedTreeLabel "multi") = a0 0
     rule (A1 0) (RankedTreeLabel "multi") = a0 1
     rule (A1 1) (RankedTreeLabel "multi") = multi a1
-    rule (A1 i) l                         = error $ "unsupported label: (" <> show i <> "," <> show l <> ")"
 
+    rule A0     l = error $ "unsupported label: " <> show l
+    rule (A1 i) l = error $ "unsupported label: (" <> show i <> "," <> show l <> ")"
     rule _ _ = unreachable

@@ -91,8 +91,8 @@ import           Data.TypeLevel.TaggedEither
 
 import           Data.Tree.RankedTree
 import           Data.Tree.RankedTree.Zipper
-import           Data.Tree.Trans.ATT         (AttAttrEitherBox, InhAttrTag,
-                                              SynAttrTag, pattern TaggedInhBox,
+import           Data.Tree.Trans.ATT         (AttAttrEitherBox,
+                                              pattern TaggedInhBox,
                                               pattern TaggedSynBox,
                                               taggedInhBox, taggedSynBox)
 import qualified Data.Tree.Trans.ATT         as ATT
@@ -123,14 +123,10 @@ taggedOutBox = taggedLeftBox
 taggedStkBox :: stk -> SattAttrEitherBox out stk
 taggedStkBox = taggedRightBox
 
-pattern TaggedOut
-  :: () => tag ~ SynAttrTag
-  => out -> SattAttrEither tag out stk
+pattern TaggedOut :: () => tag ~ OutAttrTag => out -> SattAttrEither tag out stk
 pattern TaggedOut x = TaggedLeft x
 
-pattern TaggedStk
-  :: () => tag ~ InhAttrTag
-  => stk -> SattAttrEither tag out stk
+pattern TaggedStk :: () => tag ~ StkAttrTag => stk -> SattAttrEither tag out stk
 pattern TaggedStk x = TaggedRight x
 
 pattern TaggedOutBox :: out -> SattAttrEitherBox out stk
@@ -195,16 +191,24 @@ type InputOutAttr syn inh stsyn stinh
 type InputStkAttr syn inh stsyn stinh
   = InputAttr StkAttrTag syn inh stsyn stinh
 
-pattern SynAttr :: syn -> InputOutAttr syn inh stsyn stinh
+pattern SynAttr
+  :: () => tag ~ OutAttrTag
+  => syn -> InputAttr tag syn inh stsyn stinh
 pattern SynAttr a = TaggedOut (ATT.SynAttr a)
 
-pattern InhAttr :: inh -> RankNumber -> InputOutAttr syn inh stsyn stinh
+pattern InhAttr
+  :: () => tag ~ OutAttrTag
+  => inh -> RankNumber -> InputAttr tag syn inh stsyn stinh
 pattern InhAttr b i = TaggedOut (ATT.InhAttr b i)
 
-pattern StSynAttr :: stsyn -> InputStkAttr syn inh stsyn stinh
+pattern StSynAttr
+  :: () => tag ~ StkAttrTag
+  => stsyn -> InputAttr tag syn inh stsyn stinh
 pattern StSynAttr a = TaggedStk (ATT.SynAttr a)
 
-pattern StInhAttr :: stinh -> RankNumber -> InputStkAttr syn inh stsyn stinh
+pattern StInhAttr
+  :: () => tag ~ StkAttrTag
+  => stinh -> RankNumber -> InputAttr tag syn inh stsyn stinh
 pattern StInhAttr b i = TaggedStk (ATT.InhAttr b i)
 
 toInputAttr
