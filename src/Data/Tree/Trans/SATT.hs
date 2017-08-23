@@ -4,8 +4,25 @@
 
 module Data.Tree.Trans.SATT
   (
+    -- att attribute tags
+    AttAttrTag
+  , SynAttrTag
+  , InhAttrTag
+  , TaggedSyn
+  , TaggedInh
+  , AttAttrEither
+  , taggedSyn
+  , taggedInh
+  , pattern TaggedSyn
+  , pattern TaggedInh
+  , AttAttrEitherBox
+  , taggedSynBox
+  , taggedInhBox
+  , pattern TaggedSynBox
+  , pattern TaggedInhBox
+
     -- satt attribute tags
-    SattAttrTag
+  , SattAttrTag
   , OutAttrTag
   , StkAttrTag
   , TaggedOut
@@ -91,10 +108,15 @@ import           Data.TypeLevel.TaggedEither
 
 import           Data.Tree.RankedTree
 import           Data.Tree.RankedTree.Zipper
-import           Data.Tree.Trans.ATT         (AttAttrEitherBox,
-                                              pattern TaggedInhBox,
-                                              pattern TaggedSynBox,
-                                              taggedInhBox, taggedSynBox)
+import           Data.Tree.Trans.ATT         (AttAttrEither, AttAttrEitherBox,
+                                              AttAttrTag, InhAttrTag,
+                                              SynAttrTag, TaggedInh,
+                                              pattern TaggedInh,
+                                              pattern TaggedInhBox, TaggedSyn,
+                                              pattern TaggedSyn,
+                                              pattern TaggedSynBox, taggedInh,
+                                              taggedInhBox, taggedSyn,
+                                              taggedSynBox)
 import qualified Data.Tree.Trans.ATT         as ATT
 import           Data.Tree.Trans.Class
 

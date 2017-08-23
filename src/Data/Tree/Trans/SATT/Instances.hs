@@ -24,7 +24,6 @@ import           ClassyPrelude
 import           Data.Pattern.Error
 import           Data.Universe.Class
 import           Data.Universe.Instances
-import qualified Data.Vector                    as V
 
 import           Data.Tree.RankedTree
 import           Data.Tree.RankedTree.Instances
@@ -81,6 +80,18 @@ instance Show StInhAttrUnit where
   show _ = "s1"
 
 
+-- | a transducer from postfix operators to infix operators
+--
+-- Examples:
+--
+-- >>> import Data.Tree.Trans.Class
+-- >>> treeTrans postfixToInfixTransducer $ PostfixTwo $ PostfixOne $ PostfixTwo $ PostfixPlus $ PostfixMulti $ PostfixEnd
+-- "multi"("two","plus"("one","two"))
+-- >>> lengthTree $ treeTrans postfixToInfixTransducer $ PostfixMulti $ PostfixPlus $ PostfixEnd
+-- *** Exception: The input tree transducer is illegal.
+-- CallStack (from HasCallStack):
+-- ...
+--
 postfixToInfixTransducer :: StackAttrTreeTrans SynAttrUnit EmptyType EmptyType StInhAttrUnit PostfixOpTree InfixOpTree
 postfixToInfixTransducer = StackAttrTreeTrans
   { initialAttr   = minBound

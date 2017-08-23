@@ -12,6 +12,7 @@ module Data.Tree.RankedTree
   , treeRank
   , foldTree
   , showTree
+  , lengthTree
   , (:$)
   , RtApply
   , RtConstraint
@@ -30,7 +31,7 @@ module Data.Tree.RankedTree
   , bottomLabel
   ) where
 
-import           ClassyPrelude          hiding (length)
+import           ClassyPrelude
 
 import           Data.Coerce
 import           Data.Profunctor.Unsafe
@@ -39,9 +40,6 @@ import qualified Data.Vector            as V
 
 type RankNumber = Int
 type NodeVec    = V.Vector
-
-length :: NodeVec a -> RankNumber
-length = V.length
 
 (!) :: NodeVec a -> RankNumber -> a
 (!) = (V.!)
@@ -95,6 +93,9 @@ showTree t = show (treeLabel t) <> childsStr (treeChilds t)
     childsStr ts
       | V.null ts = ""
       | otherwise = "(" <> intercalate "," (showTree <$> ts)  <> ")"
+
+lengthTree :: forall t l. RtConstraint t l => t -> Int
+lengthTree = olength .# RankedTreeWrapper @t @l
 
 type t1 :$ t2 = t1 t2
 infixr 0 :$

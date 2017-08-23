@@ -16,6 +16,8 @@ module Data.Tree.Trans.ATT.Compose
     -- common
   , composeAtts
   , ComposedAtt
+  , ComposedAttSynAttr
+  , ComposedAttInhAttr
   , ComposedAttAttr(..)
   ) where
 

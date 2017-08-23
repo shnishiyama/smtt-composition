@@ -11,7 +11,7 @@ module Data.Tree.RankedTree.Zipper
   , getTreeLabel
   ) where
 
-import           ClassyPrelude        hiding (length)
+import           ClassyPrelude
 
 import qualified Data.Vector          as V
 

@@ -10,7 +10,7 @@ data TreeABC
   = TreeA TreeABC TreeABC
   | TreeB TreeABC
   | TreeC
-  deriving (Show, Eq)
+  deriving (Eq, Ord, Show)
 
 instance RankedTree TreeABC where
   type LabelType TreeABC = Char
