@@ -52,12 +52,16 @@ treeTag = Proxy
 -- | Ranked Labeled Tree Class
 --
 -- TODO:
--- * To use generic for deriving instance
--- * Builder using Template Haskell for easy building
+--
+-- * to use generic for deriving instance
+-- * to implement a builder using Template Haskell for easy building
 --
 -- Conditions:
--- * treeRank == length . treeChilds
--- * mkTree (treeLabel t) (treeChilds t) == t
+--
+-- prop> treeRank t == length (treeChilds t)
+-- prop> mkTree (treeLabel t) (treeChilds t) == t
+--
+-- and, other methods are same as default implementations.
 --
 class RankedTree t where
   type LabelType t :: *
@@ -75,7 +79,6 @@ class RankedTree t where
       labelRank = treeLabelRank (treeTag @t) l
 
   mkTreeUnchecked :: LabelType t -> NodeVec t -> t
-  mkTreeUnchecked = mkTree
 
   modifyChilds :: (t -> t) -> t -> t
   modifyChilds f t = mkTreeUnchecked (treeLabel t) $ f <$> treeChilds t
@@ -95,7 +98,7 @@ showTree t = show (treeLabel t) <> childsStr (treeChilds t)
       | otherwise = "(" <> intercalate "," (showTree <$> ts)  <> ")"
 
 lengthTree :: forall t l. RtConstraint t l => t -> Int
-lengthTree = olength .# RankedTreeWrapper @t @l
+lengthTree = length .# RankedTreeWrapper @t @l
 
 type t1 :$ t2 = t1 t2
 infixr 0 :$
@@ -192,7 +195,7 @@ toRankedTreeWithInitial = RankedTreeWithInitial . toRankedTreeWithoutInitial
 instance RtConstraint t l => RankedTree (RankedTreeWithInitial t l) where
   type LabelType (RankedTreeWithInitial t l) = RankedTreeLabelWithInitial t l
 
-  treeLabel (RankedTreeWithInitial _)      = InitialLabel
+  treeLabel RankedTreeWithInitial{}        = InitialLabel
   treeLabel (RankedTreeWithoutInitial l _) = RankedTreeLabel l
 
   treeChilds (RankedTreeWithInitial t)       = V.singleton t

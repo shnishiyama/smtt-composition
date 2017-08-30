@@ -38,7 +38,7 @@ instance RankedTree TreeABC where
 data InfixOpTree
   = InfixOne
   | InfixTwo
-  | InfixPlus InfixOpTree InfixOpTree
+  | InfixPlus  InfixOpTree InfixOpTree
   | InfixMulti InfixOpTree InfixOpTree
   deriving (Eq, Ord)
 
@@ -54,14 +54,14 @@ instance Show InfixOpTree where
 instance RankedTree InfixOpTree where
   type LabelType InfixOpTree = String
 
-  treeLabel InfixOne         = "one"
-  treeLabel InfixTwo         = "two"
-  treeLabel (InfixPlus _ _)  = "plus"
-  treeLabel (InfixMulti _ _) = "multi"
+  treeLabel InfixOne     = "one"
+  treeLabel InfixTwo     = "two"
+  treeLabel InfixPlus{}  = "plus"
+  treeLabel InfixMulti{} = "multi"
 
   treeChilds InfixOne         = []
   treeChilds InfixTwo         = []
-  treeChilds (InfixPlus x y)  = [x, y]
+  treeChilds (InfixPlus  x y) = [x, y]
   treeChilds (InfixMulti x y) = [x, y]
 
   treeLabelRank _ "one"   = 0
@@ -72,15 +72,16 @@ instance RankedTree InfixOpTree where
 
   mkTreeUnchecked "one"   _  = InfixOne
   mkTreeUnchecked "two"   _  = InfixTwo
-  mkTreeUnchecked "plus"  ts = InfixPlus (ts ! 0) (ts ! 1)
+  mkTreeUnchecked "plus"  ts = InfixPlus  (ts ! 0) (ts ! 1)
   mkTreeUnchecked "multi" ts = InfixMulti (ts ! 0) (ts ! 1)
   mkTreeUnchecked s       _  = error $ "not allowed label string: " <> show s
 
 
+-- | Postfix operation tree
 data PostfixOpTree
-  = PostfixOne PostfixOpTree
-  | PostfixTwo PostfixOpTree
-  | PostfixPlus PostfixOpTree
+  = PostfixOne   PostfixOpTree
+  | PostfixTwo   PostfixOpTree
+  | PostfixPlus  PostfixOpTree
   | PostfixMulti PostfixOpTree
   | PostfixEnd
   deriving (Eq, Ord)
@@ -97,15 +98,15 @@ instance Show PostfixOpTree where
 instance RankedTree PostfixOpTree where
   type LabelType PostfixOpTree = String
 
-  treeLabel (PostfixOne _)   = "one"
-  treeLabel (PostfixTwo _)   = "two"
-  treeLabel (PostfixPlus _)  = "plus"
-  treeLabel (PostfixMulti _) = "multi"
-  treeLabel PostfixEnd       = "$"
+  treeLabel PostfixOne{}   = "one"
+  treeLabel PostfixTwo{}   = "two"
+  treeLabel PostfixPlus{}  = "plus"
+  treeLabel PostfixMulti{} = "multi"
+  treeLabel PostfixEnd     = "$"
 
-  treeChilds (PostfixOne x)   = [x]
-  treeChilds (PostfixTwo x)   = [x]
-  treeChilds (PostfixPlus x)  = [x]
+  treeChilds (PostfixOne   x) = [x]
+  treeChilds (PostfixTwo   x) = [x]
+  treeChilds (PostfixPlus  x) = [x]
   treeChilds (PostfixMulti x) = [x]
   treeChilds PostfixEnd       = []
 
@@ -116,9 +117,9 @@ instance RankedTree PostfixOpTree where
   treeLabelRank _ "$"     = 0
   treeLabelRank _ s       = error $ "not allowed label string: " <> show s
 
-  mkTreeUnchecked "one"   ts = PostfixOne (ts ! 0)
-  mkTreeUnchecked "two"   ts = PostfixTwo (ts ! 0)
-  mkTreeUnchecked "plus"  ts = PostfixPlus (ts ! 0)
+  mkTreeUnchecked "one"   ts = PostfixOne   (ts ! 0)
+  mkTreeUnchecked "two"   ts = PostfixTwo   (ts ! 0)
+  mkTreeUnchecked "plus"  ts = PostfixPlus  (ts ! 0)
   mkTreeUnchecked "multi" ts = PostfixMulti (ts ! 0)
   mkTreeUnchecked "$"     _  = PostfixEnd
   mkTreeUnchecked s       _  = error $ "not allowed label string: " <> show s

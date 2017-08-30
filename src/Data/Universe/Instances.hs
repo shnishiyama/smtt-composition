@@ -6,14 +6,9 @@ import           Data.Universe.Class
 
 data EmptyType
 
-instance Eq EmptyType where
-  _ == _ = True
-
-instance Ord EmptyType where
-  compare _ _ = EQ
-
-instance Show EmptyType where
-  show _ = "empty type"
+deriving instance Eq EmptyType
+deriving instance Ord EmptyType
+deriving instance Show EmptyType
 
 instance Universe EmptyType where
   universe = []

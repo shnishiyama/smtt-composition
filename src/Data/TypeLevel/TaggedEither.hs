@@ -2,8 +2,6 @@ module Data.TypeLevel.TaggedEither where
 
 import           ClassyPrelude
 
-import           Data.Pattern.Error
-
 data EitherTag
   = LeftTag
   | RightTag
@@ -33,6 +31,8 @@ pattern TaggedLeftBox  x = TaggedEitherBox (TaggedLeft  x)
 pattern TaggedRightBox :: b -> TaggedEitherBox a b
 pattern TaggedRightBox x = TaggedEitherBox (TaggedRight x)
 
+{-# COMPLETE TaggedLeftBox, TaggedRightBox #-}
+
 instance (Eq a, Eq b) => Eq (TaggedEitherBox a b) where
   TaggedLeftBox  x == TaggedLeftBox  y = x == y
   TaggedRightBox x == TaggedRightBox y = x == y
@@ -47,7 +47,6 @@ instance (Ord a, Ord b) => Ord (TaggedEitherBox a b) where
 instance (Show a, Show b) => Show (TaggedEitherBox a b) where
   show (TaggedLeftBox  x) = "TaggedLeftBox "  <> show x
   show (TaggedRightBox x) = "TaggedRightBox " <> show x
-  show _                  = unreachable
 
 instance Bifunctor TaggedEitherBox where
   bimap f g (TaggedEitherBox x) = TaggedEitherBox $ bimap f g x
@@ -69,7 +68,6 @@ isTaggedRight _                  = False
 toEither :: TaggedEitherBox a b -> Either a b
 toEither (TaggedLeftBox  x) = Left x
 toEither (TaggedRightBox x) = Right x
-toEither _                  = unreachable
 
 fromEither :: Either a b -> TaggedEitherBox a b
 fromEither (Left x)  = taggedLeftBox x
@@ -78,9 +76,7 @@ fromEither (Right x) = taggedRightBox x
 taggedEither :: (a -> r) -> (b -> r) -> TaggedEitherBox a b -> r
 taggedEither fl _ (TaggedLeftBox  x) = fl x
 taggedEither _ fr (TaggedRightBox x) = fr x
-taggedEither _ _  _                  = unreachable
 
 taggedEitherMap :: (a -> b) -> (c -> d) -> TaggedEitherBox a c -> TaggedEitherBox b d
 taggedEitherMap fl _ (TaggedLeftBox  x) = taggedLeftBox  $ fl x
 taggedEitherMap _ fr (TaggedRightBox x) = taggedRightBox $ fr x
-taggedEitherMap _ _  _                  = unreachable

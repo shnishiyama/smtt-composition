@@ -102,7 +102,6 @@ module Data.Tree.Trans.SATT
 import           ClassyPrelude
 
 import           Control.Arrow               hiding (first, second)
-import           Data.Pattern.Error
 import           Data.Profunctor.Unsafe
 import           Data.TypeLevel.TaggedEither
 
@@ -151,11 +150,15 @@ pattern TaggedOut x = TaggedLeft x
 pattern TaggedStk :: () => tag ~ StkAttrTag => stk -> SattAttrEither tag out stk
 pattern TaggedStk x = TaggedRight x
 
+{-# COMPLETE TaggedOut, TaggedStk #-}
+
 pattern TaggedOutBox :: out -> SattAttrEitherBox out stk
 pattern TaggedOutBox x = TaggedLeftBox x
 
 pattern TaggedStkBox :: stk -> SattAttrEitherBox out stk
 pattern TaggedStkBox x = TaggedRightBox x
+
+{-# COMPLETE TaggedOutBox, TaggedStkBox #-}
 
 -- common
 
@@ -233,12 +236,13 @@ pattern StInhAttr
   => stinh -> RankNumber -> InputAttr tag syn inh stsyn stinh
 pattern StInhAttr b i = TaggedStk (ATT.InhAttr b i)
 
+{-# COMPLETE SynAttr, InhAttr, StSynAttr, StInhAttr #-}
+
 toInputAttr
   :: SattAttrEither tag (AttAttrEitherBox syn inh) (AttAttrEitherBox stsyn stinh) -> [RankNumber]
   -> (InputAttr tag syn inh stsyn stinh, [RankNumber])
 toInputAttr (TaggedOut a) = first TaggedOut . ATT.toInputAttr a
 toInputAttr (TaggedStk a) = first TaggedStk . ATT.toInputAttr a
-toInputAttr _             = unreachable
 
 type SattRuleType tag syn inh stsyn stinh ta tb
   = InputAttr tag syn inh stsyn stinh -> InputLabelType ta
@@ -270,15 +274,15 @@ pattern ReductionStkAttrState :: () => tag ~ StkAttrTag
   => AttAttrEitherBox stsyn stinh -> [RankNumber] -> ReductionAttrState tag syn inh stsyn stinh
 pattern ReductionStkAttrState a p = ReductionAttrState (TaggedStk a) p
 
+{-# COMPLETE ReductionOutAttrState, ReductionStkAttrState #-}
+
 instance (Show syn, Show inh, Show stsyn, Show stinh) => Show (ReductionAttrState tag syn inh stsyn stinh) where
   show (ReductionAttrState abox p) = case abox of
       TaggedOut attbox -> showAttAttrState attbox
       TaggedStk attbox -> showAttAttrState attbox
-      _                -> unreachable
     where
       showAttAttrState (TaggedSynBox a) = showAttrState a
       showAttAttrState (TaggedInhBox a) = showAttrState a
-      showAttAttrState _                = unreachable
 
       showAttrState :: Show a => a -> String
       showAttrState x = show x <> show (reverse p)
@@ -324,7 +328,6 @@ reductionStateBox
 reductionStateBox (ReductionStateBox x) = case x of
   AttrState _ (ReductionOutAttrState _ _) -> TaggedOutBox x
   AttrState _ (ReductionStkAttrState _ _) -> TaggedStkBox x
-  AttrState _ _                           -> unreachable
   RankedTreeState _ _                     -> TaggedOutBox x
   StackHeadState _                        -> TaggedOutBox x
   StackConsState _ _                      -> TaggedStkBox x
@@ -364,12 +367,10 @@ toReductionAttrState as p = case as of
       let (a, p') = toAttAttrState atts in ReductionAttrState (taggedOut a) p'
     TaggedStk atts ->
       let (a, p') = toAttAttrState atts in ReductionAttrState (taggedStk a) p'
-    _              -> unreachable
   where
     toAttAttrState :: ATT.AttrSide s i -> (AttAttrEitherBox s i, [RankNumber])
     toAttAttrState (TaggedSynBox (a, i)) = (taggedSynBox a, i:p)
     toAttAttrState (TaggedInhBox a)      = (taggedInhBox a, p)
-    toAttAttrState _                     = unreachable
 
 
 type ReductionOutStateLabel = ReductionStateLabel OutAttrTag
@@ -412,7 +413,6 @@ reductionStateLabelBox
 reductionStateLabelBox (ReductionStateLabelBox x) = case x of
   AttrStateLabel _ (ReductionOutAttrState _ _) -> TaggedOutBox x
   AttrStateLabel _ (ReductionStkAttrState _ _) -> TaggedStkBox x
-  AttrStateLabel _ _                           -> unreachable
   RankedTreeStateLabel _                       -> TaggedOutBox x
   StackHeadStateLabel                          -> TaggedOutBox x
   StackConsStateLabel                          -> TaggedStkBox x
@@ -558,13 +558,11 @@ applyRHSToState rhs z p = go rhs where
   nextTz :: ReductionAttrState tg syn inh stsyn stinh -> InputRankedTreeZipper tz ta -> Maybe (InputRankedTreeZipper tz ta)
   nextTz (ReductionOutAttrState abox p') = nextTz' abox p'
   nextTz (ReductionStkAttrState abox p') = nextTz' abox p'
-  nextTz _                               = unreachable
 
   nextTz' :: AttAttrEitherBox sa ia -> [RankNumber] -> InputRankedTreeZipper tz ta -> Maybe (InputRankedTreeZipper tz ta)
   nextTz' (TaggedSynBox _) []    = zoomInRtZipper
   nextTz' (TaggedSynBox _) (n:_) = zoomInIdxRtZipper n
   nextTz' (TaggedInhBox _) _     = zoomOutRtZipper
-  nextTz' _                _     = unreachable
 
 type TreeReductionStateZipper tz syn inh stsyn stinh ta tb
   = tz (TreeReductionStateBox tz syn inh stsyn stinh ta tb) (TreeReductionStateLabelBox tz syn inh stsyn stinh ta tb)
@@ -685,11 +683,9 @@ instance (Show syn, Show inh, Show stsyn, Show stinh, Show l)
           <> " ={" <> show l <> "," <> show (reverse p) <> "}=> "
         showAttrStep (TaggedStkBox a') = showAttr a'
           <> " ={" <> show l <> "," <> show (reverse p) <> "}=> "
-        showAttrStep _                 = unreachable
 
         showAttr (TaggedSynBox a') = show a'
         showAttr (TaggedInhBox a') = show a'
-        showAttr _                 = unreachable
 
 
 type TreeReductionStep syn inh stsyn stinh t = RtApply (ReductionStep syn inh stsyn stinh) t

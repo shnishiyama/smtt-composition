@@ -62,7 +62,6 @@ module Data.Tree.Trans.ATT
 import           ClassyPrelude
 
 import           Control.Arrow               hiding (first, second)
-import           Data.Pattern.Error
 import           Data.Profunctor.Unsafe
 import           Data.TypeLevel.TaggedEither
 
@@ -105,11 +104,15 @@ pattern TaggedInh
   => inh -> AttAttrEither tag syn inh
 pattern TaggedInh x = TaggedRight x
 
+{-# COMPLETE TaggedSyn, TaggedInh #-}
+
 pattern TaggedSynBox :: syn -> AttAttrEitherBox syn inh
 pattern TaggedSynBox x = TaggedLeftBox x
 
 pattern TaggedInhBox :: inh -> AttAttrEitherBox syn inh
 pattern TaggedInhBox x = TaggedRightBox x
+
+{-# COMPLETE TaggedSynBox, TaggedInhBox #-}
 
 -- common
 
@@ -142,6 +145,8 @@ pattern SynAttr a = TaggedSynBox a
 pattern InhAttr :: inh -> RankNumber -> InputAttr syn inh
 pattern InhAttr b i = TaggedInhBox (b, i)
 
+{-# COMPLETE SynAttr, InhAttr #-}
+
 toInputAttr :: AttAttrEitherBox syn inh -> [RankNumber] -> (InputAttr syn inh, [RankNumber])
 toInputAttr (TaggedSynBox a) p      = (taggedSynBox a, p)
 toInputAttr (TaggedInhBox a) (x:xs) = (taggedInhBox (a, x), xs)
@@ -167,7 +172,6 @@ instance (Show syn, Show inh) => Show (ReductionAttrState syn inh) where
   show (ReductionAttrState abox p) = case abox of
       TaggedSynBox a -> showAttrState a
       TaggedInhBox a -> showAttrState a
-      _              -> unreachable
     where
       showAttrState :: Show a => a -> String
       showAttrState x = show x <> show (reverse p)
@@ -200,7 +204,6 @@ initialAttReductionState AttrTreeTrans{ initialAttr = a0 } = ReductionAttrState 
 toReductionAttrState :: AttrSide syn inh -> [RankNumber] -> ReductionAttrState syn inh
 toReductionAttrState (TaggedSynBox (a, i)) p = ReductionAttrState (taggedSynBox a) (i:p)
 toReductionAttrState (TaggedInhBox a)     p = ReductionAttrState (taggedInhBox a) p
-toReductionAttrState _                    _ = unreachable
 
 
 data ReductionStateLabel tz syn inh ta la tb lb
@@ -258,7 +261,6 @@ applyRHSToState rhs z p = go rhs where
   nextTz (ReductionAttrState (TaggedInhBox _) _)     = zoomOutRtZipper
   nextTz (ReductionAttrState (TaggedSynBox _) [])    = zoomInRtZipper
   nextTz (ReductionAttrState (TaggedSynBox _) (n:_)) = zoomInIdxRtZipper n
-  nextTz _                                           = unreachable
 
 type TreeReductionStateZipper tz syn inh ta tb
   = tz (TreeReductionState tz syn inh ta tb) (TreeReductionStateLabel tz syn inh ta tb)

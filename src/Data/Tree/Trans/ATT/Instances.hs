@@ -4,7 +4,7 @@ module Data.Tree.Trans.ATT.Instances where
 
 import           ClassyPrelude
 
-import           Data.Pattern.Error
+import Data.Pattern.Error
 import           Data.Universe.Class
 import           Data.Universe.Instances
 import qualified Data.Vector                    as V
@@ -40,6 +40,8 @@ instance Show InhAttrUnit where
   show _ = "a1"
 
 
+{-# COMPLETE A0, A1 #-}
+
 -- | the identity attributed tree transducer
 --
 -- Examples:
@@ -60,7 +62,7 @@ identityTransducer = AttrTreeTrans
     rule A0 (RankedTreeLabel l) = LabelSide l $
       V.generate (treeLabelRank (treeTag @t) l) (synAttrSide a0)
 
-    rule _ _ = error "unsupported operation"
+    rule _ _ = unreachable
 
 
 -- | the exchange transducer for ranked tree order
@@ -84,7 +86,7 @@ orderExchangeTransducer = AttrTreeTrans
       let k = treeLabelRank (treeTag @t) l
       in LabelSide l $ V.generate k $ a0 . (k - 1 -)
 
-    rule _ _ = error "unsupported operation"
+    rule _ _ = unreachable
 
 
 -- | a transducer from infix operators to postfix operators
@@ -126,4 +128,3 @@ infixToPostfixTransducer = AttrTreeTrans
 
     rule A0     l = error $ "unsupported label: " <> show l
     rule (A1 i) l = error $ "unsupported label: (" <> show i <> "," <> show l <> ")"
-    rule _ _ = unreachable

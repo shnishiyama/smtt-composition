@@ -127,12 +127,13 @@ newtype IndexedValue i a = IndexedValueC (i, a)
 pattern IndexedValue :: i -> a -> IndexedValue i a
 pattern IndexedValue i a = IndexedValueC (i, a)
 
+{-# COMPLETE IndexedValue #-}
+
 indexedValue :: i -> a -> IndexedValue i a
 indexedValue i x = IndexedValueC (i, x)
 
 instance (Show a) => Show (IndexedValue i a) where
   show (IndexedValue _ x) = show x
-  show _                  = unreachable
 
 type AttrIndexedQueue syn inh = [AttrIndexedData syn inh]
 type AttrIndexedAttr tag syn inh = IndexedValue (AttrIndexedQueue syn inh) (AttAttrEither tag syn inh)
@@ -154,7 +155,6 @@ indexedRHS ai q = go [] where
   go p (LabelSide l cs)                 = LabelSide l . V.imap (\i -> go (i:p)) $ cs
   go p (AttrSide (TaggedSynBox (a, j))) = synAttrSide (indexedAttr p $ taggedSyn a) j
   go p (AttrSide (TaggedInhBox a))      = inhAttrSide (indexedAttr p (taggedInh a))
-  go _ (AttrSide _)                     = unreachable
 
 type AttrIndexedAtt syn2 inh2 ti2 to2 = AttrTreeTrans
   (AttrIndexedSynAttr syn2 inh2)
@@ -171,7 +171,6 @@ toAttrIndexedAtt AttrTreeTrans{..} = AttrTreeTrans
   where
     rule (TaggedSynBox (IndexedValue q (TaggedSyn a)))    = rule' q $ taggedSyn a
     rule (TaggedInhBox (IndexedValue q (TaggedInh a), j)) = rule' q $ taggedInh (a, j)
-    rule _                                                = unreachable
 
     rule' :: AttrIndexedQueue syn2 inh2 -> AttAttrEither tag syn2 (inh2, RankNumber)
       -> InputLabelType ti2
@@ -242,7 +241,6 @@ composeAtts t1 t2 = AttrTreeTrans
       OriginalOutputLabel l                          -> LabelSide l $ replaceReductionState f <$> ss
       ExtendedOutAttrLabel a1 (TaggedSynBox (a2, j)) -> synAttrSide (a1 `SynSynAttr` a2) j
       ExtendedOutAttrLabel a1 (TaggedInhBox b2)      -> inhAttrSide (a1 `SynInhAttr` b2)
-      _                                              -> unreachable
     replaceReductionState f (AttrState _ astate) = case astate of
       ReductionAttrState (TaggedInhBox b2) [] -> f b2
       _                                       -> error "reduction is not done"
@@ -269,7 +267,6 @@ composeAtts t1 t2 = AttrTreeTrans
           (\b1' -> synAttrSide (b1' `InhInhAttr` ib2) j)
           (toRankedTreeWithoutInitial $ ruleT2' (TaggedInhBox (ib2, j)) l)
           (ReductionAttrState (TaggedInhBox b1) w)
-      _                   -> unreachable
     rule (SynAttr _) _ = bottomLabelSide
 
     rule (InhAttr (a1 `SynInhAttr` b2) 0) l@InitialLabel = runReductionWithRep
@@ -287,7 +284,6 @@ composeAtts t1 t2 = AttrTreeTrans
           (\b1' -> synAttrSide (b1' `InhInhAttr` ib2) j)
           (toRankedTreeWithoutInitial $ ruleT2' (TaggedInhBox (ib2, j)) l)
           (ReductionAttrState (TaggedInhBox b1) w)
-      _ -> unreachable
     rule (InhAttr (a1 `SynInhAttr` b2) j) l@(RankedTreeLabel _) = runReductionWithRep
       (\b1' -> synAttrSide (b1' `InhInhAttr` b2) j)
       (toRankedTreeWithoutInitial $ ruleT2' (TaggedInhBox (b2, j)) l)
@@ -303,7 +299,4 @@ composeAtts t1 t2 = AttrTreeTrans
           (\b1' -> synAttrSide (b1' `InhInhAttr` ib2) j)
           (toRankedTreeWithoutInitial $ ruleT2' (TaggedInhBox (ib2, j)) l)
           (ReductionAttrState (TaggedInhBox b1) w)
-      _ -> unreachable
     rule (InhAttr _ _) _ = bottomLabelSide
-
-    rule _ _ = unreachable
