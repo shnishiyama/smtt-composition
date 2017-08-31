@@ -27,7 +27,7 @@ library:
   ghc-options: &base-ghc-options
   - -Wall
   - -fprint-explicit-foralls
-  - -fmax-pmcheck-iterations=6000000
+  - -fmax-pmcheck-iterations=20000000
   source-dirs: src
   default-extensions:
   - NoImplicitPrelude
@@ -142,6 +142,8 @@ tests:
     dependencies:
     - base
     - doctest
+    - QuickCheck
+    - template-haskell
 
 benchmarks:
   common:

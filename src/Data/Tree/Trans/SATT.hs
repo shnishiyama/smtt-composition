@@ -326,13 +326,13 @@ reductionStateBox
     (ReductionOutState tz syn inh stsyn stinh ta la tb lb)
     (ReductionStkState tz syn inh stsyn stinh ta la tb lb)
 reductionStateBox (ReductionStateBox x) = case x of
-  AttrState _ (ReductionOutAttrState _ _) -> TaggedOutBox x
-  AttrState _ (ReductionStkAttrState _ _) -> TaggedStkBox x
-  RankedTreeState _ _                     -> TaggedOutBox x
-  StackHeadState _                        -> TaggedOutBox x
-  StackConsState _ _                      -> TaggedStkBox x
-  StackTailState _                        -> TaggedStkBox x
-  StackEmptyState                         -> TaggedStkBox x
+  AttrState _ ReductionOutAttrState{} -> TaggedOutBox x
+  AttrState _ ReductionStkAttrState{} -> TaggedStkBox x
+  RankedTreeState{}                   -> TaggedOutBox x
+  StackHeadState{}                    -> TaggedOutBox x
+  StackConsState{}                    -> TaggedStkBox x
+  StackTailState{}                    -> TaggedStkBox x
+  StackEmptyState                     -> TaggedStkBox x
 
 instance (Eq syn, Eq inh, Eq stsyn, Eq stinh, Eq lb, RtConstraint tb lb)
   => Eq (ReductionStateBox tz syn inh stsyn stinh ta la tb lb) where
@@ -612,20 +612,20 @@ buildSattReduction f s is StackAttrTreeTrans{..} t = goTop s where
 
   reductState stZ (ReductionStateBox x) = case x of
     AttrState taZ attrState -> setTreeZipper (ReductionStateBox $ applyAttrToState taZ attrState) stZ
-    StackConsState hd tl    -> deconstractStack hd tl stZ
+    StackConsState hd tl    -> deconstractStackCons hd tl stZ
     _                       -> error "not permitted operation"
 
-  deconstractStack
+  deconstractStackCons
     :: TreeReductionOutState tz syn inh stsyn stinh ta tb
     -> TreeReductionStkState tz syn inh stsyn stinh ta tb
     -> TreeReductionStateZipper tz syn inh stsyn stinh ta tb
     -> TreeReductionStateZipper tz syn inh stsyn stinh ta tb
-  deconstractStack hd tl stateZ = case zoomOutRtZipper stateZ of
+  deconstractStackCons hd tl stateZ = case zoomOutRtZipper stateZ of
     Nothing      -> error "not permitted operation"
     Just nstateZ -> case toTree nstateZ of
       ReductionStateBox x -> case x of
-        StackHeadState _ -> setTreeZipper (ReductionStateBox hd) nstateZ
-        StackTailState _ -> setTreeZipper (ReductionStateBox tl) nstateZ
+        StackHeadState{} -> setTreeZipper (ReductionStateBox hd) nstateZ
+        StackTailState{} -> setTreeZipper (ReductionStateBox tl) nstateZ
         _                -> error "not permitted operation"
 
   nextStateZ = runKleisli nextStateZ'
@@ -639,10 +639,10 @@ buildSattReduction f s is StackAttrTreeTrans{..} t = goTop s where
     ReductionStateBox x -> filterStateZipper' stateZ x
 
   filterStateZipper' :: a -> TreeReductionState tag tz syn inh stsyn stinh ta tb -> Maybe a
-  filterStateZipper' _   (RankedTreeState _ _) = empty
-  filterStateZipper' _   (StackHeadState _)    = empty
-  filterStateZipper' _   (StackTailState _)    = empty
-  filterStateZipper' _   StackEmptyState       = empty
+  filterStateZipper' _   RankedTreeState{} = empty
+  filterStateZipper' _   StackHeadState{}  = empty
+  filterStateZipper' _   StackTailState{}  = empty
+  filterStateZipper' _   StackEmptyState   = empty
   filterStateZipper' _   (AttrState _ (ReductionOutAttrState (TaggedInhBox _) [])) = empty
   filterStateZipper' _   (AttrState _ (ReductionStkAttrState (TaggedInhBox _) [])) = empty
   filterStateZipper' stZ _ = pure stZ

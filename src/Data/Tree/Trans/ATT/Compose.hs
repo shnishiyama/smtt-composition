@@ -9,21 +9,18 @@ module Data.Tree.Trans.ATT.Compose
   , indexedValue
   , AttrIndexedData
   , AttrIndexedQueue
+  , AttrIndexer
   , AttrIndexedAttr
-  , AttrIndexedSynAttr
-  , AttrIndexedInhAttr
+  , ComposedIndexedAttAttr
 
     -- common
   , composeAtts
   , ComposedAtt
-  , ComposedAttSynAttr
-  , ComposedAttInhAttr
   , ComposedAttAttr(..)
   ) where
 
 import           ClassyPrelude
 
-import           Data.Pattern.Error
 import           Data.TypeLevel.TaggedEither
 import qualified Data.Vector                 as V
 
@@ -121,30 +118,23 @@ fromTreeRHS (AttrSide a)     = ExtendedAttrNode a
 data AttrIndexedData syn inh = AttrIndexedData (InputAttr syn inh) [RankNumber]
   deriving (Eq, Ord, Show)
 
-newtype IndexedValue i a = IndexedValueC (i, a)
+data IndexedValue i a = IndexedValue i a
   deriving (Eq, Ord)
 
-pattern IndexedValue :: i -> a -> IndexedValue i a
-pattern IndexedValue i a = IndexedValueC (i, a)
-
-{-# COMPLETE IndexedValue #-}
-
 indexedValue :: i -> a -> IndexedValue i a
-indexedValue i x = IndexedValueC (i, x)
+indexedValue i x = IndexedValue i x
 
 instance (Show a) => Show (IndexedValue i a) where
   show (IndexedValue _ x) = show x
 
 type AttrIndexedQueue syn inh = [AttrIndexedData syn inh]
-type AttrIndexedAttr tag syn inh = IndexedValue (AttrIndexedQueue syn inh) (AttAttrEither tag syn inh)
-
-type AttrIndexedSynAttr syn inh = AttrIndexedAttr SynAttrTag syn inh
-type AttrIndexedInhAttr syn inh = AttrIndexedAttr InhAttrTag syn inh
+type AttrIndexer syn inh = IndexedValue (AttrIndexedQueue syn inh)
+type AttrIndexedAttr tag syn inh = AttrIndexer syn inh (AttAttrEither tag syn inh)
 
 indexedRHS :: forall tag syn inh t. RankedTree t
   => AttAttrEither tag syn (inh, RankNumber) -> AttrIndexedQueue syn inh
   -> TreeRightHandSide syn inh t
-  -> TreeRightHandSide (AttrIndexedSynAttr syn inh) (AttrIndexedInhAttr syn inh) t
+  -> TreeRightHandSide (AttrIndexedAttr SynAttrTag syn inh) (AttrIndexedAttr InhAttrTag syn inh) t
 indexedRHS ai q = go [] where
   indexedAttr :: [RankNumber] -> a -> IndexedValue (AttrIndexedQueue syn inh) a
   indexedAttr p = indexedValue $ indexedAttr' ai p
@@ -157,8 +147,8 @@ indexedRHS ai q = go [] where
   go p (AttrSide (TaggedInhBox a))      = inhAttrSide (indexedAttr p (taggedInh a))
 
 type AttrIndexedAtt syn2 inh2 ti2 to2 = AttrTreeTrans
-  (AttrIndexedSynAttr syn2 inh2)
-  (AttrIndexedInhAttr syn2 inh2)
+  (AttrIndexedAttr SynAttrTag syn2 inh2)
+  (AttrIndexedAttr InhAttrTag syn2 inh2)
   ti2 to2
 
 toAttrIndexedAtt :: forall syn2 inh2 ti2 to2. (RankedTree ti2, RankedTree to2)
@@ -169,22 +159,20 @@ toAttrIndexedAtt AttrTreeTrans{..} = AttrTreeTrans
     , reductionRule = rule
     }
   where
-    rule (TaggedSynBox (IndexedValue q (TaggedSyn a)))    = rule' q $ taggedSyn a
-    rule (TaggedInhBox (IndexedValue q (TaggedInh a), j)) = rule' q $ taggedInh (a, j)
+    rule (TaggedSynBox (IndexedValue q (TaggedSyn a)))                   = rule' q $ taggedSyn a
+    rule (TaggedInhBox s) = case s of (IndexedValue q (TaggedInh a), j) -> rule' q $ taggedInh (a, j)
 
     rule' :: AttrIndexedQueue syn2 inh2 -> AttAttrEither tag syn2 (inh2, RankNumber)
       -> InputLabelType ti2
-      -> TreeRightHandSide (AttrIndexedSynAttr syn2 inh2) (AttrIndexedInhAttr syn2 inh2) to2
+      -> TreeRightHandSide (AttrIndexedAttr SynAttrTag syn2 inh2) (AttrIndexedAttr InhAttrTag syn2 inh2) to2
     rule' q a = indexedRHS a q . reductionRule (TaggedEitherBox a)
 
 
-type ComposedAttSynAttr = ComposedAttAttr SynAttrTag
-type ComposedAttInhAttr = ComposedAttAttr InhAttrTag
 data ComposedAttAttr (tag :: AttAttrTag) syn1 inh1 syn2 inh2 where
-  SynSynAttr :: syn1 -> AttrIndexedSynAttr syn2 inh2 -> ComposedAttSynAttr syn1 inh1 syn2 inh2
-  InhInhAttr :: inh1 -> AttrIndexedInhAttr syn2 inh2 -> ComposedAttSynAttr syn1 inh1 syn2 inh2
-  SynInhAttr :: syn1 -> AttrIndexedInhAttr syn2 inh2 -> ComposedAttInhAttr syn1 inh1 syn2 inh2
-  InhSynAttr :: inh1 -> AttrIndexedSynAttr syn2 inh2 -> ComposedAttInhAttr syn1 inh1 syn2 inh2
+  SynSynAttr :: syn1 -> syn2 -> ComposedAttAttr SynAttrTag syn1 inh1 syn2 inh2
+  InhInhAttr :: inh1 -> inh2 -> ComposedAttAttr SynAttrTag syn1 inh1 syn2 inh2
+  SynInhAttr :: syn1 -> inh2 -> ComposedAttAttr InhAttrTag syn1 inh1 syn2 inh2
+  InhSynAttr :: inh1 -> syn2 -> ComposedAttAttr InhAttrTag syn1 inh1 syn2 inh2
 
 deriving instance (Eq syn1, Eq inh1, Eq syn2, Eq inh2) => Eq (ComposedAttAttr tag syn1 inh1 syn2 inh2)
 deriving instance (Ord syn1, Ord inh1, Ord syn2, Ord inh2) => Ord (ComposedAttAttr tag syn1 inh1 syn2 inh2)
@@ -195,9 +183,13 @@ instance (Show syn1, Show inh1, Show syn2, Show inh2) => Show (ComposedAttAttr t
   show (SynInhAttr a1 b2) = show (a1, b2)
   show (InhSynAttr b1 a2) = show (b1, a2)
 
+
+type ComposedIndexedAttAttr tag syn1 inh1 syn2 inh2
+  = ComposedAttAttr tag syn1 inh1 (AttrIndexedAttr SynAttrTag syn2 inh2) (AttrIndexedAttr InhAttrTag syn2 inh2)
+
 type ComposedAtt syn1 inh1 syn2 inh2 ti to = AttrTreeTrans
-  (ComposedAttSynAttr syn1 inh1 syn2 inh2)
-  (ComposedAttInhAttr syn1 inh1 syn2 inh2)
+  (ComposedIndexedAttAttr SynAttrTag syn1 inh1 syn2 inh2)
+  (ComposedIndexedAttAttr InhAttrTag syn1 inh1 syn2 inh2)
   ti to
 
 -- | composition of atts
@@ -252,18 +244,20 @@ composeAtts t1 t2 = AttrTreeTrans
       (\_ -> error "not permitted operation")
       (toRankedTreeWithInitial $ ruleT2' (TaggedSynBox a2) l)
       (ReductionAttrState (TaggedSynBox a1) [])
-    rule (SynAttr (a1 `SynSynAttr` a2)) l@(RankedTreeLabel _) = runReductionWithRep
+    rule (SynAttr (a1 `SynSynAttr` a2)) l@RankedTreeLabel{} = runReductionWithRep
       (\b1' -> inhAttrSide (b1' `InhSynAttr` a2))
       (toRankedTreeWithoutInitial $ ruleT2' (TaggedSynBox a2) l)
       (ReductionAttrState (TaggedSynBox a1) [])
-    rule (SynAttr (b1 `InhInhAttr` IndexedValue (x:q) _)) l@(RankedTreeLabel _) = case x of
+    rule (SynAttr (b1 `InhInhAttr` IndexedValue (x:q) _)) l@RankedTreeLabel{} = case x of
       AttrIndexedData (TaggedSynBox a2) w ->
         let ia2 = indexedValue q (taggedSyn a2) in runReductionWithRep
           (\b1' -> inhAttrSide (b1' `InhSynAttr` ia2))
           (toRankedTreeWithoutInitial $ ruleT2' (TaggedSynBox ia2) l)
           (ReductionAttrState (TaggedInhBox b1) w)
-      AttrIndexedData (TaggedInhBox (b2, j)) w ->
-        let ib2 = indexedValue q (taggedInh b2) in runReductionWithRep
+      AttrIndexedData (TaggedInhBox s) w ->
+        let (b2, j) = s
+            ib2 = indexedValue q (taggedInh b2)
+        in runReductionWithRep
           (\b1' -> synAttrSide (b1' `InhInhAttr` ib2) j)
           (toRankedTreeWithoutInitial $ ruleT2' (TaggedInhBox (ib2, j)) l)
           (ReductionAttrState (TaggedInhBox b1) w)
@@ -279,23 +273,27 @@ composeAtts t1 t2 = AttrTreeTrans
           (\_ -> error "not permitted operation")
           (toRankedTreeWithInitial $ ruleT2' (TaggedSynBox ia2) l)
           (ReductionAttrState (TaggedInhBox b1) (w <> [0]))
-      AttrIndexedData (TaggedInhBox (b2, j)) w ->
-        let ib2 = indexedValue q (taggedInh b2) in runReductionWithRep
+      AttrIndexedData (TaggedInhBox s) w ->
+        let (b2, j) = s
+            ib2 = indexedValue q (taggedInh b2)
+        in runReductionWithRep
           (\b1' -> synAttrSide (b1' `InhInhAttr` ib2) j)
           (toRankedTreeWithoutInitial $ ruleT2' (TaggedInhBox (ib2, j)) l)
           (ReductionAttrState (TaggedInhBox b1) w)
-    rule (InhAttr (a1 `SynInhAttr` b2) j) l@(RankedTreeLabel _) = runReductionWithRep
+    rule (InhAttr (a1 `SynInhAttr` b2) j) l@RankedTreeLabel{} = runReductionWithRep
       (\b1' -> synAttrSide (b1' `InhInhAttr` b2) j)
       (toRankedTreeWithoutInitial $ ruleT2' (TaggedInhBox (b2, j)) l)
       (ReductionAttrState (TaggedSynBox a1) [])
-    rule (InhAttr (b1 `InhSynAttr` IndexedValue (x:q) _) _) l@(RankedTreeLabel _) = case x of
+    rule (InhAttr (b1 `InhSynAttr` IndexedValue (x:q) _) _) l@RankedTreeLabel{} = case x of
       AttrIndexedData (TaggedSynBox a2) w ->
         let ia2 = indexedValue q (taggedSyn a2) in runReductionWithRep
           (\b1' -> inhAttrSide (b1' `InhSynAttr` ia2))
           (toRankedTreeWithoutInitial $ ruleT2' (TaggedSynBox ia2) l)
           (ReductionAttrState (TaggedInhBox b1) w)
-      AttrIndexedData (TaggedInhBox (b2, j)) w ->
-        let ib2 = indexedValue q (taggedInh b2) in runReductionWithRep
+      AttrIndexedData (TaggedInhBox s) w ->
+        let (b2, j) = s
+            ib2 = indexedValue q (taggedInh b2)
+        in runReductionWithRep
           (\b1' -> synAttrSide (b1' `InhInhAttr` ib2) j)
           (toRankedTreeWithoutInitial $ ruleT2' (TaggedInhBox (ib2, j)) l)
           (ReductionAttrState (TaggedInhBox b1) w)

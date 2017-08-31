@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedLists #-}
+{-# LANGUAGE TypeInType      #-}
 
 module Data.Tree.Trans.SATT.Compose where
 
@@ -6,6 +7,10 @@ import           ClassyPrelude
 
 import           Data.Tree.RankedTree
 import qualified Data.Tree.Trans.ATT         as ATT
+import           Data.Tree.Trans.ATT.Compose (ComposedAttAttr(..),
+                                              IndexedValue (..),
+                                              pattern IndexedValue,
+                                              indexedValue)
 import qualified Data.Tree.Trans.ATT.Compose as ATTC
 import           Data.Tree.Trans.SATT
 
@@ -78,58 +83,107 @@ standardForm StackAttrTreeTrans{..} = StackAttrTreeTrans
     rule a = evaluation . reductionRule a
 
 
-type ComposedSattSynAttr   syn1 inh1 syn2 inh2 stsyn2 stinh2
-  = ComposedSattAttr OutAttrTag SynAttrTag syn1 inh1 syn2 inh2 stsyn2 stinh2
-type ComposedSattInhAttr   syn1 inh1 syn2 inh2 stsyn2 stinh2
-  = ComposedSattAttr OutAttrTag InhAttrTag syn1 inh1 syn2 inh2 stsyn2 stinh2
-type ComposedSattStSynAttr syn1 inh1 syn2 inh2 stsyn2 stinh2
-  = ComposedSattAttr StkAttrTag SynAttrTag syn1 inh1 syn2 inh2 stsyn2 stinh2
-type ComposedSattStInhAttr syn1 inh1 syn2 inh2 stsyn2 stinh2
-  = ComposedSattAttr StkAttrTag InhAttrTag syn1 inh1 syn2 inh2 stsyn2 stinh2
+type SimAttrIndexer syn2 inh2 stsyn2 stinh2
+  = ATTC.AttrIndexer (SimuratedAttAttr syn2 stsyn2) (SimuratedAttAttr inh2 stinh2)
+type AttrIndexedAttr tags taga syn2 inh2 stsyn2 stinh2
+  = SimAttrIndexer syn2 inh2 stsyn2 stinh2
+    (SattAttrEither tags (AttAttrEither taga syn2 inh2) (AttAttrEither taga stsyn2 stinh2))
 
-type ComposedSattAttrIndexedQueue syn2 inh2 stsyn2 stinh2
-  = ATTC.AttrIndexedQueue (SimuratedAttAttr syn2 stsyn2) (SimuratedAttAttr inh2 stinh2)
-type ComposedSattAttrIndexedValue syn2 inh2 stsyn2 stinh2
-  = ATTC.IndexedValue :$ ComposedSattAttrIndexedQueue syn2 inh2 stsyn2 stinh2
-type ComposedSattAttr tags taga syn1 inh1 syn2 inh2 stsyn2 stinh2 = ComposedSattAttrBase
-  tags taga syn1 inh1
-  (ComposedSattAttrIndexedValue syn2 inh2 stsyn2 stinh2 syn2)
-  (ComposedSattAttrIndexedValue syn2 inh2 stsyn2 stinh2 inh2)
-  (ComposedSattAttrIndexedValue syn2 inh2 stsyn2 stinh2 stsyn2)
-  (ComposedSattAttrIndexedValue syn2 inh2 stsyn2 stinh2 stinh2)
+type SimAttAttr tag syn inh stsyn stinh
+  = AttAttrEither tag (SimuratedAttAttr syn stsyn) (SimuratedAttAttr inh stinh)
 
-newtype ComposedSattAttrBase tags taga syn1 inh1 syn2 inh2 stsyn2 stinh2
-  = ComposedSattAttrBase {
-    unComposedSattAttrBase :: SattAttrEither tags
-      (ATTC.ComposedAttAttr taga syn1 inh1 syn2 inh2)
-      (ATTC.ComposedAttAttr taga syn1 inh1 stsyn2 stinh2)
-  } deriving (Eq, Ord)
+simSynAttr :: () => tag ~ SynAttrTag
+  => syn -> SimAttAttr tag syn inh stsyn stinh
+simSynAttr a = taggedSyn $ taggedOutBox a
+
+simStSynAttr :: () => tag ~ SynAttrTag
+  => stsyn -> RankNumber -> SimAttAttr tag syn inh stsyn stinh
+simStSynAttr a i = taggedSyn $ taggedStkBox (a, i)
+
+simInhAttr :: () => tag ~ InhAttrTag
+  => inh -> SimAttAttr tag syn inh stsyn stinh
+simInhAttr a = taggedInh $ taggedOutBox a
+
+simStInhAttr :: () => tag ~ InhAttrTag
+  => stinh -> RankNumber -> SimAttAttr tag syn inh stsyn stinh
+simStInhAttr a i = taggedInh $ taggedStkBox (a, i)
+
+pattern SimSynAttr :: () => tag ~ SynAttrTag
+  => syn -> SimAttAttr tag syn inh stsyn stinh
+pattern SimSynAttr   a = TaggedSyn (TaggedOutBox a)
+
+pattern SimStSynAttr :: () => tag ~ SynAttrTag
+  => stsyn -> RankNumber -> SimAttAttr tag syn inh stsyn stinh
+pattern SimStSynAttr s i = TaggedSyn (TaggedStkBox (s, i))
+
+{-# COMPLETE SimSynAttr, SimStSynAttr #-}
+
+pattern SimInhAttr :: () => tag ~ InhAttrTag
+  => inh -> SimAttAttr tag syn inh stsyn stinh
+pattern SimInhAttr   a = TaggedInh (TaggedOutBox a)
+
+pattern SimStInhAttr :: () => tag ~ InhAttrTag
+  => stinh -> RankNumber -> SimAttAttr tag syn inh stsyn stinh
+pattern SimStInhAttr s i = TaggedInh (TaggedStkBox (s, i))
+
+{-# COMPLETE SimInhAttr, SimStInhAttr #-}
+
+
+newtype ComposedSattAttr (tags :: SattAttrTag) (taga :: AttAttrTag) syn1 inh1 syn2 inh2 stsyn2 stinh2
+  = ComposedSattAttr
+  { unComposedSattAttr :: SattAttrEither tags
+    (ComposedAttAttr taga syn1 inh1 syn2 inh2)
+    (ComposedAttAttr taga syn1 inh1 stsyn2 stinh2)
+  }
+
+pattern ComposedSattOutAttr :: () => (tags ~ OutAttrTag)
+  => ComposedAttAttr taga syn1 inh1 syn2 inh2
+  -> ComposedSattAttr tags taga syn1 inh1 syn2 inh2 stsyn2 stinh2
+pattern ComposedSattOutAttr x = ComposedSattAttr (TaggedOut x)
+
+pattern ComposedSattStkAttr :: () => (tags ~ StkAttrTag)
+  => ComposedAttAttr taga syn1 inh1 stsyn2 stinh2
+  -> ComposedSattAttr tags taga syn1 inh1 syn2 inh2 stsyn2 stinh2
+pattern ComposedSattStkAttr x = ComposedSattAttr (TaggedStk x)
+
 
 composedSattOutAttr
   :: ATTC.ComposedAttAttr taga syn1 inh1 syn2 inh2
-  -> ComposedSattAttrBase OutAttrTag taga syn1 inh1 syn2 inh2 stsyn2 stinh2
-composedSattOutAttr = ComposedSattAttrBase . taggedOut
+  -> ComposedSattAttr OutAttrTag taga syn1 inh1 syn2 inh2 stsyn2 stinh2
+composedSattOutAttr = ComposedSattAttr . taggedOut
 
 composedSattStkAttr
   :: ATTC.ComposedAttAttr taga syn1 inh1 stsyn2 stinh2
-  -> ComposedSattAttrBase StkAttrTag taga syn1 inh1 syn2 inh2 stsyn2 stinh2
-composedSattStkAttr = ComposedSattAttrBase . taggedStk
+  -> ComposedSattAttr StkAttrTag taga syn1 inh1 syn2 inh2 stsyn2 stinh2
+composedSattStkAttr = ComposedSattAttr . taggedStk
+
+
+deriving instance (Eq syn1, Eq inh1, Eq syn2, Eq inh2, Eq stsyn2, Eq stinh2)
+  => Eq (ComposedSattAttr tags taga syn1 inh1 syn2 inh2 stsyn2 stinh2)
+deriving instance (Ord syn1, Ord inh1, Ord syn2, Ord inh2, Ord stsyn2, Ord stinh2)
+  => Ord (ComposedSattAttr tags taga syn1 inh1 syn2 inh2 stsyn2 stinh2)
 
 instance (Show syn1, Show inh1, Show syn2, Show inh2, Show stsyn2, Show stinh2)
-  => Show (ComposedSattAttrBase tags taga syn1 inh1 syn2 inh2 stsyn2 stinh2) where
-    show (ComposedSattAttrBase x) = case x of
-      TaggedOut ox -> show ox
-      TaggedStk sx -> show sx
+  => Show (ComposedSattAttr tags taga syn1 inh1 syn2 inh2 stsyn2 stinh2) where
+    show (ComposedSattAttr x) = case x of
+      TaggedOut a -> show a
+      TaggedStk a -> show a
 
+type ComposedIndexedSattAttr tags taga syn1 inh1 syn2 inh2 stsyn2 stinh2
+   = ComposedSattAttr tags taga syn1 inh1
+     (AttrIndexedAttr OutAttrTag SynAttrTag syn2 inh2 stsyn2 stinh2)
+     (AttrIndexedAttr OutAttrTag InhAttrTag syn2 inh2 stsyn2 stinh2)
+     (AttrIndexedAttr StkAttrTag SynAttrTag syn2 inh2 stsyn2 stinh2)
+     (AttrIndexedAttr StkAttrTag InhAttrTag syn2 inh2 stsyn2 stinh2)
 
-type ComposedSatt syn1 inh1 syn2 inh2 stsyn2 stinh2 ta tb = StackAttrTreeTrans
-  (ComposedSattSynAttr   syn1 inh1 syn2 inh2 stsyn2 stinh2)
-  (ComposedSattInhAttr   syn1 inh1 syn2 inh2 stsyn2 stinh2)
-  (ComposedSattStSynAttr syn1 inh1 syn2 inh2 stsyn2 stinh2)
-  (ComposedSattStInhAttr syn1 inh1 syn2 inh2 stsyn2 stinh2)
-  ta tb
+type ComposedSatt syn1 inh1 syn2 inh2 stsyn2 stinh2 ti2 to1
+  = StackAttrTreeTrans
+    (ComposedIndexedSattAttr OutAttrTag SynAttrTag syn1 inh1 syn2 inh2 stsyn2 stinh2)
+    (ComposedIndexedSattAttr OutAttrTag InhAttrTag syn1 inh1 syn2 inh2 stsyn2 stinh2)
+    (ComposedIndexedSattAttr StkAttrTag SynAttrTag syn1 inh1 syn2 inh2 stsyn2 stinh2)
+    (ComposedIndexedSattAttr StkAttrTag InhAttrTag syn1 inh1 syn2 inh2 stsyn2 stinh2)
+    ti2 to1
 
-{-
 composeSatts :: forall syn1 inh1 ti1 to1 syn2 inh2 stsyn2 stinh2 ti2 to2.
   ( RankedTree ti1, RankedTree to1
   , to2 ~ ti1
@@ -140,7 +194,7 @@ composeSatts :: forall syn1 inh1 ti1 to1 syn2 inh2 stsyn2 stinh2 ti2 to2.
   -> ComposedSatt syn1 inh1 syn2 inh2 stsyn2 stinh2 ti2 to1
 composeSatts trans1 trans2 = StackAttrTreeTrans
     { initialAttr   = composedSattOutAttr
-    $ initialAttrT1 `ATTC.SynSynAttr` ATTC.indexedValue [] (taggedSyn initialAttrT2)
+    $ initialAttrT1 `SynSynAttr` indexedValue [] (taggedOut $ taggedSyn initialAttrT2)
     , reductionRule = rule
     }
   where
@@ -150,126 +204,54 @@ composeSatts trans1 trans2 = StackAttrTreeTrans
     sfT2 = standardForm trans2
     simsfT2 = simurateSatt sfT2
 
-    composedT1AndSimsfT2 :: ATT.AttrTreeTrans
-      (ATTC.ComposedAttSynAttr syn1 inh1 (SimuratedAttAttr syn2 stsyn2) (SimuratedAttAttr inh2 stinh2))
-      (ATTC.ComposedAttInhAttr syn1 inh1 (SimuratedAttAttr syn2 stsyn2) (SimuratedAttAttr inh2 stinh2))
-      ti2 to1
     composedT1AndSimsfT2 = trans1 `ATTC.composeAtts` simsfT2
+    ruleBase = ATT.reductionRule composedT1AndSimsfT2
 
     retailN t 0 = t
-    retailN t n = retailN (StackTailSide t) $ n - 1
+    retailN t l = retailN (StackTailSide t) $ l - 1
+
+    runReductionWithRep a = runReductionWithRep' . ruleBase a
+
+    runReductionWithRep'
+      :: ATT.RightHandSide
+        (ATTC.ComposedIndexedAttAttr SynAttrTag syn1 inh1
+          (SimuratedAttAttr syn2 stsyn2)
+          (SimuratedAttAttr inh2 stinh2))
+        (ATTC.ComposedIndexedAttAttr InhAttrTag syn1 inh1
+          (SimuratedAttAttr syn2 stsyn2)
+          (SimuratedAttAttr inh2 stinh2))
+        to1 (LabelType to1)
+      -> OutRightHandSide
+        (ComposedIndexedSattAttr OutAttrTag SynAttrTag syn1 inh1 syn2 inh2 stsyn2 stinh2)
+        (ComposedIndexedSattAttr OutAttrTag InhAttrTag syn1 inh1 syn2 inh2 stsyn2 stinh2)
+        (ComposedIndexedSattAttr StkAttrTag SynAttrTag syn1 inh1 syn2 inh2 stsyn2 stinh2)
+        (ComposedIndexedSattAttr StkAttrTag InhAttrTag syn1 inh1 syn2 inh2 stsyn2 stinh2)
+        to1 (LabelType to1)
+    runReductionWithRep' (ATT.AttrSide abox)  = case abox of
+      TaggedSynBox (a, j) -> case a of
+        a1 `SynSynAttr` IndexedValue q (SimSynAttr   a2)   -> synAttrSide (composedSattOutAttr $ a1 `SynSynAttr` indexedValue q (taggedOut $ taggedSyn a2)) j
+        a1 `SynSynAttr` IndexedValue q (SimStSynAttr s2 i) -> StackHeadSide $ retailN (stsynAttrSide (composedSattStkAttr $ a1 `SynSynAttr` indexedValue q (taggedStk $ taggedSyn s2)) j) i
+        b1 `InhInhAttr` IndexedValue q (SimInhAttr   b2)   -> synAttrSide (composedSattOutAttr $ b1 `InhInhAttr` indexedValue q (taggedOut $ taggedInh b2)) j
+        b1 `InhInhAttr` IndexedValue q (SimStInhAttr d2 i) -> StackHeadSide $ retailN (stsynAttrSide (composedSattStkAttr $ b1 `InhInhAttr` indexedValue q (taggedStk $ taggedInh d2)) j) i
+      TaggedInhBox b      -> case b of
+        a1 `SynInhAttr` IndexedValue q (SimInhAttr   b2)   -> inhAttrSide (composedSattOutAttr $ a1 `SynInhAttr` indexedValue q (taggedOut $ taggedInh b2))
+        a1 `SynInhAttr` IndexedValue q (SimStInhAttr d2 i) -> StackHeadSide $ retailN (stinhAttrSide (composedSattStkAttr $ a1 `SynInhAttr` indexedValue q (taggedStk $ taggedInh d2))) i
+        b1 `InhSynAttr` IndexedValue q (SimSynAttr   a2)   -> inhAttrSide (composedSattOutAttr $ b1 `InhSynAttr` indexedValue q (taggedOut $ taggedSyn a2))
+        b1 `InhSynAttr` IndexedValue q (SimStSynAttr d2 i) -> StackHeadSide $ retailN (stinhAttrSide (composedSattStkAttr $ b1 `InhSynAttr` indexedValue q (taggedStk $ taggedSyn d2))) i
+    runReductionWithRep' (ATT.LabelSide l cs) = LabelSide l $ runReductionWithRep' <$> cs
 
     rule :: SattRuleType tag
-      (ComposedSattSynAttr   syn1 inh1 syn2 inh2 stsyn2 stinh2)
-      (ComposedSattInhAttr   syn1 inh1 syn2 inh2 stsyn2 stinh2)
-      (ComposedSattStSynAttr syn1 inh1 syn2 inh2 stsyn2 stinh2)
-      (ComposedSattStInhAttr syn1 inh1 syn2 inh2 stsyn2 stinh2)
-      ta tb
-    rule = undefined
-    runReductionWithRep (ATT.LabelSide l cs) = LabelSide l $ runReductionWithRep <$> cs
-    runReductionWithRep (ATT.SynAttrSide (a1 `ATTC.SynSynAttr` ATTC.IndexedValue (q, ATTC.SynAttrIdentity a2)) j) = case a2 of
-      SimSynAttr   a2'   -> OutputSynAttrSide (a1 `SynSynAttr` ATTC.indexedValue q a2') j
-      SimStSynAttr a2' i -> StackHeadSide $ retailN (StackSynAttrSide (a1 `SynStSynAttr` ATTC.indexedValue q a2') j) i
-    runReductionWithRep (ATT.SynAttrSide (b1 `ATTC.InhInhAttr` ATTC.IndexedValue (q, ATTC.InhAttrIdentity b2)) j) = case b2 of
-      SimInhAttr   b2'   -> OutputSynAttrSide (b1 `InhInhAttr` ATTC.indexedValue q b2') j
-      SimStInhAttr b2' i -> StackHeadSide $ retailN (StackSynAttrSide (b1 `InhStInhAttr` ATTC.indexedValue q b2') j) i
-    runReductionWithRep (ATT.InhAttrSide (a1 `ATTC.SynInhAttr` ATTC.IndexedValue (q, ATTC.InhAttrIdentity b2)))   = case b2 of
-      SimInhAttr   b2'   -> OutputInhAttrSide (a1 `SynInhAttr` ATTC.indexedValue q b2')
-      SimStInhAttr b2' i -> StackHeadSide $ retailN (StackInhAttrSide (a1 `SynStInhAttr` ATTC.indexedValue q b2')) i
-    runReductionWithRep (ATT.InhAttrSide (b1 `ATTC.InhSynAttr` ATTC.IndexedValue (q, ATTC.SynAttrIdentity a2)))   = case a2 of
-      SimSynAttr   a2'   -> OutputInhAttrSide (b1 `InhSynAttr` ATTC.indexedValue q a2')
-      SimStSynAttr a2' i -> StackHeadSide $ retailN (StackInhAttrSide (b1 `InhStSynAttr` ATTC.indexedValue q a2')) i
-
-    synRuleBased = ATT.synthesizedRule composedT1AndSimsfT2
-    inhRuleBased = ATT.inheritedRule composedT1AndSimsfT2
-
-    synRule (a1 `SynSynAttr` ATTC.IndexedValue (q, a2)) = runReductionWithRep
-      . synRuleBased (a1 `ATTC.SynSynAttr` ATTC.indexedValue q (ATTC.SynAttrIdentity $ SimSynAttr a2))
-    synRule (b1 `InhInhAttr` ATTC.IndexedValue (q, b2)) = runReductionWithRep
-      . synRuleBased (b1 `ATTC.InhInhAttr` ATTC.indexedValue q (ATTC.InhAttrIdentity $ SimInhAttr b2))
-
-    inhRule (a1 `SynInhAttr` ATTC.IndexedValue (q, b2)) j = runReductionWithRep
-      . inhRuleBased (a1 `ATTC.SynInhAttr` ATTC.indexedValue q (ATTC.InhAttrIdentity $ SimInhAttr b2)) j
-    inhRule (b1 `InhSynAttr` ATTC.IndexedValue (q, a2)) j = runReductionWithRep
-      . inhRuleBased (b1 `ATTC.InhSynAttr` ATTC.indexedValue q (ATTC.SynAttrIdentity $ SimSynAttr a2)) j
-
-
-    traverseReductionForStack f fc fd = traverseReductionForStack' f fc fd 0 0
-
-    traverseReductionForStack'
-      :: (RankNumber -> TreeOutputRightHandSide syn3 inh3 stsyn3 stinh3 tb)
-      -> (stsyn2 -> RankNumber -> RankNumber -> stsyn3)
-      -> (stinh2 -> RankNumber -> RankNumber -> stinh3)
-      -> RankNumber -> RankNumber
-      -> TreeStackRightHandSide syn2 inh2 stsyn2 stinh2 ta
-      -> TreeStackRightHandSide syn3 inh3 stsyn3 stinh3 tb
-    traverseReductionForStack' f fc fd k l (StackConsSide _ t)
-      = StackConsSide (f k) $ traverseReductionForStack' f fc fd (k + 1) l t
-    traverseReductionForStack' _ _  _  _ _ StackEmptySide
-      = StackEmptySide
-    traverseReductionForStack' f fc fd k l (StackTailSide t)
-      = StackTailSide $ traverseReductionForStack' f fc fd k (l + 1) t
-    traverseReductionForStack' _ fc _  k l (StackSynAttrSide c j)
-      = StackSynAttrSide (fc c k l) j
-    traverseReductionForStack' _ _ fd  k l (StackInhAttrSide d)
-      = StackInhAttrSide (fd d k l)
-
-    buildStackRHS = buildStackRHS' 0
-
-    buildStackRHS' _ 0 0 _ a = a
-    buildStackRHS' n 0 l f a = StackTailSide $ buildStackRHS' n 0 (l - 1) f a
-    buildStackRHS' n k l f a = StackConsSide (f n) $ buildStackRHS' (n + 1) (k - 1) l f a
-
-    stsynRuleT2 = stackSynthesizedRule sfT2
-    stinhRuleT2 = stackInheritedRule sfT2
-
-    stsynRule :: StackSynthesizedRuleType
-      (ComposedSattSynAttr   syn1 inh1 syn2 inh2 stsyn2 stinh2)
-      (ComposedSattInhAttr   syn1 inh1 syn2 inh2 stsyn2 stinh2)
-      (ComposedSattStSynAttr syn1 inh1 syn2 inh2 stsyn2 stinh2)
-      (ComposedSattStInhAttr syn1 inh1 syn2 inh2 stsyn2 stinh2)
+      (ComposedIndexedSattAttr OutAttrTag SynAttrTag syn1 inh1 syn2 inh2 stsyn2 stinh2)
+      (ComposedIndexedSattAttr OutAttrTag InhAttrTag syn1 inh1 syn2 inh2 stsyn2 stinh2)
+      (ComposedIndexedSattAttr StkAttrTag SynAttrTag syn1 inh1 syn2 inh2 stsyn2 stinh2)
+      (ComposedIndexedSattAttr StkAttrTag InhAttrTag syn1 inh1 syn2 inh2 stsyn2 stinh2)
       ti2 to1
-    stsynRule (a1 `SynStSynAttr` ATTC.IndexedValue (q, c2)) lb = traverseReductionForStack
-      (\i -> runReductionWithRep
-        . synRuleBased (a1 `ATTC.SynSynAttr` ATTC.indexedValue q (ATTC.SynAttrIdentity $ SimStSynAttr c2 i)) $ lb)
-      (\c k l -> a1 `SynStSynAttr` ATTC.indexedValue
-        (ATTC.AttrIndexedSynData (ATTC.SynAttrIdentity $ SimStSynAttr c2 k) [l]:q) c)
-      (\d k l -> a1 `SynStInhAttr` ATTC.indexedValue
-        (ATTC.AttrIndexedSynData (ATTC.SynAttrIdentity $ SimStSynAttr c2 k) [l]:q) d)
-      $ stsynRuleT2 c2 lb
-    stsynRule (b1 `InhStInhAttr` ATTC.IndexedValue (x:q, c2)) lb = case x of
-      ATTC.AttrIndexedSynData (ATTC.SynAttrIdentity (SimStSynAttr d2 k)) [l] -> buildStackRHS k l
-        (\i -> runReductionWithRep
-          . synRuleBased (b1 `ATTC.InhInhAttr` ATTC.indexedValue (ATTC.AttrIndexedSynData
-            (ATTC.SynAttrIdentity (SimStSynAttr d2 (i - l + k)) ) [] : q)
-            (ATTC.InhAttrIdentity $ SimStInhAttr c2 i)) $ lb)
-        (StackInhAttrSide (b1 `InhStSynAttr` ATTC.indexedValue q d2))
-      ATTC.AttrIndexedInhData (ATTC.InhAttrIdentity (SimStInhAttr d2 k)) j [l] -> buildStackRHS k l
-        (\i -> runReductionWithRep
-          . synRuleBased (b1 `ATTC.InhInhAttr` ATTC.indexedValue
-            (ATTC.AttrIndexedInhData (ATTC.InhAttrIdentity (SimStInhAttr d2 (i - l + k))) j [] : q)
-            (ATTC.InhAttrIdentity $ SimStInhAttr c2 i)) $ lb)
-        (StackSynAttrSide (b1 `InhStInhAttr` ATTC.indexedValue q d2) j)
-      _ -> error "stsynrule not operation"
-    stsynRule _ _ = error "stsynrule not operation"
-
-    stinhRule (a1 `SynStInhAttr` ATTC.IndexedValue (q, c2)) j lb = traverseReductionForStack
-      (\i -> runReductionWithRep
-        . inhRuleBased (a1 `ATTC.SynInhAttr` ATTC.indexedValue q (ATTC.InhAttrIdentity $ SimStInhAttr c2 i)) j $ lb)
-      (\c k l -> a1 `SynStSynAttr` ATTC.indexedValue
-        (ATTC.AttrIndexedInhData (ATTC.InhAttrIdentity $ SimStInhAttr c2 k) j [l]:q) c)
-      (\d k l -> a1 `SynStInhAttr` ATTC.indexedValue
-        (ATTC.AttrIndexedInhData (ATTC.InhAttrIdentity $ SimStInhAttr c2 k) j [l]:q) d)
-      $ stinhRuleT2 c2 j lb
-    stinhRule (b1 `InhStSynAttr` ATTC.IndexedValue (x:q, c2)) j' lb = case x of
-      ATTC.AttrIndexedSynData (ATTC.SynAttrIdentity (SimStSynAttr d2 k)) [l] -> buildStackRHS k l
-        (\i -> runReductionWithRep
-          . inhRuleBased (b1 `ATTC.InhSynAttr` ATTC.indexedValue q (ATTC.SynAttrIdentity $ SimStSynAttr c2 i)) j' $ lb)
-        (StackInhAttrSide (b1 `InhStSynAttr` ATTC.indexedValue q d2))
-      ATTC.AttrIndexedInhData (ATTC.InhAttrIdentity (SimStInhAttr d2 k)) j [l] -> buildStackRHS k l
-        (\i -> runReductionWithRep
-          . inhRuleBased (b1 `ATTC.InhSynAttr` ATTC.indexedValue q (ATTC.SynAttrIdentity $ SimStSynAttr c2 i)) j' $ lb)
-        (StackSynAttrSide (b1 `InhStInhAttr` ATTC.indexedValue q d2) j)
-      _ -> error "stinhrule not operation"
-    stinhRule _ _ _ = error "stinhrule not operation"
--}
+    rule (SynAttr (ComposedSattOutAttr (a1 `SynSynAttr` IndexedValue q (TaggedOut (TaggedSyn a2))))) = runReductionWithRep
+      (taggedSynBox $ a1 `SynSynAttr` indexedValue q (simSynAttr a2))
+    rule (SynAttr (ComposedSattOutAttr (b1 `InhInhAttr` IndexedValue q (TaggedOut (TaggedInh b2))))) = runReductionWithRep
+      (taggedSynBox $ b1 `InhInhAttr` indexedValue q (simInhAttr b2))
+    rule (InhAttr (ComposedSattOutAttr (a1 `SynInhAttr` IndexedValue q (TaggedOut (TaggedInh b2)))) i) = runReductionWithRep
+      (taggedInhBox (a1 `SynInhAttr` indexedValue q (simInhAttr b2), i))
+    rule (InhAttr (ComposedSattOutAttr (b1 `InhSynAttr` IndexedValue q (TaggedOut (TaggedSyn a2)))) i) = runReductionWithRep
+      (taggedInhBox (b1 `InhSynAttr` indexedValue q (simSynAttr a2), i))
+    rule (StSynAttr (ComposedSattStkAttr (a1 `SynSynAttr` IndexedValue q (TaggedStk (TaggedSyn a2))))) =

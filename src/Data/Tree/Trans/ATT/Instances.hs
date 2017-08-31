@@ -4,7 +4,7 @@ module Data.Tree.Trans.ATT.Instances where
 
 import           ClassyPrelude
 
-import Data.Pattern.Error
+import           Data.Pattern.Error
 import           Data.Universe.Class
 import           Data.Universe.Instances
 import qualified Data.Vector                    as V

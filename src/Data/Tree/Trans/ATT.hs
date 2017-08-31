@@ -312,7 +312,7 @@ buildAttReduction f s is AttrTreeTrans{..} t = goTop s
       <+> nextStateZ''
 
     filterStateZipper stateZ = case toTree stateZ of
-      RankedTreeState _ _                                  -> empty
+      RankedTreeState{}                                    -> empty
       AttrState _ (ReductionAttrState (TaggedInhBox _) []) -> empty
       _                                                    -> pure stateZ
 

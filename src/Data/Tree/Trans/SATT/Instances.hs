@@ -94,9 +94,9 @@ instance Show StInhAttrUnit where
 --
 postfixToInfixTransducer :: StackAttrTreeTrans SynAttrUnit EmptyType EmptyType StInhAttrUnit PostfixOpTree InfixOpTree
 postfixToInfixTransducer = StackAttrTreeTrans
-  { initialAttr   = minBound
-  , reductionRule = rule
-  }
+    { initialAttr   = minBound
+    , reductionRule = rule
+    }
   where
     a0 = synAttrSide SynAttrUnit
     s1 = stinhAttrSide StInhAttrUnit
