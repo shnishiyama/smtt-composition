@@ -6,7 +6,7 @@ import           ClassyPrelude
 
 import           Data.Pattern.Error
 import           Data.Universe.Class
-import           Data.Universe.Instances ()
+import           Data.Universe.Instances        ()
 import qualified Data.Vector                    as V
 import           Data.Void
 

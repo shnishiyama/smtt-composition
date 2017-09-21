@@ -71,11 +71,11 @@ module Data.Tree.Trans.ATT
 import           ClassyPrelude
 
 import           Control.Arrow               hiding (first, second)
-import           Data.Profunctor.Unsafe
 import           Data.Coerce
+import qualified Data.HashMap.Strict         as HM
+import           Data.Profunctor.Unsafe
 import           Data.TypeLevel.TaggedEither
 import           Data.Universe.Class
-import qualified Data.HashMap.Strict as HM
 
 import           Data.Tree.RankedTree
 import           Data.Tree.RankedTree.Zipper
@@ -179,7 +179,7 @@ class (RankedTree ta, RankedTree tb, TreeTransducer t ta tb) => AttrTreeTrans t 
 type FinAttRuleType syn inh ta tb = HashMap (InputAttr syn inh, InputLabelType ta) (TreeRightHandSide syn inh tb)
 
 data FiniteAttrTreeTrans syn inh ta tb = FinAttrTreeTrans
-  { finInitialAttr :: syn
+  { finInitialAttr   :: syn
   , finReductionRule :: FinAttRuleType syn inh ta tb
   }
 

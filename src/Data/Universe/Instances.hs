@@ -4,8 +4,8 @@ module Data.Universe.Instances where
 
 import           ClassyPrelude
 
-import           Data.Void
 import           Data.Universe.Class
+import           Data.Void
 
 instance Universe Void where
   universe = []

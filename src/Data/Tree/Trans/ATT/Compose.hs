@@ -1,6 +1,6 @@
-{-# LANGUAGE OverloadedLists #-}
-{-# LANGUAGE TypeInType      #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE OverloadedLists   #-}
+{-# LANGUAGE TypeInType        #-}
 
 module Data.Tree.Trans.ATT.Compose
   (
@@ -16,11 +16,11 @@ module Data.Tree.Trans.ATT.Compose
 
 import           ClassyPrelude
 
+import qualified Data.HashMap.Strict         as HM
 import           Data.Universe.Class
 import qualified Data.Vector                 as V
 import           GHC.Generics
 import           Unsafe.Coerce
-import qualified Data.HashMap.Strict as HM
 
 import           Data.Tree.RankedTree
 import           Data.Tree.RankedTree.Zipper

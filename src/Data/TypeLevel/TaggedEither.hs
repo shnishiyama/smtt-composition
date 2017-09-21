@@ -4,9 +4,9 @@ module Data.TypeLevel.TaggedEither where
 
 import           ClassyPrelude
 
+import           Data.Universe.Class
 import           GHC.Generics
 import           Unsafe.Coerce
-import           Data.Universe.Class
 
 data EitherTag
   = LeftTag

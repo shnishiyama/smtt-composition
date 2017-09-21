@@ -36,11 +36,11 @@ module Data.Tree.RankedTree
 import           ClassyPrelude
 
 import           Data.Coerce
+import           Data.Key
 import           Data.Profunctor.Unsafe
 import           Data.Proxy
-import qualified Data.Vector            as V
 import           Data.Universe.Class
-import           Data.Key
+import qualified Data.Vector            as V
 
 type RankNumber = Int
 type NodeVec    = V.Vector

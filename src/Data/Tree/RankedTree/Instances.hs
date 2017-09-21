@@ -4,8 +4,8 @@ module Data.Tree.RankedTree.Instances where
 
 import           ClassyPrelude
 
-import           Data.Universe.Class
 import           Data.Tree.RankedTree
+import           Data.Universe.Class
 
 data TreeABC
   = TreeA TreeABC TreeABC
