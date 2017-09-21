@@ -27,7 +27,8 @@ library:
   ghc-options: &base-ghc-options
   - -Wall
   - -fprint-explicit-foralls
-  - -fmax-pmcheck-iterations=20000000
+  - -fmax-pmcheck-iterations=5000000
+  - -dcore-lint
   source-dirs: src
   default-extensions:
   - NoImplicitPrelude
@@ -58,6 +59,7 @@ library:
   - RankNTypes
   - ConstraintKinds
   exposed-modules:
+  - Control.Universe
   - Data.Universe.Instances
   - Data.TypeLevel.TaggedEither
   - Data.Pattern.Error
@@ -68,9 +70,9 @@ library:
   - Data.Tree.Trans.ATT
   - Data.Tree.Trans.ATT.Instances
   - Data.Tree.Trans.ATT.Compose
-  - Data.Tree.Trans.SATT
-  - Data.Tree.Trans.SATT.Instances
-  - Data.Tree.Trans.SATT.Compose
+  #- Data.Tree.Trans.SATT
+  #- Data.Tree.Trans.SATT.Instances
+  #- Data.Tree.Trans.SATT.Compose
   #- Data.Tree.Trans.Demo
   other-modules: []
   dependencies:
@@ -82,6 +84,8 @@ library:
   - profunctors
   - constraints
   - universe-base
+  - keys
+  - unordered-containers
 
 executables:
   satt-composit:
@@ -100,6 +104,7 @@ executables:
     - base
     - classy-prelude
     - satt-composition
+    - deepseq
 
 tests:
   lint:
@@ -158,3 +163,6 @@ benchmarks:
     - base
     - satt-composition
     - criterion
+    - deepseq
+    default-extensions:
+    - BangPatterns

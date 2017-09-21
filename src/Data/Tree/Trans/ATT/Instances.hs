@@ -6,8 +6,9 @@ import           ClassyPrelude
 
 import           Data.Pattern.Error
 import           Data.Universe.Class
-import           Data.Universe.Instances
+import           Data.Universe.Instances ()
 import qualified Data.Vector                    as V
+import           Data.Void
 
 import           Data.Tree.RankedTree
 import           Data.Tree.RankedTree.Instances
@@ -15,11 +16,12 @@ import           Data.Tree.Trans.ATT
 
 
 data SynAttrUnit = SynAttrUnit
-  deriving (Eq, Ord, Enum, Bounded)
+  deriving (Eq, Ord, Enum, Bounded, Generic)
 
 pattern A0 :: InputAttr SynAttrUnit inh
 pattern A0 = SynAttr SynAttrUnit
 
+instance Hashable SynAttrUnit
 instance Universe SynAttrUnit
 instance Finite SynAttrUnit
 
@@ -28,11 +30,12 @@ instance Show SynAttrUnit where
 
 
 data InhAttrUnit = InhAttrUnit
-  deriving (Eq, Ord, Enum, Bounded)
+  deriving (Eq, Ord, Enum, Bounded, Generic)
 
 pattern A1 :: RankNumber -> InputAttr syn InhAttrUnit
 pattern A1 i = InhAttr InhAttrUnit i
 
+instance Hashable InhAttrUnit
 instance Universe InhAttrUnit
 instance Finite InhAttrUnit
 
@@ -42,18 +45,18 @@ instance Show InhAttrUnit where
 
 {-# COMPLETE A0, A1 #-}
 
--- | the identity attributed tree transducer
+-- | The identity attributed tree transducer
 --
 -- Examples:
 --
 -- >>> import Data.Tree.Trans.Class
 -- >>> treeTrans identityTransducer $ InfixMulti InfixTwo (InfixPlus InfixOne InfixTwo)
--- "multi"("two","plus"("one","two"))
+-- multi(two, plus(one, two))
 --
-identityTransducer :: forall t. (RankedTree t) => AttrTreeTrans SynAttrUnit EmptyType t t
-identityTransducer = AttrTreeTrans
-    { initialAttr   = minBound
-    , reductionRule = rule
+identityTransducer :: forall t. (FiniteInputRankedTree t) => FiniteAttrTreeTrans SynAttrUnit Void t t
+identityTransducer = FinAttrTreeTrans
+    { finInitialAttr   = minBound
+    , finReductionRule = fromFunctionBase rule
     }
   where
     a0 = SynAttrUnit
@@ -71,12 +74,12 @@ identityTransducer = AttrTreeTrans
 --
 -- >>> import Data.Tree.Trans.Class
 -- >>> treeTrans orderExchangeTransducer $ InfixMulti InfixTwo (InfixPlus InfixOne InfixTwo)
--- "multi"("plus"("two","one"),"two")
+-- multi(plus(two, one), two)
 --
-orderExchangeTransducer :: forall t. (RankedTree t) => AttrTreeTrans SynAttrUnit EmptyType t t
-orderExchangeTransducer = AttrTreeTrans
-    { initialAttr   = minBound
-    , reductionRule = rule
+orderExchangeTransducer :: forall t. (FiniteInputRankedTree t) => FiniteAttrTreeTrans SynAttrUnit Void t t
+orderExchangeTransducer = FinAttrTreeTrans
+    { finInitialAttr   = minBound
+    , finReductionRule = fromFunctionBase rule
     }
   where
     a0 = synAttrSide SynAttrUnit
@@ -95,36 +98,36 @@ orderExchangeTransducer = AttrTreeTrans
 --
 -- >>> import Data.Tree.Trans.Class
 -- >>> treeTrans infixToPostfixTransducer $ InfixMulti InfixTwo (InfixPlus InfixOne InfixTwo)
--- "two"("one"("two"("plus"("multi"("$")))))
+-- two(one(two(plus(multi($)))))
 --
-infixToPostfixTransducer :: AttrTreeTrans SynAttrUnit InhAttrUnit InfixOpTree PostfixOpTree
-infixToPostfixTransducer = AttrTreeTrans
-    { initialAttr   = minBound
-    , reductionRule = rule
+infixToPostfixTransducer :: FiniteAttrTreeTrans SynAttrUnit InhAttrUnit InfixOpTree PostfixOpTree
+infixToPostfixTransducer = FinAttrTreeTrans
+    { finInitialAttr   = minBound
+    , finReductionRule = fromFunctionBase rule
     }
   where
     a0 = synAttrSide SynAttrUnit
     a1 = inhAttrSide InhAttrUnit
 
-    one   a = LabelSide "one"   [a]
-    two   a = LabelSide "two"   [a]
-    plus  a = LabelSide "plus"  [a]
-    multi a = LabelSide "multi" [a]
-    end     = LabelSide "$"     []
+    one   a = LabelSide PostfixOneLabel   [a]
+    two   a = LabelSide PostfixTwoLabel   [a]
+    plus  a = LabelSide PostfixPlusLabel  [a]
+    multi a = LabelSide PostfixMultiLabel [a]
+    end     = LabelSide PostfixEndLabel   []
 
     rule A0     InitialLabel              = a0 0
     rule (A1 0) InitialLabel              = end
 
-    rule A0     (RankedTreeLabel "one")   = one a1
-    rule A0     (RankedTreeLabel "two")   = two a1
+    rule A0     (RankedTreeLabel InfixOneLabel)   = one a1
+    rule A0     (RankedTreeLabel InfixTwoLabel)   = two a1
 
-    rule A0     (RankedTreeLabel "plus")  = a0 0
-    rule (A1 0) (RankedTreeLabel "plus")  = a0 1
-    rule (A1 1) (RankedTreeLabel "plus")  = plus a1
+    rule A0     (RankedTreeLabel InfixPlusLabel)  = a0 0
+    rule (A1 0) (RankedTreeLabel InfixPlusLabel)  = a0 1
+    rule (A1 1) (RankedTreeLabel InfixPlusLabel)  = plus a1
 
-    rule A0     (RankedTreeLabel "multi") = a0 0
-    rule (A1 0) (RankedTreeLabel "multi") = a0 1
-    rule (A1 1) (RankedTreeLabel "multi") = multi a1
+    rule A0     (RankedTreeLabel InfixMultiLabel) = a0 0
+    rule (A1 0) (RankedTreeLabel InfixMultiLabel) = a0 1
+    rule (A1 1) (RankedTreeLabel InfixMultiLabel) = multi a1
 
     rule A0     l = error $ "unsupported label: " <> show l
     rule (A1 i) l = error $ "unsupported label: (" <> show i <> "," <> show l <> ")"

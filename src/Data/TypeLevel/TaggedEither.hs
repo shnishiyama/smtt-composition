@@ -1,11 +1,19 @@
+{-# LANGUAGE FlexibleInstances #-}
+
 module Data.TypeLevel.TaggedEither where
 
 import           ClassyPrelude
 
+import           GHC.Generics
+import           Unsafe.Coerce
+import           Data.Universe.Class
+
 data EitherTag
   = LeftTag
   | RightTag
-  deriving (Eq, Ord, Show, Enum, Bounded)
+  deriving (Eq, Ord, Show, Enum, Bounded, Generic)
+
+instance Hashable EitherTag
 
 type LeftTaggedEither  = TaggedEither 'LeftTag
 type RightTaggedEither = TaggedEither 'RightTag
@@ -17,6 +25,38 @@ data TaggedEither (tag :: EitherTag) a b where
 deriving instance (Eq a, Eq b) => Eq (TaggedEither tag a b)
 deriving instance (Ord a, Ord b) => Ord (TaggedEither tag a b)
 deriving instance (Show a, Show b) => Show (TaggedEither tag a b)
+
+instance Generic (TaggedEither tag a b) where
+  type Rep (TaggedEither tag a b) = D1
+    ('MetaData "TaggedEither" "Data.TypeLevel.TaggedEither" "satt-composition" 'False)
+    (   C1 ('MetaCons "TaggedLeft" 'PrefixI 'False)
+          (S1 ('MetaSel 'Nothing
+            'NoSourceUnpackedness
+            'NoSourceStrictness
+            'DecidedStrict) (Rec0 a))
+    :+: C1 ('MetaCons "TaggedRight" 'PrefixI 'False)
+          (S1 ('MetaSel 'Nothing
+            'NoSourceUnpackedness
+            'NoSourceStrictness
+            'DecidedStrict) (Rec0 b))
+    )
+
+  from (TaggedLeft  x) = M1 (L1 (M1 (M1 (K1 x))))
+  from (TaggedRight x) = M1 (R1 (M1 (M1 (K1 x))))
+
+  to (M1 (L1 (M1 (M1 (K1 x))))) = unsafeCoerce $ TaggedLeft  x
+  to (M1 (R1 (M1 (M1 (K1 x))))) = unsafeCoerce $ TaggedRight x
+
+instance (Hashable a, Hashable b) => Hashable (TaggedEither tag a b)
+
+instance Universe a => Universe (TaggedEither 'LeftTag a b) where
+  universe = [ TaggedLeft x | x <- universe ]
+
+instance Universe b => Universe (TaggedEither 'RightTag a b) where
+  universe = [ TaggedRight x | x <- universe ]
+
+instance Finite a => Finite (TaggedEither 'LeftTag a b)
+instance Finite b => Finite (TaggedEither 'RightTag a b)
 
 instance Bifunctor (TaggedEither tag) where
   bimap f _ (TaggedLeft  x) = TaggedLeft $ f x
@@ -47,6 +87,16 @@ instance (Ord a, Ord b) => Ord (TaggedEitherBox a b) where
 instance (Show a, Show b) => Show (TaggedEitherBox a b) where
   show (TaggedLeftBox  x) = "TaggedLeftBox "  <> show x
   show (TaggedRightBox x) = "TaggedRightBox " <> show x
+
+instance (Hashable a, Hashable b) => Hashable (TaggedEitherBox a b) where
+  hashWithSalt s (TaggedEitherBox x) = s `hashWithSalt` x
+
+instance (Universe a, Universe b) => Universe (TaggedEitherBox a b) where
+  universe
+    =  (TaggedEitherBox <$> (universe :: [LeftTaggedEither a b]))
+    <> (TaggedEitherBox <$> (universe :: [RightTaggedEither a b]))
+
+instance (Finite a, Finite b) => Finite (TaggedEitherBox a b)
 
 instance Bifunctor TaggedEitherBox where
   bimap f g (TaggedEitherBox x) = TaggedEitherBox $ bimap f g x

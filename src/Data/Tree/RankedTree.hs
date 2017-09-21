@@ -16,6 +16,8 @@ module Data.Tree.RankedTree
   , (:$)
   , RtApply
   , RtConstraint
+  , FinRankedTree
+  , FiniteRankedTree
 
     -- ranked tree wrapper
   , RankedTreeWrapper (..)
@@ -37,12 +39,11 @@ import           Data.Coerce
 import           Data.Profunctor.Unsafe
 import           Data.Proxy
 import qualified Data.Vector            as V
+import           Data.Universe.Class
+import           Data.Key
 
 type RankNumber = Int
 type NodeVec    = V.Vector
-
-(!) :: NodeVec a -> RankNumber -> a
-(!) = (V.!)
 
 type TreeTag = Proxy
 
@@ -58,8 +59,8 @@ treeTag = Proxy
 --
 -- Conditions:
 --
--- prop> treeRank t == length (treeChilds t)
--- prop> mkTree (treeLabel t) (treeChilds t) == t
+-- skip:prop> treeRank t == length (treeChilds t)
+-- skip:prop> mkTree (treeLabel t) (treeChilds t) == t
 --
 -- and, other methods are same as default implementations.
 --
@@ -95,7 +96,7 @@ showTree t = show (treeLabel t) <> childsStr (treeChilds t)
   where
     childsStr ts
       | V.null ts = ""
-      | otherwise = "(" <> intercalate "," (showTree <$> ts)  <> ")"
+      | otherwise = "(" <> intercalate ", " (showTree <$> ts)  <> ")"
 
 lengthTree :: forall t l. RtConstraint t l => t -> Int
 lengthTree = length .# RankedTreeWrapper @t @l
@@ -106,14 +107,19 @@ infixr 0 :$
 type RtApply tz t = tz t :$ LabelType t
 type RtConstraint t l = (RankedTree t, l ~ LabelType t)
 
+type FinRankedTree t l = (RtConstraint t l, Finite l)
+type FiniteRankedTree t = FinRankedTree t (LabelType t)
+
 -- wrapper
 
 newtype RankedTreeWrapper t l = RankedTreeWrapper
   { unwrapRankedTree :: t
-  }
+  } deriving Generic
 
 wrapRankedTree :: RankedTree t => t -> RtApply RankedTreeWrapper t
 wrapRankedTree = coerce
+
+instance Hashable t => Hashable (RankedTreeWrapper t l)
 
 instance (RtConstraint t l, Eq l) => Eq (RankedTreeWrapper t l) where
   t1 == t2 = treeLabel t1 == treeLabel t2 && treeChilds t1 == treeChilds t2
@@ -172,7 +178,18 @@ bottomLabel = error "rank (0) bottom label"
 data RankedTreeLabelWithInitial t l
   = InitialLabel
   | RankedTreeLabel l
-  deriving (Eq, Ord)
+  deriving (Eq, Ord, Generic)
+
+instance Hashable l => Hashable (RankedTreeLabelWithInitial t l)
+
+instance Bounded l => Bounded (RankedTreeLabelWithInitial t l) where
+  minBound = InitialLabel
+  maxBound = RankedTreeLabel maxBound
+
+instance Universe l => Universe (RankedTreeLabelWithInitial t l) where
+  universe = InitialLabel : [ RankedTreeLabel l | l <- universe ]
+
+instance Finite l => Finite (RankedTreeLabelWithInitial t l)
 
 instance Show l => Show (RankedTreeLabelWithInitial t l) where
   show InitialLabel        = "#"
@@ -181,7 +198,7 @@ instance Show l => Show (RankedTreeLabelWithInitial t l) where
 data RankedTreeWithInitial t l
   = RankedTreeWithInitial (RankedTreeWithInitial t l)
   | RankedTreeWithoutInitial l (NodeVec :$ RankedTreeWithInitial t l)
-  deriving (Eq, Ord)
+  deriving (Eq, Ord, Generic)
 
 instance (RtConstraint t l, Show l) => Show (RankedTreeWithInitial t l) where
   show = showTree

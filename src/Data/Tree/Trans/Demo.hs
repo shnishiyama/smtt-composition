@@ -38,11 +38,14 @@ module Data.Tree.Trans.Demo
 import           ClassyPrelude
 
 import           Data.Tree.RankedTree
-import           Data.Tree.RankedTree.Transducer
+import           Data.Tree.RankedTree.Instances
 import           Data.Tree.Trans.ATT
 import           Data.Tree.Trans.ATT.Compose
+import           Data.Tree.Trans.ATT.Instances
+import           Data.Tree.Trans.Class
 import           Data.Tree.Trans.SATT
 import           Data.Tree.Trans.SATT.Compose
+import           Data.Tree.Trans.SATT.Instances
 
 -- | Demo Examples
 --

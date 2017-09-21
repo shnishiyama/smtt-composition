@@ -1,16 +1,23 @@
+{-# OPTIONS_GHC -Wno-orphans #-}
+
 module Data.Universe.Instances where
 
 import           ClassyPrelude
 
+import           Data.Void
 import           Data.Universe.Class
 
-data EmptyType
-
-deriving instance Eq EmptyType
-deriving instance Ord EmptyType
-deriving instance Show EmptyType
-
-instance Universe EmptyType where
+instance Universe Void where
   universe = []
 
-instance Finite EmptyType
+instance Finite Void
+
+
+instance (Universe a, Universe b) => Universe (a, b) where
+  universe = [ (x, y) | x <- universe, y <- universe ]
+
+instance (Finite a, Finite b) => Finite (a, b)
+
+
+instance Universe Int
+instance Finite Int

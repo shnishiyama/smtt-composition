@@ -2,5 +2,5 @@ module Data.Tree.Trans.Class where
 
 import           Data.Tree.RankedTree
 
-class TreeTransducer t where
-  treeTrans :: (RankedTree a, RankedTree b) => t a b -> a -> b
+class (RankedTree ta, RankedTree tb) => TreeTransducer t ta tb | t -> ta, t -> tb where
+  treeTrans :: t -> (ta -> tb)
