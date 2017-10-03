@@ -129,7 +129,7 @@ toComposeBasedAtt trans = FinAttrTreeTrans
     , finReductionRule = fromFunctionBase rule
     }
   where
-    FBAttrTreeTrans{..} = projAttrTreeTrans trans
+    FbAttrTreeTrans{..} = projAttrTreeTrans trans
 
     rule a InitialLabel          = convRhs $ fbReductionRule a InitialLabel
     rule a (RankedTreeLabel rtl) = case rtl of

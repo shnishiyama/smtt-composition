@@ -166,3 +166,4 @@ benchmarks:
     - deepseq
     default-extensions:
     - BangPatterns
+    - TypeApplications

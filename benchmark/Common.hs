@@ -33,4 +33,9 @@ main = do
         [ bench "non-composition" $ whnf (treeTrans identityTransducer . treeTrans infixToPostfixTransducer) infixOpTreeSample
         , bench "composition" $ whnf (treeTrans compositedTransducer) infixOpTreeSample
         ]
+    , bgroup "att-comp attribute counts"
+        [ bench "id-itop" $ whnf (uncurry composeAtts) (identityTransducer, infixToPostfixTransducer)
+        , bench "itop-exch" $ whnf (uncurry composeAtts) (infixToPostfixTransducer, orderExchangeTransducer)
+        , bench "id-exch" $ whnf (uncurry composeAtts) (identityTransducer @InfixOpTree, identityTransducer)
+        ]
     ]

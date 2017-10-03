@@ -1,14 +1,10 @@
-{-# LANGUAGE OverloadedStrings #-}
-
 module Main where
 
 import           ClassyPrelude
-import           Control.DeepSeq
 
 import Data.Tree.RankedTree.Instances
 import Data.Tree.Trans.Class
 import Data.Tree.Trans.ATT.Instances
-import Data.Tree.Trans.ATT.Compose
 
 mkInfixOpTreeSample :: Int -> InfixOpTree
 mkInfixOpTreeSample 1 = InfixOne

@@ -115,8 +115,8 @@ infixToPostfixTransducer = FinAttrTreeTrans
     multi a = LabelSide PostfixMultiLabel [a]
     end     = LabelSide PostfixEndLabel   []
 
-    rule A0     InitialLabel              = a0 0
-    rule (A1 0) InitialLabel              = end
+    rule A0     InitialLabel                      = a0 0
+    rule (A1 0) InitialLabel                      = end
 
     rule A0     (RankedTreeLabel InfixOneLabel)   = one a1
     rule A0     (RankedTreeLabel InfixTwoLabel)   = two a1
@@ -129,5 +129,4 @@ infixToPostfixTransducer = FinAttrTreeTrans
     rule (A1 0) (RankedTreeLabel InfixMultiLabel) = a0 1
     rule (A1 1) (RankedTreeLabel InfixMultiLabel) = multi a1
 
-    rule A0     l = error $ "unsupported label: " <> show l
-    rule (A1 i) l = error $ "unsupported label: (" <> show i <> "," <> show l <> ")"
+    rule _ _                                      = unreachable

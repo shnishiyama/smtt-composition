@@ -41,7 +41,6 @@ module Data.Tree.Trans.ATT
   , FiniteAttrTreeTransReq
   , fromFunctionBase
   , FuncBasedAttrTreeTrans(..)
-  , projAttrTreeTrans
   , WrappedAttrTreeTrans(..)
 
     -- reduction state
@@ -172,8 +171,14 @@ class (RankedTree ta, RankedTree tb, TreeTransducer t ta tb) => AttrTreeTrans t 
   type SynthesAttr t :: *
   type InheritAttr t :: *
 
+  projAttrTreeTrans :: t -> FuncBasedAttrTreeTrans (SynthesAttr t) (InheritAttr t) ta tb
+  projAttrTreeTrans t = FbAttrTreeTrans (initialAttr t) (reductionRule t)
+
   initialAttr :: t -> SynthesAttr t
+  initialAttr = fbInitialAttr . projAttrTreeTrans
+
   reductionRule :: t -> AttRuleType (SynthesAttr t) (InheritAttr t) ta tb
+  reductionRule = fbReductionRule . projAttrTreeTrans
 
 -- | A finite attributed tree transducer by hashmap based
 type FinAttRuleType syn inh ta tb = HashMap (InputAttr syn inh, InputLabelType ta) (TreeRightHandSide syn inh tb)
@@ -204,7 +209,7 @@ instance FiniteAttrTreeTransReq syn inh ta tb
   type InheritAttr (FiniteAttrTreeTrans syn inh ta tb) = inh
 
   initialAttr = finInitialAttr
-  reductionRule t = let !r = finReductionRule t in \a i -> r ! (a, i)
+  reductionRule FinAttrTreeTrans{..} = \a i -> finReductionRule ! (a, i)
 
 instance FiniteAttrTreeTransReq syn inh ta tb
     => TreeTransducer (FiniteAttrTreeTrans syn inh ta tb) ta tb where
@@ -236,17 +241,17 @@ fromFunctionBase :: FiniteAttrTreeTransReq syn inh ta tb
 fromFunctionBase f = HM.fromList [(x, f a l) | AttRuleInputParams x@(a, l) <- universeF]
 
 -- | An attributed tree transducer by function based (old and runtime representation)
-data FuncBasedAttrTreeTrans syn inh ta tb = FBAttrTreeTrans
+data FuncBasedAttrTreeTrans syn inh ta tb = FbAttrTreeTrans
   { fbInitialAttr   :: syn
   , fbReductionRule :: AttRuleType syn inh ta tb
   }
 
-projAttrTreeTrans :: AttrTreeTrans t ta tb => t -> FuncBasedAttrTreeTrans (SynthesAttr t) (InheritAttr t) ta tb
-projAttrTreeTrans t = FBAttrTreeTrans (initialAttr t) (reductionRule t)
-
 instance (RankedTree ta, RankedTree tb) => AttrTreeTrans (FuncBasedAttrTreeTrans syn inh ta tb) ta tb where
   type SynthesAttr (FuncBasedAttrTreeTrans syn inh ta tb) = syn
   type InheritAttr (FuncBasedAttrTreeTrans syn inh ta tb) = inh
+
+  projAttrTreeTrans = id
+  {-# INLINE projAttrTreeTrans #-}
 
   initialAttr = fbInitialAttr
   reductionRule = fbReductionRule
@@ -291,8 +296,11 @@ fromTreeReductionState :: RankedTree tb => TreeReductionState tz syn inh ta tb -
 fromTreeReductionState (RankedTreeState l ss) = pure (mkTree l) <*> traverse fromTreeReductionState ss
 fromTreeReductionState _                      = empty
 
-initialAttReductionState :: FuncBasedAttrTreeTrans syn inh ta tb -> ReductionAttrState syn inh
-initialAttReductionState t = ReductionAttrState (taggedSynBox $ fbInitialAttr t) []
+initialAttReductionState ::
+  ( AttrTreeTrans t ta tb, syn ~ SynthesAttr t, inh ~ InheritAttr t
+  )
+  => t -> ReductionAttrState syn inh
+initialAttReductionState t = ReductionAttrState (taggedSynBox $ initialAttr t) []
 
 toReductionAttrState :: AttrSide syn inh -> [RankNumber] -> ReductionAttrState syn inh
 toReductionAttrState (TaggedSynBox (a, i)) p = ReductionAttrState (taggedSynBox a) (i:p)
@@ -361,15 +369,19 @@ type TreeReductionStateZipper tz syn inh ta tb
 
 -- reduction systems
 
-buildAttReduction :: forall b tz syn inh ta tb.
-  (RankedTree ta, RankedTree tb, RankedTreeZipper tz)
+buildAttReduction :: forall tz b t syn inh ta tb.
+  ( RankedTree ta, RankedTree tb, RankedTreeZipper tz
+  , AttrTreeTrans t ta tb, syn ~ SynthesAttr t, inh ~ InheritAttr t
+  )
   => (b -> TreeReductionStateZipper tz syn inh ta tb -> b)
   -> b
   -> ReductionAttrState syn inh
-  -> FuncBasedAttrTreeTrans syn inh ta tb
+  -> t
   -> InputRankedTree ta -> b
-buildAttReduction f s is FBAttrTreeTrans{..} t = goTop s
+buildAttReduction f s is trans t = goTop s
   where
+    FbAttrTreeTrans{..} = projAttrTreeTrans trans
+
     applyAttrToState tz attrState =
       let l        = treeLabel $ toTree tz
           (rhs, p) = applyAttrToRule l attrState
@@ -413,10 +425,12 @@ buildAttReduction f s is FBAttrTreeTrans{..} t = goTop s
       =   (Kleisli zoomRightRtZipper >>> nextStateZ')
       <+> (Kleisli zoomOutRtZipper   >>> nextStateZ'')
 
-runAttReduction :: forall tz syn inh ta tb.
-  (RankedTree ta, RankedTree tb, RankedTreeZipper tz)
+runAttReduction :: forall tz t syn inh ta tb.
+  ( RankedTree ta, RankedTree tb, RankedTreeZipper tz
+  , AttrTreeTrans t ta tb, syn ~ SynthesAttr t, inh ~ InheritAttr t
+  )
   => ReductionAttrState syn inh
-  -> FuncBasedAttrTreeTrans syn inh ta tb
+  -> t
   -> InputRankedTree ta
   -> TreeReductionState tz syn inh ta tb
 runAttReduction is trans t = toTopTree $ builder t where
@@ -472,10 +486,12 @@ buildStepFromAttrState :: RankedTree t
 buildStepFromAttrState l (ReductionAttrState abox p) =
   let (a, p') = toInputAttr abox p in ReductionStep a l p'
 
-buildAttReductionSteps :: forall tz syn inh ta tb.
-  (RankedTree ta, RankedTree tb, RankedTreeZipper tz)
+buildAttReductionSteps :: forall tz t syn inh ta tb.
+  ( RankedTree ta, RankedTree tb, RankedTreeZipper tz
+  , AttrTreeTrans t ta tb, syn ~ SynthesAttr t, inh ~ InheritAttr t
+  )
   => ReductionAttrState syn inh
-  -> FuncBasedAttrTreeTrans syn inh ta tb
+  -> t
   -> InputRankedTree ta -> TreeReductionSteps tz syn inh ta tb
 buildAttReductionSteps is trans = buildSteps
     . buildAttReduction builder ([], Nothing) is trans
@@ -489,10 +505,12 @@ buildAttReductionSteps is trans = buildSteps
       let AttrState taZ attrState = toTree stateZ
       in ReductionStateStep (toTopTree stateZ) $ buildStepFromAttrState (getTreeLabel taZ) attrState
 
-buildAttReductionSteps' :: forall tz syn inh ta tb.
-  (RankedTree ta, RankedTree tb, RankedTreeZipper tz)
-  => (FuncBasedAttrTreeTrans syn inh ta tb -> ReductionAttrState syn inh)
-  -> FuncBasedAttrTreeTrans syn inh ta tb
+buildAttReductionSteps' :: forall tz t syn inh ta tb.
+  ( RankedTree ta, RankedTree tb, RankedTreeZipper tz
+  , AttrTreeTrans t ta tb, syn ~ SynthesAttr t, inh ~ InheritAttr t
+  )
+  => (t -> ReductionAttrState syn inh)
+  -> t
   -> InputRankedTree ta
   -> TreeReductionSteps tz syn inh ta tb
 buildAttReductionSteps' f trans = buildAttReductionSteps (f trans) trans
