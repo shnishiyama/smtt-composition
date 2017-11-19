@@ -1,13 +1,16 @@
 module Main where
 
-import Control.Monad
-import Data.Semigroup
-import Language.Haskell.HLint
-import System.Environment
-import System.Exit
+import           ClassyPrelude
+
+import           Language.Haskell.HLint
+import           System.Environment     as Env
+import           System.Exit
+
+targetPaths :: [String]
+targetPaths = ["Setup.hs", "src", "test", "benchmark", "app"]
 
 main :: IO ()
 main = do
-  args <- getArgs
-  hints <- hlint $ ["Setup.hs", "src", "test", "benchmark", "app"] <> args
+  args <- Env.getArgs
+  hints <- hlint $ targetPaths <> args
   unless (null hints) exitFailure

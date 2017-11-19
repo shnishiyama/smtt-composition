@@ -120,7 +120,7 @@ toComposeBasedAtt :: forall t syn1 inh1 syn2 inh2 ti1 to1 ti2 to2.
   ( FiniteAttrTreeTransReq syn1 inh1 ti1 to1
   , Eq syn2, Eq inh2, Hashable syn2, Hashable inh2, Finite syn2, Finite inh2
   , FiniteRankedTree ti2
-  , AttrTreeTrans t ti1 to1, syn1 ~ SynthesAttr t, inh1 ~ InheritAttr t
+  , AttrTreeTrans t ti1 to1, syn1 ~ SynAttrType t, inh1 ~ InhAttrType t
   )
   => t
   -> ComposeBasedAtt syn1 inh1 syn2 inh2 ti1 to1 ti2 to2
@@ -246,7 +246,7 @@ type AttRuleIndex syn inh ti to
 
 indexAttRule ::
   ( FiniteAttrTreeTransReq syn inh ti to
-  , AttrTreeTrans t ti to, syn ~ SynthesAttr t, inh ~ InheritAttr t
+  , AttrTreeTrans t ti to, syn ~ SynAttrType t, inh ~ InhAttrType t
   )
   => t -> AttRuleIndex syn inh ti to
 indexAttRule t = HM.fromList $ do
@@ -285,10 +285,10 @@ type ComposedAtt syn1 inh1 syn2 inh2 ti to = FiniteAttrTreeTrans
 --
 composeAtts :: forall syn1 inh1 ti1 to1 t1 syn2 inh2 ti2 to2 t2.
   ( FiniteAttrTreeTransReq syn1 inh1 ti1 to1, RankedTree to1
-  , AttrTreeTrans t1 ti1 to1, syn1 ~ SynthesAttr t1, inh1 ~ InheritAttr t1
+  , AttrTreeTrans t1 ti1 to1, syn1 ~ SynAttrType t1, inh1 ~ InhAttrType t1
   , to2 ~ ti1
   , FiniteAttrTreeTransReq syn2 inh2 ti2 to2, RankedTree to2
-  , AttrTreeTrans t2 ti2 to2, syn2 ~ SynthesAttr t2, inh2 ~ InheritAttr t2
+  , AttrTreeTrans t2 ti2 to2, syn2 ~ SynAttrType t2, inh2 ~ InhAttrType t2
 
   , Show (LabelType ti2)
   )

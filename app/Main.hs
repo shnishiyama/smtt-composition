@@ -2,9 +2,9 @@ module Main where
 
 import           ClassyPrelude
 
-import Data.Tree.RankedTree.Instances
-import Data.Tree.Trans.Class
-import Data.Tree.Trans.ATT.Instances
+import           Data.Tree.RankedTree.Instances
+import           Data.Tree.Trans.ATT.Instances
+import           Data.Tree.Trans.Class
 
 mkInfixOpTreeSample :: Int -> InfixOpTree
 mkInfixOpTreeSample 1 = InfixOne

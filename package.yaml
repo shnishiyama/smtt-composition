@@ -12,38 +12,60 @@ git:         https://gitlab.com/mizunashi-mana/satt-composition
 extra-source-files:
 - README.md
 
-build-type: Custom
-
-# unsupported
+# unsupported by hpack
 # cabal-version: '>=2.0.0.0'
 
-custom-setup:
-  dependencies:
-    - base
-    - Cabal
-    - cabal-doctest
+# unsupported by hpack bundled latest stack
+#base-dependencies:
+#  base: '>=4.7 && <5'
+#  classy-prelude:
 
-library:
-  ghc-options: &base-ghc-options
+dependencies:
+  - base >=4.7 && <5
+  - classy-prelude
+
+# unsupported by hpack
+#base-ghc-options:
+#  -Wall:
+#  -fprint-explicit-foralls:
+#  -dcore-lint:
+#  -fmax-pmcheck-iterations: '5000000'
+#  -funbox-strict-fields:
+
+ghc-options:
   - -Wall
   - -fprint-explicit-foralls
-  - -fmax-pmcheck-iterations=5000000
   - -dcore-lint
-  source-dirs: src
-  default-extensions:
+  - -fmax-pmcheck-iterations=5000000
+  - -funbox-strict-fields
+
+default-extensions:
+  # use classy-prelude
   - NoImplicitPrelude
-  - StrictData
+
+  # performance supports
   - BangPatterns
+  - StrictData
+  - ApplicativeDo
+
+  # useful syntaxes
+  - EmptyDataDecls
+  - FlexibleContexts
+  - FlexibleInstances
   - LambdaCase
   - TupleSections
-  - PatternSynonyms
   - RecordWildCards
   - ViewPatterns
-  - GeneralizedNewtypeDeriving
+  - PatternSynonyms
   - StandaloneDeriving
+  - BinaryLiterals
+
+  # useful derivable
+  - GeneralizedNewtypeDeriving
   - DeriveGeneric
   - DeriveDataTypeable
-  - EmptyDataDecls
+
+  # extensions of type systems
   - DataKinds
   - PolyKinds
   - TypeApplications
@@ -55,9 +77,19 @@ library:
   - TypeFamilyDependencies
   - FunctionalDependencies
   - ScopedTypeVariables
-  - FlexibleContexts
   - RankNTypes
   - ConstraintKinds
+
+build-type: Custom
+custom-setup:
+  dependencies:
+    - base
+    - classy-prelude
+    - Cabal
+    - cabal-doctest
+
+library:
+  source-dirs: src
   exposed-modules:
   - Control.Universe
   - Data.Universe.Instances
@@ -67,6 +99,7 @@ library:
   - Data.Tree.RankedTree.Instances
   - Data.Tree.RankedTree.Zipper
   - Data.Tree.Trans.Class
+  - Data.Tree.Trans.TOP
   - Data.Tree.Trans.ATT
   - Data.Tree.Trans.ATT.Instances
   - Data.Tree.Trans.ATT.Compose
@@ -76,8 +109,6 @@ library:
   #- Data.Tree.Trans.Demo
   other-modules: []
   dependencies:
-  - base >=4.7 && <5
-  - classy-prelude
   - lens
   - mono-traversable
   - vector
@@ -91,18 +122,11 @@ executables:
   satt-composit:
     main: Main.hs
     source-dirs: app
-    default-extensions:
-    - NoImplicitPrelude
-    - TypeFamilies
-    - GADTs
     ghc-options:
-    <<: &base-ghc-options
     - -threaded
     - -rtsopts
     - -with-rtsopts=-N
     dependencies:
-    - base
-    - classy-prelude
     - satt-composition
     - deepseq
 
@@ -112,28 +136,21 @@ tests:
     source-dirs: test
     other-modules: []
     ghc-options:
-    <<: &base-ghc-options
     - -threaded
     - -with-rtsopts=-N
     dependencies:
-    - base
     - hlint
 
   spec-test:
     main: ../Spec.hs
     source-dirs: test/specs
     ghc-options:
-    <<: &base-ghc-options
     - -threaded
     - -with-rtsopts=-N
     dependencies:
-    - base
-    - classy-prelude
     - satt-composition
     - hspec
     - QuickCheck
-    default-extensions:
-    - NoImplicitPrelude
 
   doc-test:
     main: Doctest.hs
@@ -141,11 +158,9 @@ tests:
     other-modules:
     - Build_doctests
     ghc-options:
-    <<: &base-ghc-option
     - -threaded
     - -with-rtsopts=-N
     dependencies:
-    - base
     - doctest
     - QuickCheck
     - template-haskell
@@ -155,15 +170,10 @@ benchmarks:
     main: Common.hs
     source-dirs: benchmark
     ghc-options:
-    <<: &base-ghc-options
     - -O2
     - -threaded
     - -with-rtsopts=-N
     dependencies:
-    - base
     - satt-composition
     - criterion
     - deepseq
-    default-extensions:
-    - BangPatterns
-    - TypeApplications

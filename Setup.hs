@@ -1,6 +1,11 @@
-{-# LANGUAGE CPP #-}
 {-# OPTIONS_GHC -Wall #-}
+
+{-# LANGUAGE CPP               #-}
+{-# LANGUAGE NoImplicitPrelude #-}
+
 module Main where
+
+import ClassyPrelude
 
 #ifndef MIN_VERSION_cabal_doctest
 #define MIN_VERSION_cabal_doctest(x,y,z) 0
@@ -22,9 +27,11 @@ main = defaultMainWithHooks simpleUserHooks
 
 #else
 
-  {-# WARNING ["You are configuring this package without cabal-doctest installed.",
-               "The doctests test-suite will not work as a result.",
-               "To fix this, install cabal-doctest before configuring."] #-}
+  {-# WARNING
+    [ "You are configuring this package without cabal-doctest installed."
+    , "The doctests test-suite will not work as a result."
+    , "To fix this, install cabal-doctest before configuring."
+    ] #-}
 
 main :: IO ()
 main = defaultMain

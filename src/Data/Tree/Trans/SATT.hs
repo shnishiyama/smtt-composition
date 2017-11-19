@@ -102,8 +102,11 @@ module Data.Tree.Trans.SATT
 import           ClassyPrelude
 
 import           Control.Arrow               hiding (first, second)
+import           Data.Coerce
+import qualified Data.HashMap.Strict         as HM
 import           Data.Profunctor.Unsafe
 import           Data.TypeLevel.TaggedEither
+import           Data.Universe.Class
 
 import           Data.Tree.RankedTree
 import           Data.Tree.RankedTree.Zipper
@@ -188,6 +191,14 @@ data RightHandSide (tag :: SattAttrTag) syn inh stsyn stinh t l where
     -> StkRightHandSide syn inh stsyn stinh t l
   StackEmptySide :: StkRightHandSide syn inh stsyn stinh t l
 
+deriving instance (Eq syn, Eq inh, Eq stsyn, Eq stinh, Eq l)
+  => Eq (RightHandSide tag syn inh stsyn stinh t l)
+deriving instance (Ord syn, Ord inh, Ord stsyn, Ord stinh, Ord l)
+  => Ord (RightHandSide tag syn inh stsyn stinh t l)
+deriving instance (Show syn, Show inh, Show stsyn, Show stinh, Show l)
+  => Show (RightHandSide tag syn inh stsyn stinh t l)
+
+
 data RightHandSideBox syn inh stsyn stinh t l
   = forall tag. RightHandSideBox (RightHandSide tag syn inh stsyn stinh t l)
 
@@ -244,19 +255,132 @@ toInputAttr
 toInputAttr (TaggedOut a) = first TaggedOut . ATT.toInputAttr a
 toInputAttr (TaggedStk a) = first TaggedStk . ATT.toInputAttr a
 
-type SattRuleType tag syn inh stsyn stinh ta tb
+type SattRuleTypeBase tag syn inh stsyn stinh ta tb
   = InputAttr tag syn inh stsyn stinh -> InputLabelType ta
   -> TreeRightHandSide tag syn inh stsyn stinh tb
 
--- | Stack-Attributed Tree Transducer
-data StackAttrTreeTrans syn inh stsyn stinh ta tb = StackAttrTreeTrans
-  { initialAttr   :: syn
-  , reductionRule :: forall tag. SattRuleType tag syn inh stsyn stinh ta tb
+type SattRuleType tag t ta tb
+  = SattRuleTypeBase tag (SynAttrType t) (InhAttrType t) (StSynAttrType t) (StInhAttrType t) ta tb
+
+type SynAttrType t = SattAttrType OutAttrTag SynAttrTag t
+type InhAttrType t = SattAttrType OutAttrTag InhAttrTag t
+type StSynAttrType t = SattAttrType StkAttrTag SynAttrTag t
+type StInhAttrType t = SattAttrType StkAttrTag InhAttrTag t
+
+-- | The class of stack-attributed tree transducers
+class (RankedTree ta, RankedTree tb, TreeTransducer t ta tb)
+    => StackAttrTreeTrans t ta tb | t -> ta, t -> tb where
+
+  type SattAttrType (tags :: SattAttrTag) (taga :: AttAttrTag) t
+
+  projStackAttrTreeTrans :: t
+    -> FuncBasedStackAttrTreeTrans
+      (SynAttrType t) (InhAttrType t) (StSynAttrType t) (StInhAttrType t) ta tb
+  projStackAttrTreeTrans t = FbStackAttrTreeTrans (initialAttr t) (reductionRule t)
+
+  initialAttr :: t -> SynAttrType t
+  initialAttr = fbInitialAttr . projStackAttrTreeTrans
+
+  reductionRule :: t -> (forall tag. SattRuleType tag t ta tb)
+  reductionRule = fbReductionRule . projStackAttrTreeTrans
+
+
+type SattConstraint t syn inh stsyn stinh ta tb =
+  ( StackAttrTreeTrans t ta tb
+  , syn ~ SynAttrType t, inh ~ InhAttrType t
+  , stsyn ~ StSynAttrType t, stinh ~ StInhAttrType t
+  )
+
+
+-- | A finite stack-attributed tree transducer by hashmap based
+type FinSattRuleType tag syn inh stsyn stinh ta tb = HashMap
+  (InputAttr tag syn inh stsyn stinh, InputLabelType ta)
+  (TreeRightHandSide tag syn inh stsyn stinh tb)
+
+data FiniteStackAttrTreeTrans syn inh stsyn stinh ta tb = FinStackAttrTreeTrans
+  { finInitialAttr      :: syn
+  , finOutReductionRule :: FinSattRuleType OutAttrTag syn inh stsyn stinh ta tb
+  , finStkReductionRule :: FinSattRuleType StkAttrTag syn inh stsyn stinh ta tb
   }
+
+deriving instance (Eq syn, Eq inh, Eq stsyn, Eq stinh, Eq (LabelType ta), Eq (LabelType tb))
+  => Eq (FiniteStackAttrTreeTrans syn inh stsyn stinh ta tb)
+deriving instance (Show syn, Show inh, Show stsyn, Show stinh, Show (LabelType ta), Show (LabelType tb))
+  => Show (FiniteStackAttrTreeTrans syn inh stsyn stinh ta tb)
+
+type FinInputRankedTree t l = (Eq l, Hashable l, FinRankedTree t l)
+type FiniteInputRankedTree t = FinInputRankedTree t (LabelType t)
+
+type FiniteStackAttrTreeTransReq syn inh stsyn stinh ta tb =
+  ( Eq syn, Hashable syn, Finite syn
+  , Eq inh, Hashable inh, Finite inh
+  , Eq stsyn, Hashable stsyn, Finite stsyn
+  , Eq stinh, Hashable stinh, Finite stinh
+  , FiniteInputRankedTree ta, RankedTree tb
+  )
+
+instance FiniteStackAttrTreeTransReq syn inh stsyn stinh ta tb
+    => StackAttrTreeTrans (FiniteStackAttrTreeTrans syn inh stsyn stinh ta tb) ta tb where
+
+  type SattAttrType OutAttrTag SynAttrTag (FiniteStackAttrTreeTrans syn inh stsyn stinh ta tb) = syn
+  type SattAttrType OutAttrTag InhAttrTag (FiniteStackAttrTreeTrans syn inh stsyn stinh ta tb) = inh
+  type SattAttrType StkAttrTag SynAttrTag (FiniteStackAttrTreeTrans syn inh stsyn stinh ta tb) = stsyn
+  type SattAttrType StkAttrTag InhAttrTag (FiniteStackAttrTreeTrans syn inh stsyn stinh ta tb) = stinh
+
+  initialAttr = finInitialAttr
+  reductionRule FinStackAttrTreeTrans{..} = \a l -> case a of
+    TaggedOut _ -> finOutReductionRule ! (a, l)
+    TaggedStk _ -> finStkReductionRule ! (a, l)
+
+instance FiniteStackAttrTreeTransReq syn inh stsyn stinh ta tb
+    => TreeTransducer (FiniteStackAttrTreeTrans syn inh stsyn stinh ta tb) ta tb where
+
+  treeTrans = treeTrans .# wrapStackAttrTreeTrans
+
+data SattRuleInputParams tag syn inh stsyn stinh ta tb = SattRuleInputParams
+  (InputAttr tag syn inh stsyn stinh, InputLabelType ta)
+
+deriving instance (Eq syn, Eq inh, Eq stsyn, Eq stinh, Eq (LabelType ta))
+  => Eq (SattRuleInputParams tag syn inh stsyn stinh ta tb)
+deriving instance (Ord syn, Ord inh, Ord stsyn, Ord stinh, Ord (LabelType ta))
+  => Ord (SattRuleInputParams tag syn inh stsyn stinh ta tb)
+deriving instance (Show syn, Show inh, Show stsyn, Show stinh, Show (LabelType ta))
+  => Show (SattRuleInputParams tag syn inh stsyn stinh ta tb)
+
+fromFunctionBase :: forall tag syn inh stsyn stinh ta tb.
+  ( FiniteStackAttrTreeTransReq syn inh stsyn stinh ta tb
+  )
+  => SattRuleTypeBase tag syn inh stsyn stinh ta tb
+  -> FinSattRuleType tag syn inh stsyn stinh ta tb
+fromFunctionBase f = HM.fromList
+  [ (x, f a l)
+  | SattRuleInputParams x@(a, l) <- universeF
+  ]
+
+
+-- | An stack-attributed tree transducer by function based (old and runtime representation)
+data FuncBasedStackAttrTreeTrans syn inh stsyn stinh ta tb = FbStackAttrTreeTrans
+  { fbInitialAttr   :: syn
+  , fbReductionRule :: forall tag. SattRuleTypeBase tag syn inh stsyn stinh ta tb
+  }
+
+instance (RankedTree ta, RankedTree tb) => StackAttrTreeTrans (FuncBasedStackAttrTreeTrans syn inh stsyn stinh ta tb) ta tb where
+  type SattAttrType OutAttrTag SynAttrTag (FuncBasedStackAttrTreeTrans syn inh stsyn stinh ta tb) = syn
+  type SattAttrType OutAttrTag InhAttrTag (FuncBasedStackAttrTreeTrans syn inh stsyn stinh ta tb) = inh
+  type SattAttrType StkAttrTag SynAttrTag (FuncBasedStackAttrTreeTrans syn inh stsyn stinh ta tb) = stsyn
+  type SattAttrType StkAttrTag InhAttrTag (FuncBasedStackAttrTreeTrans syn inh stsyn stinh ta tb) = stinh
+
+  projStackAttrTreeTrans = id
+  {-# INLINE projStackAttrTreeTrans #-}
+
+  initialAttr = fbInitialAttr
+  reductionRule = fbReductionRule
+
+instance (RankedTree ta, RankedTree tb) => TreeTransducer (FuncBasedStackAttrTreeTrans syn inh stsyn stinh ta tb) ta tb where
+  treeTrans = treeTrans .# wrapStackAttrTreeTrans
 
 
 -- reduction states
-
 type ReductionOutAttrState = ReductionAttrState OutAttrTag
 type ReductionStkAttrState  = ReductionAttrState StkAttrTag
 
@@ -357,9 +481,12 @@ fromTreeReductionState :: RankedTree tb => TreeReductionState tag tz syn inh sts
 fromTreeReductionState (RankedTreeState l ss) = pure (mkTree l) <*> traverse fromTreeReductionState ss
 fromTreeReductionState _                      = empty
 
-initialSattReductionState :: StackAttrTreeTrans syn inh stsyn stinh ta tb -> ReductionOutAttrState syn inh stsyn stinh
-initialSattReductionState StackAttrTreeTrans{ initialAttr = a0 }
-  = ReductionAttrState (taggedOut (taggedSynBox a0)) []
+initialSattReductionState ::
+  ( SattConstraint t syn inh stsyn stinh ta tb
+  )
+  => t -> ReductionOutAttrState syn inh stsyn stinh
+initialSattReductionState t
+  = ReductionAttrState (taggedOut $ taggedSynBox $ initialAttr t) []
 
 toReductionAttrState :: AttrSide tag syn inh stsyn stinh -> [RankNumber] -> ReductionAttrState tag syn inh stsyn stinh
 toReductionAttrState as p = case as of
@@ -570,14 +697,18 @@ type TreeReductionStateZipper tz syn inh stsyn stinh ta tb
 
 -- reduction systems
 
-buildSattReduction :: forall b tz syn inh stsyn stinh ta tb.
-  (RankedTree ta, RankedTree tb, RankedTreeZipper tz)
+buildSattReduction :: forall tz b t syn inh stsyn stinh ta tb.
+  ( RankedTree ta, RankedTree tb, RankedTreeZipper tz
+  , SattConstraint t syn inh stsyn stinh ta tb
+  )
   => (b -> TreeReductionStateZipper tz syn inh stsyn stinh ta tb -> b)
   -> b
   -> ReductionOutAttrState syn inh stsyn stinh
-  -> StackAttrTreeTrans syn inh stsyn stinh ta tb
+  -> t
   -> InputRankedTree ta -> b
-buildSattReduction f s is StackAttrTreeTrans{..} t = goTop s where
+buildSattReduction f s is trans t = goTop s where
+  FbStackAttrTreeTrans{..} = projStackAttrTreeTrans trans
+
   applyAttrToState
     :: InputRankedTreeZipper tz ta
     -> ReductionAttrState tag syn inh stsyn stinh
@@ -592,7 +723,7 @@ buildSattReduction f s is StackAttrTreeTrans{..} t = goTop s where
     -> ReductionAttrState tag syn inh stsyn stinh
     -> (TreeRightHandSide tag syn inh stsyn stinh tb, [RankNumber])
   applyAttrToRule l (ReductionAttrState abox p) =
-    first (\a -> reductionRule a l) $ toInputAttr abox p
+    first (\a -> fbReductionRule a l) $ toInputAttr abox p
 
   goTop state =
     let taZ      = toZipper t
@@ -651,9 +782,12 @@ buildSattReduction f s is StackAttrTreeTrans{..} t = goTop s where
     =   (Kleisli zoomRightRtZipper >>> nextStateZ')
     <+> (Kleisli zoomOutRtZipper   >>> nextStateZ'')
 
-runSattReduction :: forall tz syn inh stsyn stinh ta tb.
-  (RankedTree ta, RankedTree tb, RankedTreeZipper tz)
-  => ReductionOutAttrState syn inh stsyn stinh -> StackAttrTreeTrans syn inh stsyn stinh ta tb
+runSattReduction :: forall tz t syn inh stsyn stinh ta tb.
+  ( RankedTree ta, RankedTree tb, RankedTreeZipper tz
+  , SattConstraint t syn inh stsyn stinh ta tb
+  )
+  => ReductionOutAttrState syn inh stsyn stinh
+  -> t
   -> InputRankedTree ta -> TreeReductionStateBox tz syn inh stsyn stinh ta tb
 runSattReduction is trans t = toTopTree $ builder t where
   initialStateZ = toZipper . ReductionStateBox $ AttrState (toZipper t) is
@@ -724,10 +858,12 @@ buildStepFromAttrState l (ReductionAttrState abox p) =
     let (a, p') = toInputAttr abox p
     in AttrReductionStep (inputAttrBox a) l p'
 
-buildSattReductionSteps :: forall tz syn inh stsyn stinh ta tb.
-  (RankedTree ta, RankedTree tb, RankedTreeZipper tz)
+buildSattReductionSteps :: forall tz t syn inh stsyn stinh ta tb.
+  ( RankedTree ta, RankedTree tb, RankedTreeZipper tz
+  , SattConstraint t syn inh stsyn stinh ta tb
+  )
   => ReductionOutAttrState syn inh stsyn stinh
-  -> StackAttrTreeTrans syn inh stsyn stinh ta tb
+  -> t
   -> InputRankedTree ta -> TreeReductionSteps tz syn inh stsyn stinh ta tb
 buildSattReductionSteps is trans = buildSteps
     . buildSattReduction builder ([], Nothing) is trans
@@ -748,20 +884,35 @@ buildSattReductionSteps is trans = buildSteps
               _ -> error "unexpected operation"
       in ReductionStateStep (toTopTree stateZ) stateStep
 
-buildSattReductionSteps' :: forall tz syn inh stsyn stinh ta tb.
-  (RankedTree ta, RankedTree tb, RankedTreeZipper tz)
-  => (StackAttrTreeTrans syn inh stsyn stinh ta tb -> ReductionOutAttrState syn inh stsyn stinh)
-  -> StackAttrTreeTrans syn inh stsyn stinh ta tb
+buildSattReductionSteps' :: forall tz t syn inh stsyn stinh ta tb.
+  ( RankedTree ta, RankedTree tb, RankedTreeZipper tz
+  , SattConstraint t syn inh stsyn stinh ta tb
+  )
+  => (t -> ReductionOutAttrState syn inh stsyn stinh)
+  -> t
   -> InputRankedTree ta -> TreeReductionSteps tz syn inh stsyn stinh ta tb
 buildSattReductionSteps' f trans = buildSattReductionSteps (f trans) trans
 
 -- tree transducer
 
-instance TreeTransducer (StackAttrTreeTrans syn inh stsyn stinh) where
+newtype WrappedStackAttrTreeTrans t ta tb = WrappedStackAttrTreeTrans
+  { unwrapStackAttrTreeTrans :: t
+  } deriving (Eq, Ord, Show, Generic)
+
+wrapStackAttrTreeTrans :: StackAttrTreeTrans t ta tb
+  => t -> WrappedStackAttrTreeTrans t ta tb
+wrapStackAttrTreeTrans = coerce
+{-# INLINE wrapStackAttrTreeTrans #-}
+
+instance (RankedTree ta, RankedTree tb, StackAttrTreeTrans t ta tb)
+  => TreeTransducer (WrappedStackAttrTreeTrans t ta tb) ta tb where
+
   treeTrans trans = render
-      . runSattReduction @RTZipper (initialSattReductionState trans) trans
+      . runSattReduction @ RTZipper (initialSattReductionState fbTrans) fbTrans
       . toRankedTreeWithInitial
     where
+      fbTrans = projStackAttrTreeTrans $ unwrapStackAttrTreeTrans trans
+
       render = fromMaybe (error "The input tree transducer is illegal.")
         . fromTreeReductionStateBox
 

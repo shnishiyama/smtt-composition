@@ -1,4 +1,5 @@
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE TypeInType        #-}
 
 module Data.Tree.Trans.ATT
   (
@@ -34,6 +35,8 @@ module Data.Tree.Trans.ATT
   , toInputAttr
   , AttRuleType
   , AttrTreeTrans(..)
+  , SynAttrType
+  , InhAttrType
   , FinAttRuleType
   , AttRuleInputParams(..)
   , FiniteInputRankedTree
@@ -163,22 +166,35 @@ toInputAttr (TaggedSynBox a) p      = (taggedSynBox a, p)
 toInputAttr (TaggedInhBox a) (x:xs) = (taggedInhBox (a, x), xs)
 toInputAttr _                _      = error "an inherited attribute has empty path"
 
-type AttRuleType syn inh ta tb
+type AttRuleTypeBase syn inh ta tb
   = InputAttr syn inh -> InputLabelType ta -> TreeRightHandSide syn inh tb
 
--- | The class of attributed tree transducer
-class (RankedTree ta, RankedTree tb, TreeTransducer t ta tb) => AttrTreeTrans t ta tb | t -> ta, t -> tb where
-  type SynthesAttr t :: *
-  type InheritAttr t :: *
+type AttRuleType t ta tb
+  = AttRuleTypeBase (SynAttrType t) (InhAttrType t) ta tb
 
-  projAttrTreeTrans :: t -> FuncBasedAttrTreeTrans (SynthesAttr t) (InheritAttr t) ta tb
+type SynAttrType t = AttAttrType SynAttrTag t
+type InhAttrType t = AttAttrType InhAttrTag t
+
+-- | The class of attributed tree transducers
+class (RankedTree ta, RankedTree tb, TreeTransducer t ta tb) => AttrTreeTrans t ta tb | t -> ta, t -> tb where
+  type AttAttrType (tag :: AttAttrTag) t
+
+  projAttrTreeTrans :: t
+    -> FuncBasedAttrTreeTrans (SynAttrType t) (InhAttrType t) ta tb
   projAttrTreeTrans t = FbAttrTreeTrans (initialAttr t) (reductionRule t)
 
-  initialAttr :: t -> SynthesAttr t
+  initialAttr :: t -> SynAttrType t
   initialAttr = fbInitialAttr . projAttrTreeTrans
 
-  reductionRule :: t -> AttRuleType (SynthesAttr t) (InheritAttr t) ta tb
+  reductionRule :: t -> AttRuleType t ta tb
   reductionRule = fbReductionRule . projAttrTreeTrans
+
+
+type AttConstraint t syn inh ta tb =
+  ( AttrTreeTrans t ta tb
+  , syn ~ SynAttrType t, inh ~ InhAttrType t
+  )
+
 
 -- | A finite attributed tree transducer by hashmap based
 type FinAttRuleType syn inh ta tb = HashMap (InputAttr syn inh, InputLabelType ta) (TreeRightHandSide syn inh tb)
@@ -197,19 +213,19 @@ type FinInputRankedTree t l = (Eq l, Hashable l, FinRankedTree t l)
 type FiniteInputRankedTree t = FinInputRankedTree t (LabelType t)
 
 type FiniteAttrTreeTransReq syn inh ta tb =
-  ( Eq syn, Eq inh, Hashable syn, Hashable inh
-  , Finite syn, Finite inh
+  ( Eq syn, Hashable syn, Finite syn
+  , Eq inh, Hashable inh, Finite inh
   , FiniteInputRankedTree ta, RankedTree tb
   )
 
 instance FiniteAttrTreeTransReq syn inh ta tb
     => AttrTreeTrans (FiniteAttrTreeTrans syn inh ta tb) ta tb where
 
-  type SynthesAttr (FiniteAttrTreeTrans syn inh ta tb) = syn
-  type InheritAttr (FiniteAttrTreeTrans syn inh ta tb) = inh
+  type AttAttrType SynAttrTag (FiniteAttrTreeTrans syn inh ta tb) = syn
+  type AttAttrType InhAttrTag (FiniteAttrTreeTrans syn inh ta tb) = inh
 
   initialAttr = finInitialAttr
-  reductionRule FinAttrTreeTrans{..} = \a i -> finReductionRule ! (a, i)
+  reductionRule FinAttrTreeTrans{..} = \a l -> finReductionRule ! (a, l)
 
 instance FiniteAttrTreeTransReq syn inh ta tb
     => TreeTransducer (FiniteAttrTreeTrans syn inh ta tb) ta tb where
@@ -229,26 +245,31 @@ instance (Universe syn, Universe inh, RankedTree ta, Universe (LabelType ta))
 
   universe = do
     l <- universe
-    let r = treeLabelRank (treeTag @(RankedTreeWithInitial ta (LabelType ta))) l
-    a <- [taggedSynBox a | a <- universe] <> [taggedInhBox (a, i) | a <- universe, i <- [0..(r - 1)]]
-    return $ AttRuleInputParams (a, l)
+    let r = treeLabelRank (treeTag @(RtApply RankedTreeWithInitial ta)) l
+
+    a <- [taggedSynBox a | a <- universe]
+    b <- [taggedInhBox (b, i) | b <- universe, i <- [0..(r - 1)]]
+
+    [   AttRuleInputParams (a, l)
+      , AttRuleInputParams (b, l)
+      ]
 
 instance (Finite syn, Finite inh, RankedTree ta, Finite (LabelType ta))
     => Finite (AttRuleInputParams syn inh ta tb)
 
 fromFunctionBase :: FiniteAttrTreeTransReq syn inh ta tb
-  => AttRuleType syn inh ta tb -> FinAttRuleType syn inh ta tb
+  => AttRuleTypeBase syn inh ta tb -> FinAttRuleType syn inh ta tb
 fromFunctionBase f = HM.fromList [(x, f a l) | AttRuleInputParams x@(a, l) <- universeF]
 
 -- | An attributed tree transducer by function based (old and runtime representation)
 data FuncBasedAttrTreeTrans syn inh ta tb = FbAttrTreeTrans
   { fbInitialAttr   :: syn
-  , fbReductionRule :: AttRuleType syn inh ta tb
+  , fbReductionRule :: AttRuleTypeBase syn inh ta tb
   }
 
 instance (RankedTree ta, RankedTree tb) => AttrTreeTrans (FuncBasedAttrTreeTrans syn inh ta tb) ta tb where
-  type SynthesAttr (FuncBasedAttrTreeTrans syn inh ta tb) = syn
-  type InheritAttr (FuncBasedAttrTreeTrans syn inh ta tb) = inh
+  type AttAttrType SynAttrTag (FuncBasedAttrTreeTrans syn inh ta tb) = syn
+  type AttAttrType InhAttrTag (FuncBasedAttrTreeTrans syn inh ta tb) = inh
 
   projAttrTreeTrans = id
   {-# INLINE projAttrTreeTrans #-}
@@ -297,7 +318,7 @@ fromTreeReductionState (RankedTreeState l ss) = pure (mkTree l) <*> traverse fro
 fromTreeReductionState _                      = empty
 
 initialAttReductionState ::
-  ( AttrTreeTrans t ta tb, syn ~ SynthesAttr t, inh ~ InheritAttr t
+  ( AttConstraint t syn inh ta tb
   )
   => t -> ReductionAttrState syn inh
 initialAttReductionState t = ReductionAttrState (taggedSynBox $ initialAttr t) []
@@ -371,7 +392,7 @@ type TreeReductionStateZipper tz syn inh ta tb
 
 buildAttReduction :: forall tz b t syn inh ta tb.
   ( RankedTree ta, RankedTree tb, RankedTreeZipper tz
-  , AttrTreeTrans t ta tb, syn ~ SynthesAttr t, inh ~ InheritAttr t
+  , AttConstraint t syn inh ta tb
   )
   => (b -> TreeReductionStateZipper tz syn inh ta tb -> b)
   -> b
@@ -427,7 +448,7 @@ buildAttReduction f s is trans t = goTop s
 
 runAttReduction :: forall tz t syn inh ta tb.
   ( RankedTree ta, RankedTree tb, RankedTreeZipper tz
-  , AttrTreeTrans t ta tb, syn ~ SynthesAttr t, inh ~ InheritAttr t
+  , AttConstraint t syn inh ta tb
   )
   => ReductionAttrState syn inh
   -> t
@@ -488,7 +509,7 @@ buildStepFromAttrState l (ReductionAttrState abox p) =
 
 buildAttReductionSteps :: forall tz t syn inh ta tb.
   ( RankedTree ta, RankedTree tb, RankedTreeZipper tz
-  , AttrTreeTrans t ta tb, syn ~ SynthesAttr t, inh ~ InheritAttr t
+  , AttConstraint t syn inh ta tb
   )
   => ReductionAttrState syn inh
   -> t
@@ -507,7 +528,7 @@ buildAttReductionSteps is trans = buildSteps
 
 buildAttReductionSteps' :: forall tz t syn inh ta tb.
   ( RankedTree ta, RankedTree tb, RankedTreeZipper tz
-  , AttrTreeTrans t ta tb, syn ~ SynthesAttr t, inh ~ InheritAttr t
+  , AttConstraint t syn inh ta tb
   )
   => (t -> ReductionAttrState syn inh)
   -> t
@@ -519,10 +540,22 @@ buildAttReductionSteps' f trans = buildAttReductionSteps (f trans) trans
 
 newtype WrappedAttrTreeTrans t ta tb = WrappedAttrTreeTrans
   { unwrapAttrTreeTrans :: t
-  }
+  } deriving (Eq, Ord, Show, Generic)
 
-wrapAttrTreeTrans :: AttrTreeTrans t ta tb => t -> WrappedAttrTreeTrans t ta tb
+wrapAttrTreeTrans :: AttrTreeTrans t ta tb
+  => t -> WrappedAttrTreeTrans t ta tb
 wrapAttrTreeTrans = coerce
+{-# INLINE wrapAttrTreeTrans #-}
+
+instance (RankedTree ta, RankedTree tb, AttrTreeTrans t ta tb)
+    => AttrTreeTrans (WrappedAttrTreeTrans t ta tb) ta tb where
+
+  type AttAttrType tag (WrappedAttrTreeTrans t ta tb) = AttAttrType tag t
+
+  projAttrTreeTrans (WrappedAttrTreeTrans t) = projAttrTreeTrans t
+
+  initialAttr (WrappedAttrTreeTrans t) = initialAttr t
+  reductionRule (WrappedAttrTreeTrans t) = reductionRule t
 
 instance (RankedTree ta, RankedTree tb, AttrTreeTrans t ta tb)
     => TreeTransducer (WrappedAttrTreeTrans t ta tb) ta tb where

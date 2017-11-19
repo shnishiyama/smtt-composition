@@ -1,13 +1,15 @@
 module Main where
 
-import           Criterion.Main
-import Control.DeepSeq
+import           ClassyPrelude
 
-import Data.Tree.RankedTree.Instances
-import Data.Tree.Trans.Class
-import Data.Tree.Trans.ATT.Instances
+import           Control.DeepSeq
+import           Criterion.Main
+
+import           Data.Tree.RankedTree.Instances
+import           Data.Tree.Trans.ATT.Instances
+import           Data.Tree.Trans.Class
 -- import Data.Tree.Trans.SATT.Instances
-import Data.Tree.Trans.ATT.Compose
+import           Data.Tree.Trans.ATT.Compose
 -- import Data.Tree.Trans.SATT.Compose
 
 mkInfixOpTreeSample :: Int -> InfixOpTree

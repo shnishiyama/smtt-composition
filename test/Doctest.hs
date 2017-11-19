@@ -1,11 +1,14 @@
 module Main where
 
-import Build_doctests (flags, pkgs, module_sources)
-import Test.DocTest
+import           ClassyPrelude
+
+import           Build_doctests (flags, module_sources, pkgs)
+import           Test.DocTest
+
+customFlags :: [String]
+customFlags = ["-fno-warn-warnings-deprecations"]
 
 main :: IO ()
 main = do
-  let customflags = ["-fno-warn-warnings-deprecations"]
-  let args = flags ++ customflags ++ pkgs ++ module_sources
-
+  let args = flags ++ customFlags ++ pkgs ++ module_sources
   doctest args

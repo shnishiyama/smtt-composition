@@ -26,19 +26,31 @@ columns: 80
 newline: native
 
 language_extensions:
+# use classy-prelude
   - NoImplicitPrelude
-  - StrictData
+
+  # performance supports
   - BangPatterns
+  - StrictData
+  - ApplicativeDo
+
+  # useful syntaxes
+  - EmptyDataDecls
+  - FlexibleContexts
+  - FlexibleInstances
   - LambdaCase
   - TupleSections
-  - PatternSynonyms
   - RecordWildCards
   - ViewPatterns
-  - GeneralizedNewtypeDeriving
+  - PatternSynonyms
   - StandaloneDeriving
+
+  # useful derivable
+  - GeneralizedNewtypeDeriving
   - DeriveGeneric
   - DeriveDataTypeable
-  - EmptyDataDecls
+
+  # extensions of type systems
   - DataKinds
   - PolyKinds
   - TypeApplications
@@ -50,7 +62,8 @@ language_extensions:
   - TypeFamilyDependencies
   - FunctionalDependencies
   - ScopedTypeVariables
-  - FlexibleContexts
   - RankNTypes
   - ConstraintKinds
+
+  # for stylish-haskell
   - MultiParamTypeClasses

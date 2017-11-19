@@ -2,11 +2,8 @@
 
 module Data.Tree.Trans.SATT.Instances
   (
-    -- from att to satt
-    fromAttrTreeTrans
-
     -- attribute instances
-  , SynAttrUnit(..)
+    SynAttrUnit(..)
   , pattern A0
   , InhAttrUnit(..)
   , pattern A1
@@ -24,6 +21,7 @@ import           ClassyPrelude
 import           Data.Pattern.Error
 import           Data.Universe.Class
 import           Data.Universe.Instances
+import           Data.Void
 
 import           Data.Tree.RankedTree
 import           Data.Tree.RankedTree.Instances
@@ -34,19 +32,19 @@ import           Data.Tree.Trans.SATT
 
 -- instances
 
-fromAttrTreeTrans :: forall syn inh ta tb.
-  ATT.AttrTreeTrans syn inh ta tb -> StackAttrTreeTrans syn inh EmptyType EmptyType ta tb
-fromAttrTreeTrans trans = StackAttrTreeTrans
-  { initialAttr   = ATT.initialAttr trans
-  , reductionRule = rule
-  }
-  where
-    toOutputAttr (ATT.AttrSide a)     = AttrSide (taggedOut a)
-    toOutputAttr (ATT.LabelSide l ts) = LabelSide l $ toOutputAttr <$> ts
+-- | An att is a satt
+instance (RankedTree ta, RankedTree tb, ATT.AttrTreeTrans t ta tb)     => StackAttrTreeTrans (ATT.WrappedAttrTreeTrans t ta tb) ta tb where
 
-    rule :: SattRuleType tag syn inh EmptyType EmptyType ta tb
-    rule (TaggedOut a) = toOutputAttr . ATT.reductionRule trans a
-    rule _             = error "not supported stack attributes"
+  type SattAttrType OutAttrTag tag (ATT.WrappedAttrTreeTrans t ta tb) = ATT.AttAttrType tag (ATT.WrappedAttrTreeTrans t ta tb)
+  type SattAttrType StkAttrTag tag (ATT.WrappedAttrTreeTrans t ta tb) = Void
+
+  initialAttr = ATT.initialAttr
+  reductionRule t a l = case a of
+      TaggedOut a' -> toOutputAttr $ ATT.reductionRule t a' l
+      TaggedStk _  -> StackEmptySide
+    where
+      toOutputAttr (ATT.AttrSide a)     = AttrSide (taggedOut a)
+      toOutputAttr (ATT.LabelSide l ts) = LabelSide l $ toOutputAttr <$> ts
 
 
 pattern A0 :: () => tag ~ OutAttrTag => InputAttr tag SynAttrUnit inh stsyn stinh
@@ -92,7 +90,7 @@ instance Show StInhAttrUnit where
 -- CallStack (from HasCallStack):
 -- ...
 --
-postfixToInfixTransducer :: StackAttrTreeTrans SynAttrUnit EmptyType EmptyType StInhAttrUnit PostfixOpTree InfixOpTree
+postfixToInfixTransducer :: StackAttrTreeTrans SynAttrUnit Void Void StInhAttrUnit PostfixOpTree InfixOpTree
 postfixToInfixTransducer = StackAttrTreeTrans
     { initialAttr   = minBound
     , reductionRule = rule
