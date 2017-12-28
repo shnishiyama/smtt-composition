@@ -1,16 +1,16 @@
 module Main where
 
-import           SattPrelude
+import           ClassyPrelude
 
 import           Language.Haskell.HLint
 import           System.Environment     as Env
 import           System.Exit
 
 targetPaths :: [String]
-targetPaths = ["Setup.hs", "src", "test", "benchmark", "app"]
+targetPaths = ["Setup.hs", "src", "test"]
 
 hintPath :: [String]
-hintPath = ["--hint=HLint.hs"]
+hintPath = ["--hint=../HLint.hs"]
 
 main :: IO ()
 main = do

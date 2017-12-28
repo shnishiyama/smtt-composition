@@ -1,61 +1,34 @@
 module Data.Tree.RankedTree
-  (
-    -- main
-    RankNumber
+  ( -- common
+    RankedTree (..)
+  , RankNumber
   , NodeVec
-  , length
-  , empty
-  , (!)
-  , treeTag
   , TreeTag
-  , RankedTree (..)
+  , pattern TreeTag
   , treeRank
   , foldTree
   , showTree
   , lengthTree
-  , (:$)
-  , RtApply
   , RtConstraint
-  , FinRankedTree
-  , FiniteRankedTree
 
-    -- ranked tree wrapper
-  , RankedTreeWrapper (..)
-  , wrapRankedTree
+    -- wrapper
+  , WrappedRankedTree (..)
 
-    -- ranked tree with initial
-  , RankedTreeWithInitial(..)
-  , RankedTreeLabelWithInitial(..)
-  , toRankedTreeWithoutInitial
-  , toRankedTreeWithInitial
-
-    -- bottom label
+    -- bottom
   , bottomLabel
   ) where
 
-import           ClassyPrelude
-
-import           Data.Coerce
-import           Data.Key
-import           Data.Profunctor.Unsafe
-import           Data.Proxy
-import           Data.Universe.Class
-import qualified Data.Vector            as V
+import           SattPrelude
 
 type RankNumber = Int
-type NodeVec    = V.Vector
+type NodeVec    = Vector
 
 type TreeTag = Proxy
 
-treeTag :: TreeTag t
-treeTag = Proxy
+pattern TreeTag :: RankedTree t => TreeTag t
+pattern TreeTag = Proxy
 
 -- | Ranked Labeled Tree Class
---
--- TODO:
---
--- * to use generic for deriving instance
--- * to implement a builder using Template Haskell for easy building
 --
 -- Conditions:
 --
@@ -65,7 +38,7 @@ treeTag = Proxy
 -- and, other methods are same as default implementations.
 --
 class RankedTree t where
-  type LabelType t :: *
+  type LabelType t :: Type
 
   treeLabel :: t -> LabelType t
   treeChilds :: t -> NodeVec t
@@ -77,7 +50,7 @@ class RankedTree t where
       then mkTreeUnchecked l ts
       else error $ "expected rank " <> show labelRank <> " label, but actual rank " <> show r
     where
-      labelRank = treeLabelRank (treeTag @t) l
+      labelRank = treeLabelRank (TreeTag :: TreeTag t) l
 
   mkTreeUnchecked :: LabelType t -> NodeVec t -> t
 
@@ -85,67 +58,59 @@ class RankedTree t where
   modifyChilds f t = mkTreeUnchecked (treeLabel t) $ f <$> treeChilds t
 
 treeRank :: forall t. RankedTree t => t -> RankNumber
-treeRank = treeLabelRank (treeTag @t) . treeLabel
+treeRank = treeLabelRank (TreeTag :: TreeTag t) . treeLabel
 
 foldTree :: RankedTree t => (LabelType t -> NodeVec b -> b) -> t -> b
 foldTree f = go where
   go t = f (treeLabel t) $ go <$> treeChilds t
 
-showTree :: (RankedTree t, Show :$ LabelType t) => t -> String
-showTree t = show (treeLabel t) <> childsStr (treeChilds t)
+showTree :: (RankedTree t, Show (LabelType t)) => t -> String
+showTree = foldTree go
   where
+    go l childs = show l <> childsStr childs
+
     childsStr ts
-      | V.null ts = ""
-      | otherwise = "(" <> intercalate ", " (showTree <$> ts)  <> ")"
+      | null ts = ""
+      | otherwise = "(" <> intercalate "," ts <> ")"
 
-lengthTree :: forall t l. RtConstraint t l => t -> Int
-lengthTree = length .# RankedTreeWrapper @t @l
+lengthTree :: forall t. RankedTree t => t -> Int
+lengthTree = length .# RankedTreeWrapper @t @(LabelType t)
 
-type t1 :$ t2 = t1 t2
-infixr 0 :$
 
-type RtApply tz t = tz t :$ LabelType t
 type RtConstraint t l = (RankedTree t, l ~ LabelType t)
-
-type FinRankedTree t l = (RtConstraint t l, Finite l)
-type FiniteRankedTree t = FinRankedTree t (LabelType t)
 
 -- wrapper
 
-newtype RankedTreeWrapper t l = RankedTreeWrapper
+newtype WrappedRankedTree t l = RankedTreeWrapper
   { unwrapRankedTree :: t
-  } deriving Generic
+  } deriving (Generic)
 
-wrapRankedTree :: RankedTree t => t -> RtApply RankedTreeWrapper t
-wrapRankedTree = coerce
+instance (RtConstraint t l, Hashable t) => Hashable (WrappedRankedTree t l)
 
-instance Hashable t => Hashable (RankedTreeWrapper t l)
-
-instance (RtConstraint t l, Eq l) => Eq (RankedTreeWrapper t l) where
+instance (RtConstraint t l, Eq l) => Eq (WrappedRankedTree t l) where
   t1 == t2 = treeLabel t1 == treeLabel t2 && treeChilds t1 == treeChilds t2
 
-instance (RtConstraint t l, Ord l) => Ord (RankedTreeWrapper t l) where
-  t1 `compare` t2 = case treeLabel t1 `compare` treeLabel t2 of
-    EQ -> treeChilds t1 `compare` treeChilds t2
-    r  -> r
+instance (RtConstraint t l, Ord l) => Ord (WrappedRankedTree t l) where
+  t1 `compare` t2
+    =  (treeLabel  t1 `compare` treeLabel  t2)
+    <> (treeChilds t1 `compare` treeChilds t2)
 
-instance (RtConstraint t l, Show l) => Show (RankedTreeWrapper t l) where
+instance (RtConstraint t l, Show l) => Show (WrappedRankedTree t l) where
   show = showTree
 
-instance RtConstraint t l => RankedTree (RankedTreeWrapper t l) where
-  type LabelType (RankedTreeWrapper t l) = l
+instance RtConstraint t l => RankedTree (WrappedRankedTree t l) where
+  type LabelType (WrappedRankedTree t l) = l
 
   treeLabel (RankedTreeWrapper t) = treeLabel t
   treeChilds (RankedTreeWrapper t) = coerce $ treeChilds t
-  treeLabelRank = coerce (treeLabelRank @ t)
+  treeLabelRank = coerce (treeLabelRank @t)
 
-  mkTree l = RankedTreeWrapper #. mkTree l . coerce
-  mkTreeUnchecked l = RankedTreeWrapper #. mkTreeUnchecked l . coerce
+  mkTree l = RankedTreeWrapper #. mkTree l .# coerce
+  mkTreeUnchecked l = RankedTreeWrapper #. mkTreeUnchecked l .# coerce
 
+type instance Element (WrappedRankedTree t l) = l
 
-type instance Element (RankedTreeWrapper t l) = l
-
-instance RtConstraint t l => MonoFoldable (RankedTreeWrapper t l) where
+instance RtConstraint t l => MonoFoldable (WrappedRankedTree t l) where
   ofoldMap f = foldTree $ \a bs -> f a `mappend` ofoldMap id bs
 
   ofoldl' f s t = g $ f s $ treeLabel t where
@@ -168,58 +133,8 @@ instance RtConstraint t l => MonoFoldable (RankedTreeWrapper t l) where
       Nothing -> x
       Just y  -> f x y
 
--- bottom label
+
+-- bottom
 
 bottomLabel :: l
-bottomLabel = error "rank (0) bottom label"
-
--- tree with initial
-
-data RankedTreeLabelWithInitial t l
-  = InitialLabel
-  | RankedTreeLabel l
-  deriving (Eq, Ord, Generic)
-
-instance Hashable l => Hashable (RankedTreeLabelWithInitial t l)
-
-instance Bounded l => Bounded (RankedTreeLabelWithInitial t l) where
-  minBound = InitialLabel
-  maxBound = RankedTreeLabel maxBound
-
-instance Universe l => Universe (RankedTreeLabelWithInitial t l) where
-  universe = InitialLabel : [ RankedTreeLabel l | l <- universe ]
-
-instance Finite l => Finite (RankedTreeLabelWithInitial t l)
-
-instance Show l => Show (RankedTreeLabelWithInitial t l) where
-  show InitialLabel        = "#"
-  show (RankedTreeLabel l) = show l
-
-data RankedTreeWithInitial t l
-  = RankedTreeWithInitial (RankedTreeWithInitial t l)
-  | RankedTreeWithoutInitial l (NodeVec :$ RankedTreeWithInitial t l)
-  deriving (Eq, Ord, Generic)
-
-instance (RtConstraint t l, Show l) => Show (RankedTreeWithInitial t l) where
-  show = showTree
-
-toRankedTreeWithoutInitial :: RankedTree t => t -> RtApply RankedTreeWithInitial t
-toRankedTreeWithoutInitial = foldTree RankedTreeWithoutInitial
-
-toRankedTreeWithInitial :: RankedTree t => t -> RtApply RankedTreeWithInitial t
-toRankedTreeWithInitial = RankedTreeWithInitial . toRankedTreeWithoutInitial
-
-instance RtConstraint t l => RankedTree (RankedTreeWithInitial t l) where
-  type LabelType (RankedTreeWithInitial t l) = RankedTreeLabelWithInitial t l
-
-  treeLabel RankedTreeWithInitial{}        = InitialLabel
-  treeLabel (RankedTreeWithoutInitial l _) = RankedTreeLabel l
-
-  treeChilds (RankedTreeWithInitial t)       = V.singleton t
-  treeChilds (RankedTreeWithoutInitial _ ts) = ts
-
-  treeLabelRank _ InitialLabel        = 1
-  treeLabelRank _ (RankedTreeLabel l) = treeLabelRank (treeTag @t) l
-
-  mkTreeUnchecked InitialLabel        ts = RankedTreeWithInitial (ts ! 0)
-  mkTreeUnchecked (RankedTreeLabel l) ts = RankedTreeWithoutInitial l ts
+bottomLabel = error "bottom label (rank: 0)"

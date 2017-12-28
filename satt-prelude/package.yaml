@@ -1,8 +1,8 @@
-name:        satt-composition
-version:     '0.2.0.0'
-synopsis:    Implementation of SATT Composition
-description: SATT Composition implementation
-category:    Tree
+name:        satt-prelude
+version:     '0.1.0.0'
+synopsis:    Prelude
+description: Prelude for satt-composition
+category:    Prelude
 author:      Mizunashi Mana
 maintainer:  mizunashi-mana@noreply.git
 copyright:   2017 Mizunashi Mana
@@ -10,12 +10,9 @@ license:     MIT
 homepage:    https://gitlab.com/mizunashi-mana/satt-composition#readme
 git:         https://gitlab.com/mizunashi-mana/satt-composition
 
-extra-source-files:
-- README.md
-
 _base-dependencies: &base-dependencies
   base: '>=4.7 && <5'
-  satt-prelude:
+  classy-prelude:
 
 build-type: Custom
 custom-setup:
@@ -32,7 +29,7 @@ ghc-options:
   - -funbox-strict-fields
 
 default-extensions:
-  # use satt-prelude
+  # use classy-prelude
   - NoImplicitPrelude
 
   # performance supports
@@ -42,15 +39,11 @@ default-extensions:
 
   # useful syntaxes
   - BinaryLiterals
-  - DefaultSignatures
   - FlexibleContexts
   - FlexibleInstances
-  - InstanceSigs
   - LambdaCase
-  - NegativeLiterals
   - PatternSynonyms
   - RecordWildCards
-  - RecursiveDo
   - StandaloneDeriving
   - TupleSections
   - ViewPatterns
@@ -59,7 +52,6 @@ default-extensions:
   - GeneralizedNewtypeDeriving
   - DeriveGeneric
   - DeriveDataTypeable
-  - DeriveFunctor
 
   # extensions of type systems
   - ConstraintKinds
@@ -78,32 +70,14 @@ default-extensions:
 library:
   source-dirs: src
   exposed-modules:
-    # ranked tree
-    - Data.Tree.RankedTree
-    - Data.Tree.RankedTree.Label
-
-    # tree transducers
-    - Data.Tree.Trans.Class
-    - Data.Tree.Trans.MAC
+  - SattPrelude
   other-modules: []
   dependencies:
     <<: *base-dependencies
-    mono-traversable:
-    unordered-containers:
-    recursion-schemes:
-
-executables:
-  satt-composit:
-    main: Main.hs
-    source-dirs: app
-    ghc-options:
-    - -threaded
-    - -rtsopts
-    - -with-rtsopts=-N
-    dependencies:
-      <<: *base-dependencies
-      satt-composition:
-      deepseq:
+    profunctors:
+    groom:
+    unicode-show:
+    deriving-compat:
 
 tests:
   lint:
@@ -111,8 +85,6 @@ tests:
     source-dirs: test
     other-modules: []
     ghc-options:
-    - -threaded
-    - -with-rtsopts=-N
     dependencies:
       <<: *base-dependencies
       hlint:
@@ -125,7 +97,7 @@ tests:
     - -with-rtsopts=-N
     dependencies:
       <<: *base-dependencies
-      satt-composition:
+      satt-prelude:
       hspec:
       QuickCheck:
 
@@ -142,17 +114,3 @@ tests:
       doctest:
       QuickCheck:
       template-haskell:
-
-benchmarks:
-  common:
-    main: Common.hs
-    source-dirs: benchmark
-    ghc-options:
-    - -O2
-    - -threaded
-    - -with-rtsopts=-N
-    dependencies:
-      <<: *base-dependencies
-      satt-composition:
-      criterion:
-      deepseq:

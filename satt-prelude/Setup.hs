@@ -5,7 +5,7 @@
 
 module Main where
 
-import SattPrelude
+import ClassyPrelude
 
 #ifndef MIN_VERSION_cabal_doctest
 #define MIN_VERSION_cabal_doctest(x,y,z) 0

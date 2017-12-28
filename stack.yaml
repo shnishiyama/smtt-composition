@@ -1,8 +1,11 @@
-resolver: lts-9.14
+resolver: lts-10.1
 
 packages:
+- satt-prelude
 - .
-extra-deps: []
+
+extra-deps:
+- haskell-src-exts-1.20.1
 
 flags: {}
 extra-package-dbs: []
