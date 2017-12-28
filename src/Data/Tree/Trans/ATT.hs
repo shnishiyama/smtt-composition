@@ -243,16 +243,20 @@ deriving instance (Show syn, Show inh, Show (LabelType ta)) => Show (AttRuleInpu
 instance (Universe syn, Universe inh, RankedTree ta, Universe (LabelType ta))
     => Universe (AttRuleInputParams syn inh ta tb) where
 
-  universe = do
-    l <- universe
-    let r = treeLabelRank (treeTag @(RtApply RankedTreeWithInitial ta)) l
+  universe = synAttInputParams <> inhAttInputParams
+    where
+      synAttInputParams = do
+        l <- universe
 
-    a <- [taggedSynBox a | a <- universe]
-    b <- [taggedInhBox (b, i) | b <- universe, i <- [0..(r - 1)]]
+        a <- [taggedSynBox a | a <- universe]
+        return $ AttRuleInputParams (a, l)
 
-    [   AttRuleInputParams (a, l)
-      , AttRuleInputParams (b, l)
-      ]
+      inhAttInputParams = do
+        l <- universe
+        let r = treeLabelRank (treeTag @(RtApply RankedTreeWithInitial ta)) l
+
+        b <- [taggedInhBox (b, i) | b <- universe, i <- [0..(r - 1)]]
+        return $ AttRuleInputParams (b, l)
 
 instance (Finite syn, Finite inh, RankedTree ta, Finite (LabelType ta))
     => Finite (AttRuleInputParams syn inh ta tb)
