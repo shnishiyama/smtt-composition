@@ -2,10 +2,10 @@
 
 module Data.Tree.Trans.MAC.Instances where
 
-import SattPrelude
+import           SattPrelude
 
-import Data.Tree.RankedTree.Label
-import Data.Tree.Trans.MAC
+import           Data.Tree.RankedTree.Label
+import           Data.Tree.Trans.MAC
 
 type InputSampleAlphabet = TaggedRankedAlphabet
   ['("A", 2), '("B", 1), '("C", 0)]
@@ -21,6 +21,18 @@ type SampleMtt = MttTransducer
   (RankedLabelledTree InputSampleAlphabet)
   (RankedLabelledTree OutputSampleAlphabet)
 
+-- | A sample macro tree transducer
+--
+-- Sample:
+-- >>> :set -XOverloadedLists
+-- >>> import Data.Tree.Trans.Class
+-- >>> a = taggedLabel @"A"
+-- >>> b = taggedLabel @"B"
+-- >>> c = taggedLabel @"C"
+-- >>> inputSampleTree = mkTree a [mkTree c [], mkTree b [mkTree c []]]
+-- >>> treeTrans sampleMtt inputSampleTree
+-- D(F,F)
+--
 sampleMtt :: SampleMtt
 sampleMtt = fromMaybe (error "unreachable") $ buildMtt
     (MttState f1 0 [MttLabelSide f []])

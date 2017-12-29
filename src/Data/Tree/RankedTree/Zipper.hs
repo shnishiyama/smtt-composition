@@ -14,11 +14,11 @@ module Data.Tree.RankedTree.Zipper
   , rtZipper
   ) where
 
-import SattPrelude
+import           SattPrelude
 
-import Data.Tree.RankedTree
-import qualified Data.Vector as V
-import Control.Arrow
+import           Control.Arrow
+import           Data.Tree.RankedTree
+import qualified Data.Vector          as V
 
 
 -- | A class of zippers of ranked tree
@@ -121,18 +121,20 @@ fromTreeCrumb RTZCrumb{..} t = mkTreeUnchecked rtzcLabel rtzcChilds'
 --
 -- >>> :set -XOverloadedLists
 -- >>> import Data.Tree.RankedTree.Label
--- >>> pattern AlphabetA = RankedAlphabet "a" 2
--- >>> pattern AlphabetB = RankedAlphabet "b" 1
--- >>> pattern AlphabetC = RankedAlphabet "c" 0
+-- >>> pattern AlphabetA = RankedAlphabet "A" 2
+-- >>> pattern AlphabetB = RankedAlphabet "B" 1
+-- >>> pattern AlphabetC = RankedAlphabet "C" 0
 -- >>> :{
--- treeABCZipper = rtZipper $ mkTree AlphabetA
+-- treeABCZipper = rtZipper $ mkLabelledTree AlphabetA
 --   [ mkTree AlphabetC []
 --   , mkTree AlphabetB [mkTree AlphabetC []]
 --   ]
+-- :}
+--
 -- >>> toTree <$> zoomInRtZipper treeABCZipper
--- Just
+-- Just C
 -- >>> toTree <$> (zoomInRtZipper >=> zoomRightRtZipper) treeABCZipper
--- Just (TreeB TreeC)
+-- Just B(C)
 -- >>> :{
 --   toTree <$>
 --   (   zoomInRtZipper
@@ -140,9 +142,15 @@ fromTreeCrumb RTZCrumb{..} t = mkTreeUnchecked rtzcLabel rtzcChilds'
 --   >=> zoomOutRtZipper
 --   ) treeABCZipper
 -- :}
--- Just (TreeA TreeC (TreeB TreeC))
--- >>> toTopTree <$> setTreeZipper (TreeA TreeC TreeC) <$> zoomInRtZipper treeABCZipper
--- Just (TreeA (TreeA TreeC TreeC) (TreeB TreeC))
+-- Just A(C,B(C))
+--
+-- >>> :{
+-- toTopTree
+--   <$> setTreeZipper (mkTree AlphabetA [mkTree AlphabetC [], mkTree AlphabetC []])
+--   <$> zoomInRtZipper treeABCZipper
+-- :}
+-- Just A(A(C,C),B(C))
+--
 -- >>> toTree <$> zoomOutRtZipper treeABCZipper
 -- Nothing
 -- >>> toTree <$> zoomRightRtZipper treeABCZipper

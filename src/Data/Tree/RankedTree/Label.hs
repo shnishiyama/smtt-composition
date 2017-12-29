@@ -6,6 +6,7 @@ module Data.Tree.RankedTree.Label
     RankedTree (..)
   , RankedLabel (..)
   , RankedLabelledTree
+  , mkLabelledTree
 
     -- wrapper
   , RankedTreeLabel (..)
@@ -98,6 +99,9 @@ instance (RankedLabel a, Ord a) => Ord (RankedLabelledTree a) where
 
 instance (RankedLabel a, Show a) => Show (RankedLabelledTree a) where
   show = coerce (show @(WrappedRankedTree (RankedLabelledTree a) a))
+
+mkLabelledTree :: RankedLabel a => a -> NodeVec (RankedLabelledTree a) -> RankedLabelledTree a
+mkLabelledTree = mkTree
 
 instance RankedLabel a => RankedTree (RankedLabelledTree a) where
   type LabelType (RankedLabelledTree a) = a

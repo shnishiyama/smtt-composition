@@ -90,6 +90,7 @@ library:
     - Data.Tree.Trans.Class
     - Data.Tree.Trans.MAC
     - Data.Tree.Trans.MAC.Instances
+    - Data.Tree.Trans.ATT
   other-modules: []
   dependencies:
     <<: *base-dependencies

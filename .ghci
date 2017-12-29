@@ -1,5 +1,6 @@
 -- Languages
 :set -XOverloadedStrings
+:set -XOverloadedLists
 
 -- Pretty Print for Unicode
 :set -interactive-print=Text.Show.Unicode.uprint

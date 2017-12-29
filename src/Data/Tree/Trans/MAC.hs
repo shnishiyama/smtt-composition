@@ -2,16 +2,43 @@
 {-# LANGUAGE OverloadedLists #-}
 {-# LANGUAGE TemplateHaskell #-}
 
-module Data.Tree.Trans.MAC where
+module Data.Tree.Trans.MAC
+  ( -- common
+    MacroTreeTransducer
+  , MttTransducer
+  , MttConstraint
+  , buildMtt
+  , RightHandSide
+  , pattern MttContext
+  , pattern MttState
+  , pattern MttLabelSide
+  , showMttRhs
+
+    -- bottom
+  , bottomLabelSide
+
+    -- reduction system
+  , buildMttReduction
+  , runMttReduction
+  , runMttReductionWithHistory
+  , toInitialReductionState
+  , fromReductionState
+  , showReductionState
+
+    -- internal
+  , RightHandSideF(..)
+  , ReductionStateF(..)
+  , mttTranslateRule
+  ) where
 
 import           SattPrelude
 
+import qualified Data.Foldable               as F
 import           Data.Functor.Foldable
 import           Data.Tree.RankedTree
 import           Data.Tree.RankedTree.Label
 import           Data.Tree.RankedTree.Zipper
 import           Data.Tree.Trans.Class
-import qualified Data.Foldable as F
 
 
 data RightHandSideF s l t c rhs
@@ -41,6 +68,13 @@ pattern MttState s t cs = Fix (MttStateF s t cs)
 pattern MttLabelSide :: l -> NodeVec (RightHandSide s l) -> RightHandSide s l
 pattern MttLabelSide l cs = Fix (MttLabelSideF l cs)
 
+showMttRhs :: (Show s, Show l) => RightHandSide s l -> String
+showMttRhs (Fix x) = case x of
+  MttContextF c    -> "y" <> show c
+  MttStateF s t cs -> show s <> "(" <> "u" <> show t
+    <> intercalate "" (((", " <>) . showMttRhs) <$> cs) <> ")"
+  MttLabelSideF l cs -> show l <> "(" <> intercalate ", " (showMttRhs <$> cs) <> ")"
+
 bottomLabelSide :: RightHandSide s l
 bottomLabelSide = MttLabelSide bottomLabel []
 
@@ -55,17 +89,11 @@ instance (Show s, Show la, Show lb, MttConstraint s ta la tb lb)
 
   show MacroTreeTransducer{..} = "MacroTreeTransducer {"
       <> " mttStates = " <> show (toList mttStates) <> ","
-      <> " mttInitialExpr = " <> showRHS mttInitialExpr <> ","
+      <> " mttInitialExpr = " <> showMttRhs mttInitialExpr <> ","
       <> " mttTransRules = [" <> intercalate ", " (showRule <$> mapToList mttTransRules) <> "],"
       <> " }"
     where
-      showRHS (Fix x) = case x of
-        MttContextF c    -> "y" <> show c
-        MttStateF s t cs -> show s <> "(" <> "u" <> show t
-          <> intercalate "" (((", " <>) . showRHS) <$> cs) <> ")"
-        MttLabelSideF l cs -> show l <> "(" <> intercalate ", " (showRHS <$> cs) <> ")"
-
-      showRule (k, rhs) = show k <> " -> " <> showRHS rhs
+      showRule (k, rhs) = show k <> " -> " <> showMttRhs rhs
 
 
 type MttTransducer s ta tb
@@ -202,15 +230,40 @@ runMttReduction :: forall s ta la tb lb. (MttConstraint s ta la tb lb)
   => MacroTreeTransducer s ta la tb lb -> ReductionState s ta la tb lb -> ReductionState s ta la tb lb
 runMttReduction trans istate = toTopTree $ buildMttReduction const (rtZipper istate) trans istate
 
+runMttReductionWithHistory :: forall s ta la tb lb. (MttConstraint s ta la tb lb)
+  => MacroTreeTransducer s ta la tb lb -> ReductionState s ta la tb lb -> [ReductionState s ta la tb lb]
+runMttReductionWithHistory trans istate
+  = buildMttReduction @RTZipper (\tz -> (. (toTopTree tz:))) id trans istate []
+
+toInitialReductionState :: MttConstraint s ta la tb lb
+  => MacroTreeTransducer s ta la tb lb -> ta -> ReductionState s ta la tb lb
+toInitialReductionState trans t = go $ mttInitialExpr trans
+  where
+    go (Fix x) = case x of
+      MttLabelSideF l cs -> RedFix $ MttLabelSideF l $ go <$> cs
+      MttStateF f _ cs   -> RedFix $ MttStateF f t $ go <$> cs
+      MttContextF{}      -> error "This tree transducer is illegal."
+
+fromReductionState :: MttConstraint s ta la tb lb
+  => ReductionState s ta la tb lb -> Maybe tb
+fromReductionState (RedFix (MttLabelSideF l cs)) = do
+  cs' <- mapM fromReductionState cs
+  pure $ mkTreeUnchecked l cs'
+fromReductionState _ = Nothing
+
+showReductionState :: (Show s, Show ta, Show lb) => ReductionState s ta la tb lb -> String
+showReductionState (RedFix x) = case x of
+  MttContextF c    -> showReductionState c
+  MttStateF s t cs -> show s <> "(" <> show t
+    <> intercalate "" (((", " <>) . showReductionState) <$> cs) <> ")"
+  MttLabelSideF l cs -> show l <> "(" <> intercalate ", " (showReductionState <$> cs) <> ")"
+
 
 -- A tree transduction for mtt
 instance MttConstraint s ta la tb lb => TreeTransducer (MacroTreeTransducer s ta la tb lb) ta tb where
-  treeTrans trans t = fromReductionState . runMttReduction trans . toReductionState $ mttInitialExpr trans
-    where
-      toReductionState (Fix ie) = case ie of
-        MttLabelSideF l cs -> RedFix $ MttLabelSideF l $ toReductionState <$> cs
-        MttStateF f _ cs   -> RedFix $ MttStateF f t $ toReductionState <$> cs
-        MttContextF{}      -> error "This tree transducer is illegal."
+  treeTrans trans
+    =   toInitialReductionState trans
+    >>> runMttReduction trans
+    >>> fromReductionState
+    >>> fromMaybe (error "This tree transducer is illegal.")
 
-      fromReductionState (RedFix (MttLabelSideF l cs)) = mkTreeUnchecked l $ fromReductionState <$> cs
-      fromReductionState _ = error "This tree transducer is illegal."

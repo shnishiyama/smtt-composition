@@ -16,6 +16,8 @@ module SattPrelude
   , (.#)
   , groom
   , ushow
+  , (>>>)
+  , (<<<)
   , Generic1
   , errorM
   , Symbol
@@ -41,25 +43,26 @@ module SattPrelude
 
 import           ClassyPrelude
 
+import           Control.Arrow
+import           Data.Bifoldable
 import           Data.Coerce
 import           Data.Functor.Classes
 import           Data.Kind
 import           Data.Profunctor.Unsafe
+import           Data.Promotion.Prelude
 import           Data.Proxy
+import           Data.Singletons.TypeLits
 import           GHC.Generics
 import           Text.Groom
 import           Text.Show.Unicode
-import           Data.Bifoldable
-import           Data.Promotion.Prelude
-import           Data.Singletons.TypeLits
 
+import           Data.Bifunctor.TH
 import           Data.Eq.Deriving
 import           Data.Ord.Deriving
 import           Text.Show.Deriving
-import           Data.Bifunctor.TH
 
-import           GHC.Exception (errorCallWithCallStackException)
-import           GHC.Stack (HasCallStack)
+import           GHC.Exception            (errorCallWithCallStackException)
+import           GHC.Stack                (HasCallStack)
 
 errorM :: (HasCallStack, MonadThrow m) => String -> m a
 errorM s = throwM $ errorCallWithCallStackException s ?callStack
