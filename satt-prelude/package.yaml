@@ -22,22 +22,31 @@ custom-setup:
     cabal-doctest:
 
 ghc-options:
+  # base options
   - -Wall
-  - -fprint-explicit-foralls
-  - -dcore-lint
-  - -fmax-pmcheck-iterations=5000000
+
+  # for performance
   - -funbox-strict-fields
+
+  # for useful
+  - -fprint-explicit-foralls
+
+  # for complex codes
+  - -fmax-pmcheck-iterations=5000000
+  - -dcore-lint
 
 default-extensions:
   # use classy-prelude
   - NoImplicitPrelude
 
   # performance supports
-  - BangPatterns
-  - StrictData
   - ApplicativeDo
+  - BangPatterns
+  - MagicHash
+  - StrictData
 
   # useful syntaxes
+  - Arrows
   - BinaryLiterals
   - FlexibleContexts
   - FlexibleInstances
@@ -75,9 +84,11 @@ library:
   dependencies:
     <<: *base-dependencies
     profunctors:
+    bifunctors:
     groom:
     unicode-show:
     deriving-compat:
+    singletons:
 
 tests:
   lint:

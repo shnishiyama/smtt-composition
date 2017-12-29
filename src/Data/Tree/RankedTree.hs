@@ -3,13 +3,12 @@ module Data.Tree.RankedTree
     RankedTree (..)
   , RankNumber
   , NodeVec
-  , TreeTag
-  , pattern TreeTag
   , treeRank
   , foldTree
   , showTree
   , lengthTree
   , RtConstraint
+  , RtApply
 
     -- wrapper
   , WrappedRankedTree (..)
@@ -22,11 +21,6 @@ import           SattPrelude
 
 type RankNumber = Int
 type NodeVec    = Vector
-
-type TreeTag = Proxy
-
-pattern TreeTag :: RankedTree t => TreeTag t
-pattern TreeTag = Proxy
 
 -- | Ranked Labeled Tree Class
 --
@@ -43,14 +37,14 @@ class RankedTree t where
   treeLabel :: t -> LabelType t
   treeChilds :: t -> NodeVec t
 
-  treeLabelRank :: TreeTag t -> LabelType t -> RankNumber
+  treeLabelRank :: Proxy t -> LabelType t -> RankNumber
 
   mkTree :: LabelType t -> NodeVec t -> t
   mkTree l ts = let r = length ts in if r == labelRank
       then mkTreeUnchecked l ts
       else error $ "expected rank " <> show labelRank <> " label, but actual rank " <> show r
     where
-      labelRank = treeLabelRank (TreeTag :: TreeTag t) l
+      labelRank = treeLabelRank (Proxy @t) l
 
   mkTreeUnchecked :: LabelType t -> NodeVec t -> t
 
@@ -58,7 +52,7 @@ class RankedTree t where
   modifyChilds f t = mkTreeUnchecked (treeLabel t) $ f <$> treeChilds t
 
 treeRank :: forall t. RankedTree t => t -> RankNumber
-treeRank = treeLabelRank (TreeTag :: TreeTag t) . treeLabel
+treeRank = treeLabelRank (Proxy @t) . treeLabel
 
 foldTree :: RankedTree t => (LabelType t -> NodeVec b -> b) -> t -> b
 foldTree f = go where
@@ -78,6 +72,7 @@ lengthTree = length .# RankedTreeWrapper @t @(LabelType t)
 
 
 type RtConstraint t l = (RankedTree t, l ~ LabelType t)
+type RtApply tz t = tz t (LabelType t)
 
 -- wrapper
 

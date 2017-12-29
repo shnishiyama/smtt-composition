@@ -36,11 +36,13 @@ default-extensions:
   - NoImplicitPrelude
 
   # performance supports
-  - BangPatterns
-  - StrictData
   - ApplicativeDo
+  - BangPatterns
+  - MagicHash
+  - StrictData
 
   # useful syntaxes
+  - Arrows
   - BinaryLiterals
   - DefaultSignatures
   - FlexibleContexts
@@ -60,6 +62,7 @@ default-extensions:
   - DeriveGeneric
   - DeriveDataTypeable
   - DeriveFunctor
+  - DeriveFoldable
 
   # extensions of type systems
   - ConstraintKinds
@@ -81,16 +84,19 @@ library:
     # ranked tree
     - Data.Tree.RankedTree
     - Data.Tree.RankedTree.Label
+    - Data.Tree.RankedTree.Zipper
 
     # tree transducers
     - Data.Tree.Trans.Class
     - Data.Tree.Trans.MAC
+    - Data.Tree.Trans.MAC.Instances
   other-modules: []
   dependencies:
     <<: *base-dependencies
-    mono-traversable:
     unordered-containers:
     recursion-schemes:
+    vector:
+    singletons:
 
 executables:
   satt-composit:

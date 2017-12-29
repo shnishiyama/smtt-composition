@@ -3,3 +3,6 @@
 
 -- Pretty Print for Unicode
 :set -interactive-print=Text.Show.Unicode.uprint
+
+-- Disable Warnings
+:set -Wno-type-defaults
