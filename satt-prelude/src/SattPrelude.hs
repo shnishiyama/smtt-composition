@@ -11,6 +11,7 @@ module SattPrelude
     -- useful components
   , Type
   , Proxy(..)
+  , Void
   , coerce
   , (#.)
   , (.#)
@@ -18,8 +19,9 @@ module SattPrelude
   , ushow
   , (>>>)
   , (<<<)
+  , (<&>)
   , Generic1
-  , errorM
+  , throwErrorM
   , Symbol
   , Nat
   , KnownSymbol
@@ -55,6 +57,7 @@ import           Data.Singletons.TypeLits
 import           GHC.Generics
 import           Text.Groom
 import           Text.Show.Unicode
+import           Data.Void
 
 import           Data.Bifunctor.TH
 import           Data.Eq.Deriving
@@ -64,5 +67,8 @@ import           Text.Show.Deriving
 import           GHC.Exception            (errorCallWithCallStackException)
 import           GHC.Stack                (HasCallStack)
 
-errorM :: (HasCallStack, MonadThrow m) => String -> m a
-errorM s = throwM $ errorCallWithCallStackException s ?callStack
+throwErrorM :: (HasCallStack, MonadThrow m) => String -> m a
+throwErrorM s = throwM $ errorCallWithCallStackException s ?callStack
+
+(<&>) :: Functor f => f a -> (a -> b) -> f b
+x <&> f = fmap f x

@@ -3,7 +3,9 @@ module Data.Tree.Trans.Class
   , RankedTree (..)
   ) where
 
+import           SattPrelude
+
 import           Data.Tree.RankedTree
 
 class (RankedTree ta, RankedTree tb) => TreeTransducer t ta tb | t -> ta, t -> tb where
-  treeTrans :: t -> ta -> tb
+  treeTrans :: MonadThrow m => t -> ta -> m tb
