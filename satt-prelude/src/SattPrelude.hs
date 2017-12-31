@@ -22,14 +22,12 @@ module SattPrelude
   , (<&>)
   , Generic1
   , throwErrorM
-  , Symbol
   , Nat
-  , KnownSymbol
-  , symbolVal
+  , Symbol
   , KnownNat
+  , KnownSymbol
   , natVal
-  , Elem
-  , Lookup
+  , symbolVal
 
     -- derivings
   , deriveEq1
@@ -51,7 +49,6 @@ import           Data.Coerce
 import           Data.Functor.Classes
 import           Data.Kind
 import           Data.Profunctor.Unsafe
-import           Data.Promotion.Prelude
 import           Data.Proxy
 import           Data.Singletons.TypeLits
 import           GHC.Generics

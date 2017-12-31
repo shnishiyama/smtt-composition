@@ -4,7 +4,7 @@
 
 module Data.Tree.Trans.MAC
   ( -- common
-    MacroTreeTransducer
+    MacroTreeTransducer(..)
   , MttTransducer
   , MttConstraint
   , buildMtt
@@ -26,6 +26,7 @@ module Data.Tree.Trans.MAC
   , prettyShowReductionState
 
     -- internal
+  -- , MacroTreeTransducer(..)
   , RightHandSideF(..)
   , prettyShowRhsF
   , ReductionStateF(..)

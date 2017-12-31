@@ -121,16 +121,19 @@ fromTreeCrumb RTZCrumb{..} t = mkTreeUnchecked rtzcLabel rtzcChilds'
 --
 -- >>> :set -XOverloadedLists
 -- >>> import Data.Tree.RankedTree.Label
--- >>> pattern AlphabetA = RankedAlphabet "A" 2
--- >>> pattern AlphabetB = RankedAlphabet "B" 1
--- >>> pattern AlphabetC = RankedAlphabet "C" 0
+-- >>> type ABCAlphabet = TaggedRankedAlphabet ['("A", 2), '("B", 1), '("C", 0)]
+-- >>> a = taggedRankedLabel @"A"
+-- >>> b = taggedRankedLabel @"B"
+-- >>> c = taggedRankedLabel @"C"
 -- >>> :{
--- treeABCZipper = rtZipper $ mkLabelledTree AlphabetA
---   [ mkTree AlphabetC []
---   , mkTree AlphabetB [mkTree AlphabetC []]
+-- treeABCSample :: RankedLabelledTree ABCAlphabet
+-- treeABCSample = mkLabelledTree a
+--   [ mkTree c []
+--   , mkTree b [mkTree c []]
 --   ]
 -- :}
 --
+-- >>> treeABCZipper = rtZipper treeABCSample
 -- >>> toTree <$> zoomInRtZipper treeABCZipper
 -- Just C
 -- >>> toTree <$> (zoomInRtZipper >=> zoomRightRtZipper) treeABCZipper
@@ -146,7 +149,7 @@ fromTreeCrumb RTZCrumb{..} t = mkTreeUnchecked rtzcLabel rtzcChilds'
 --
 -- >>> :{
 -- toTopTree
---   <$> setTreeZipper (mkTree AlphabetA [mkTree AlphabetC [], mkTree AlphabetC []])
+--   <$> setTreeZipper (mkTree a [mkTree c [], mkTree c []])
 --   <$> zoomInRtZipper treeABCZipper
 -- :}
 -- Just A(A(C,C),B(C))

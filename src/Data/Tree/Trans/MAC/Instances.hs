@@ -14,7 +14,7 @@ type OutputSampleAlphabet = TaggedRankedAlphabet
   ['("D", 2), '("E", 1), '("F", 0)]
 
 type SampleStateAlphabet = TaggedRankedAlphabet
-  ['("f1", 2), '("f2", 2)]
+  ['("f0", 2), '("f1", 2)]
 
 type SampleMtt = MttTransducer
   SampleStateAlphabet
@@ -26,30 +26,30 @@ type SampleMtt = MttTransducer
 -- Sample:
 -- >>> :set -XOverloadedLists
 -- >>> import Data.Tree.Trans.Class
--- >>> a = taggedLabel @"A"
--- >>> b = taggedLabel @"B"
--- >>> c = taggedLabel @"C"
+-- >>> a = taggedRankedLabel @"A"
+-- >>> b = taggedRankedLabel @"B"
+-- >>> c = taggedRankedLabel @"C"
 -- >>> inputSampleTree = mkTree a [mkTree c [], mkTree b [mkTree c []]]
 -- >>> treeTrans sampleMtt inputSampleTree
 -- D(F,F)
 --
 sampleMtt :: SampleMtt
 sampleMtt = fromMaybe (error "unreachable") $ buildMtt
-    (MttState f1 0 [MttLabelSide f []])
-    [ (f1, a, MttState f1 0 [MttState f2 1 [MttContext 0]])
-    , (f1, b, MttLabelSide e [MttContext 0])
+    (MttState f0 0 [MttLabelSide f []])
+    [ (f0, a, MttState f0 0 [MttState f1 1 [MttContext 0]])
+    , (f0, b, MttLabelSide e [MttContext 0])
+    , (f0, c, MttContext 0)
+    , (f1, a, MttContext 0)
+    , (f1, b, MttState f1 0 [MttLabelSide d [MttState f0 0 [MttContext 0], MttContext 0]])
     , (f1, c, MttContext 0)
-    , (f2, a, MttContext 0)
-    , (f2, b, MttState f2 0 [MttLabelSide d [MttState f1 0 [MttContext 0], MttContext 0]])
-    , (f2, c, MttContext 0)
     ]
   where
-    f1 = taggedLabel @"f1"
-    f2 = taggedLabel @"f2"
+    f0 = taggedRankedLabel @"f0"
+    f1 = taggedRankedLabel @"f1"
 
-    a = taggedLabel @"A"
-    b = taggedLabel @"B"
-    c = taggedLabel @"C"
-    d = taggedLabel @"D"
-    e = taggedLabel @"E"
-    f = taggedLabel @"F"
+    a = taggedRankedLabel @"A"
+    b = taggedRankedLabel @"B"
+    c = taggedRankedLabel @"C"
+    d = taggedRankedLabel @"D"
+    e = taggedRankedLabel @"E"
+    f = taggedRankedLabel @"F"
