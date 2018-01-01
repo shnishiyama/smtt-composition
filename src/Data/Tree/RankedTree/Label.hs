@@ -10,6 +10,7 @@ module Data.Tree.RankedTree.Label
 
     -- wrapper
   , RankedTreeLabel (..)
+  , ConstRankedLabel (..)
 
     -- ranked alphabet
   , RankedAlphabet
@@ -59,6 +60,19 @@ instance Hashable l => Hashable (RankedTreeLabel t l)
 
 instance RtConstraint t l => RankedLabel (RankedTreeLabel t l) where
   labelRank (RankedTreeLabelWrapper l) = treeLabelRank (Proxy @t) l
+
+
+newtype ConstRankedLabel (n :: Nat) a = ConstRankedLabelWrapper
+  { unwrapConstRankedLabel :: a
+  } deriving (Eq, Ord, Enum, Bounded, Generic)
+
+instance Show a => Show (ConstRankedLabel n a) where
+  show (ConstRankedLabelWrapper l) = show l
+
+instance Hashable a => Hashable (ConstRankedLabel n a)
+
+instance KnownNat n => RankedLabel (ConstRankedLabel n a) where
+  labelRank _ = fromInteger $ natVal (Proxy @n)
 
 
 -- ranked alphabet

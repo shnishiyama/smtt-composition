@@ -27,7 +27,6 @@ custom-setup:
 ghc-options:
   - -Wall
   - -fprint-explicit-foralls
-  - -dcore-lint
   - -fmax-pmcheck-iterations=5000000
   - -funbox-strict-fields
 
@@ -89,12 +88,16 @@ library:
 
     # tree transducers
     - Data.Tree.Trans.Class
+    - Data.Tree.Trans.TOP
+    - Data.Tree.Trans.TOP.Instances
     - Data.Tree.Trans.MAC
     - Data.Tree.Trans.MAC.Instances
     - Data.Tree.Trans.ATT
     - Data.Tree.Trans.ATT.Instances
     - Data.Tree.Trans.Compose.Desc
   other-modules: []
+  ghc-options:
+  - -dcore-lint
   dependencies:
     <<: *base-dependencies
     unordered-containers:
@@ -110,6 +113,10 @@ executables:
     - -threaded
     - -rtsopts
     - -with-rtsopts=-N
+    ghc-prof-options:
+    - -threaded
+    - -rtsopts
+    - "\"-with-rtsopts=-N -xc\""
     dependencies:
       <<: *base-dependencies
       satt-composition:

@@ -18,6 +18,7 @@ module Data.Tree.Trans.MAC
   , bottomLabelSide
 
     -- reduction system
+  , ReductionState
   , buildMttReduction
   , runMttReduction
   , runMttReductionWithHistory
@@ -45,9 +46,9 @@ import           Data.Tree.RankedTree.Zipper
 import           Data.Tree.Trans.Class
 
 
-data RightHandSideF s l t c rhs
+data RightHandSideF s t l u c rhs
   = MttContextF c
-  | MttStateF s t (NodeVec rhs)
+  | MttStateF s u (NodeVec rhs)
   | MttLabelSideF ~l (NodeVec rhs)
   deriving (Eq, Ord, Show, Generic, Generic1, Functor, Foldable)
 
@@ -61,8 +62,8 @@ deriveBifunctor ''RightHandSideF
 deriveBifoldable ''RightHandSideF
 
 prettyShowRhsF :: (Show s, Show l)
-  => (t -> String) -> (c -> String) -> (rhs -> String)
-  -> RightHandSideF s l t c rhs
+  => (u -> String) -> (c -> String) -> (rhs -> String)
+  -> RightHandSideF s t l u c rhs
   -> String
 prettyShowRhsF tShow cShow rhsShow x = case x of
   MttContextF c -> cShow c
@@ -71,33 +72,33 @@ prettyShowRhsF tShow cShow rhsShow x = case x of
   MttLabelSideF l cs -> show l <> "(" <> intercalate ", " (rhsShow <$> cs) <> ")"
 
 
-type RightHandSide s l = Fix (RightHandSideF s l RankNumber RankNumber)
+type RightHandSide s t l = Fix (RightHandSideF s t l RankNumber RankNumber)
 
-pattern MttContext :: RankNumber -> RightHandSide s l
+pattern MttContext :: RankNumber -> RightHandSide s t l
 pattern MttContext c = Fix (MttContextF c)
 
-pattern MttState :: s -> RankNumber -> NodeVec (RightHandSide s l) -> RightHandSide s l
+pattern MttState :: s -> RankNumber -> NodeVec (RightHandSide s t l) -> RightHandSide s t l
 pattern MttState s t cs = Fix (MttStateF s t cs)
 
-pattern MttLabelSide :: l -> NodeVec (RightHandSide s l) -> RightHandSide s l
+pattern MttLabelSide :: l -> NodeVec (RightHandSide s t l) -> RightHandSide s t l
 pattern MttLabelSide l cs = Fix (MttLabelSideF l cs)
 
 {-# COMPLETE MttContext, MttState, MttLabelSide #-}
 
-prettyShowRhs :: (Show s, Show l) => RightHandSide s l -> String
+prettyShowRhs :: (Show s, Show l) => RightHandSide s t l -> String
 prettyShowRhs (Fix x) = prettyShowRhsF
   (\t -> "u" <> show t)
   (\c -> "y" <> show c)
   prettyShowRhs
   x
 
-bottomLabelSide :: RightHandSide s l
+bottomLabelSide :: RightHandSide s t l
 bottomLabelSide = MttLabelSide bottomLabel []
 
 data MacroTreeTransducer s ta la tb lb = MacroTreeTransducer
   { mttStates      :: HashSet s
-  , mttInitialExpr :: RightHandSide s lb
-  , mttTransRules  :: HashMap (s, la) (RightHandSide s lb)
+  , mttInitialExpr :: RightHandSide s tb lb
+  , mttTransRules  :: HashMap (s, la) (RightHandSide s tb lb)
   } deriving (Eq, Generic)
 
 type MttTransducer s ta tb
@@ -122,7 +123,7 @@ instance (Show s, Show la, Show lb, MttConstraint s ta la tb lb)
       showRule (k, rhs) = show k <> " -> " <> prettyShowRhs rhs
 
 buildMtt :: forall m s ta la tb lb. (MttConstraint s ta la tb lb, MonadThrow m)
-  => RightHandSide s lb -> [(s, la, RightHandSide s lb)]
+  => RightHandSide s tb lb -> [(s, la, RightHandSide s tb lb)]
   -> m (MacroTreeTransducer s ta la tb lb)
 buildMtt ie rules = do
     states' <- scanRHS 1 0 [] ie
@@ -161,22 +162,22 @@ buildMtt ie rules = do
 
 mttTranslateRule :: MttConstraint s ta la tb lb
   => MacroTreeTransducer s ta la tb lb
-  -> (s, la) -> RightHandSide s lb
+  -> (s, la) -> RightHandSide s tb lb
 mttTranslateRule trans p = fromMaybe bottomLabelSide . lookup p $ mttTransRules trans
 
 
 -- reduction system
 
 newtype ReductionStateF s ta la tb lb state = ReductionStateF
-  { unwrapReductionStateF :: RightHandSideF s lb ta state state
+  { unwrapReductionStateF :: RightHandSideF s tb lb ta state state
   } deriving (Eq, Ord, Show, Generic)
 
 instance Functor (ReductionStateF s ta la tb lb) where
-  fmap f = coerce $ bimap @(RightHandSideF s lb ta) f f
+  fmap f = coerce $ bimap @(RightHandSideF s tb lb ta) f f
 
 instance F.Foldable (ReductionStateF s ta la tb lb) where
-  foldMap f = coerce $ bifoldMap @(RightHandSideF s lb ta) f f
-  foldr f = coerce $ bifoldr @(RightHandSideF s lb ta) f f
+  foldMap f = coerce $ bifoldMap @(RightHandSideF s tb lb ta) f f
+  foldr f = coerce $ bifoldr @(RightHandSideF s tb lb ta) f f
 
 type instance Element (ReductionStateF s ta la tb lb state) = state
 
@@ -194,7 +195,7 @@ instance (Show s, Show lb, Show ta) => Show1 (ReductionStateF s ta la tb lb) whe
 type ReductionState s ta la tb lb = Fix (ReductionStateF s ta la tb lb)
 
 pattern RedFix
-  :: RightHandSideF s lb ta (ReductionState s ta la tb lb) (ReductionState s ta la tb lb)
+  :: RightHandSideF s tb lb ta (ReductionState s ta la tb lb) (ReductionState s ta la tb lb)
   -> ReductionState s ta la tb lb
 pattern RedFix s = Fix (ReductionStateF s)
 {-# COMPLETE RedFix #-}
@@ -246,11 +247,13 @@ buildMttReduction f is trans = go is . toZipper
       MttContextF yi     -> ys `indexEx` yi
 
 runMttReduction :: forall s ta la tb lb. (MttConstraint s ta la tb lb)
-  => MacroTreeTransducer s ta la tb lb -> ReductionState s ta la tb lb -> ReductionState s ta la tb lb
+  => MacroTreeTransducer s ta la tb lb
+  -> ReductionState s ta la tb lb -> ReductionState s ta la tb lb
 runMttReduction trans istate = toTopTree $ buildMttReduction const (rtZipper istate) trans istate
 
 runMttReductionWithHistory :: forall s ta la tb lb. (MttConstraint s ta la tb lb)
-  => MacroTreeTransducer s ta la tb lb -> ReductionState s ta la tb lb -> [ReductionState s ta la tb lb]
+  => MacroTreeTransducer s ta la tb lb
+  -> ReductionState s ta la tb lb -> [ReductionState s ta la tb lb]
 runMttReductionWithHistory trans istate
   = buildMttReduction @RTZipper (\tz -> (. (toTopTree tz:))) id trans istate []
 
@@ -278,7 +281,7 @@ prettyShowReductionState (RedFix x) = prettyShowRhsF
   x
 
 
--- A tree transduction for mtt
+-- A tree transduction for mtts
 instance MttConstraint s ta la tb lb => TreeTransducer (MacroTreeTransducer s ta la tb lb) ta tb where
   treeTrans trans
     =   toInitialReductionState trans

@@ -7,3 +7,6 @@
 
 -- Disable Warnings
 :set -Wno-type-defaults
+
+-- For Debugging
+-- :set -prof -fexternal-interpreter

@@ -114,13 +114,13 @@ indexAttRule trans = (mapFromList idx, setFromList attrds)
       in cxt2
 
     go a l p (xs, ys) = let
-        (x, ys') = trace "a" $ scanRHS a l (zoomNextRightOutZipper (checkAttrSide . toTree) p) [] ys
+        (x, ys') = scanRHS a l (zoomNextRightOutZipper (checkAttrSide . toTree) p) [] ys
       in (if null x then xs else ((a, l), x):xs, ys')
 
     initialPathInfo = toZipper
 
     scanRHS _ _ Nothing   xs ys = (xs, ys)
-    scanRHS a l (Just p') xs ys = traceShow (attPathList p') $ case toTree p' of
+    scanRHS a l (Just p') xs ys = case toTree p' of
       AttAttrSide ad -> scanRHS a l
         (zoomNextRightOutZipper1 (checkAttrSide . toTree) p')
         ((ad, p'):xs) (ad:ys)
@@ -157,7 +157,6 @@ composeAtts :: forall syn1 inh1 syn2 inh2 ti1 li1 to1 lo1 ti2 li2 to2 lo2.
   ( AttConstraint syn1 inh1 ti1 li1 to1 lo1
   , to1 ~ ti2
   , AttConstraint syn2 inh2 ti2 li2 to2 lo2
-  , Show li1
   )
   => AttributedTreeTransducer syn1 inh1 ti1 li1 to1 lo1
   -> AttributedTreeTransducer syn2 inh2 ti2 li2 to2 lo2
@@ -182,6 +181,7 @@ composeAtts trans1 trans2 = fromMaybe (error "unreachable") $ buildAtt
         Inherited   a' -> second (a':)
       ) ([], []) attrs2
 
+    -- FIXME: Maybe this coerce raise core lint warnings
     unsafeInitialRhsInhCoerce :: (Functor f, Functor g)
       => f (g (RightHandSide syn inh tb lb)) -> f (g (RightHandSide syn Void tb lb))
     unsafeInitialRhsInhCoerce = Unsafe.unsafeCoerce
@@ -190,7 +190,7 @@ composeAtts trans1 trans2 = fromMaybe (error "unreachable") $ buildAtt
       [ ( replacerA2 a2
         , runReductionWithRep replacerB2 $ toInitialAttrState (Synthesized a2) pathInfo
         )
-      | a2 <- synAttrs2
+      | a2 <- if isInitial && isSynthesized a then [iattr2] else synAttrs2
       , let pathInfo = emptyAttPathInfo isInitial rhs
       ] <> do
         (ad1, p) <- ruleIndex a l
@@ -206,10 +206,8 @@ composeAtts trans1 trans2 = fromMaybe (error "unreachable") $ buildAtt
             , runReductionWithRep replacerB2 initAttrStateB2
             )
 
-    toInhPathInfo True p@AttPathInfo{..}
-      | attIsInitial == False = p { attPathList = attPathList <> [1], attIsInitial = True }
-      | otherwise             = error "This is a wrong indexed path"
-    toInhPathInfo False p = p
+    toInhPathInfo True p@AttPathInfo{..} = p { attPathList = attPathList <> [1] }
+    toInhPathInfo False p                = p
 
     buildRules a@(Synthesized a1) Nothing rhs = buildRules'
       (const $ error "Not contains any inherited attributes in initial rules")
