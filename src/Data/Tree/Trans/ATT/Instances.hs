@@ -21,17 +21,17 @@ identityTransducer ls = fromMaybe (error "unreachable") $ buildAtt
   | l <- setToList ls
   ]
 
-type SynSampleAttr = TaggedAlphabet
-  ["a0", "a1"]
-
-type InhSampleAttr = TaggedAlphabet
-  ["b0", "b1"]
-
 type InputSampleAlphabet = TaggedRankedAlphabet
   ['("A", 2), '("B", 1), '("C", 0)]
 
 type OutputSampleAlphabet = TaggedRankedAlphabet
   ['("D", 2), '("E", 1), '("F", 0)]
+
+type SynSampleAttr = TaggedAlphabet
+  ["a0", "a1"]
+
+type InhSampleAttr = TaggedAlphabet
+  ["b0", "b1"]
 
 type SampleAtt = AttTransducer
   SynSampleAttr

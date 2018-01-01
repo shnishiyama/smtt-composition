@@ -55,7 +55,6 @@ module Data.Tree.Trans.ATT
 
 import           SattPrelude
 
-import           Data.Functor.Foldable
 import           Data.Tree.RankedTree
 import           Data.Tree.RankedTree.Zipper
 import           Data.Tree.Trans.Class

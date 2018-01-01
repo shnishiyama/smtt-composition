@@ -94,7 +94,10 @@ library:
     - Data.Tree.Trans.MAC.Instances
     - Data.Tree.Trans.ATT
     - Data.Tree.Trans.ATT.Instances
+
+    # compose/decompose tree transducers
     - Data.Tree.Trans.Compose.Desc
+    - Data.Tree.Trans.Decompose.MttToAtt
   other-modules: []
   ghc-options:
   - -dcore-lint

@@ -39,7 +39,6 @@ module Data.Tree.Trans.MAC
 import           SattPrelude
 
 import qualified Data.Foldable               as F
-import           Data.Functor.Foldable
 import           Data.Tree.RankedTree
 import           Data.Tree.RankedTree.Label
 import           Data.Tree.RankedTree.Zipper

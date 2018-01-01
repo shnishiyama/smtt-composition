@@ -1,14 +1,14 @@
-{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE OverloadedLists   #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 module Main where
 
 import           SattPrelude
 
-import Data.Tree.RankedTree.Label
-import Data.Tree.Trans.ATT.Instances
-import Data.Tree.Trans.Class
-import Data.Tree.Trans.Compose.Desc
+import           Data.Tree.RankedTree.Label
+import           Data.Tree.Trans.ATT.Instances
+import           Data.Tree.Trans.Class
+import           Data.Tree.Trans.Compose.Desc
 
 main :: IO ()
 main = do

@@ -5,8 +5,9 @@ module SattPrelude
     module ClassyPrelude
 
     -- useful modules
-  , module Data.Functor.Classes
   , module Data.Bifoldable
+  , module Data.Functor.Classes
+  , module Data.Functor.Foldable
 
     -- useful components
   , Type
@@ -48,6 +49,8 @@ import           Control.Arrow
 import           Data.Bifoldable
 import           Data.Coerce
 import           Data.Functor.Classes
+import           Data.Functor.Foldable    (Corecursive (..), Fix (..),
+                                           Recursive (..))
 import           Data.Kind
 import           Data.Profunctor.Unsafe
 import           Data.Proxy

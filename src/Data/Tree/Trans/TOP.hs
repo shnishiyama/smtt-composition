@@ -1,3 +1,5 @@
+{-# LANGUAGE OverloadedLists #-}
+
 module Data.Tree.Trans.TOP
   ( -- common
     TopDownTreeTransducer
@@ -27,14 +29,14 @@ module Data.Tree.Trans.TOP
   , MAC.prettyShowReductionState
   ) where
 
-import SattPrelude
+import           SattPrelude
 
-import Data.Tree.RankedTree
-import Data.Tree.RankedTree.Label
-import Data.Tree.RankedTree.Zipper
-import Data.Tree.Trans.Class
-import qualified Data.Tree.Trans.MAC as MAC
-import qualified Data.Tree.Trans.ATT as ATT
+import           Data.Tree.RankedTree
+import           Data.Tree.RankedTree.Label
+import           Data.Tree.RankedTree.Zipper
+import qualified Data.Tree.Trans.ATT         as ATT
+import           Data.Tree.Trans.Class
+import qualified Data.Tree.Trans.MAC         as MAC
 
 
 type TdttState s = ConstRankedLabel 1 s
@@ -134,5 +136,5 @@ toAttributedTreeTransducer (TopDownTreeTransducer trans) = fromMaybe (error "unr
     | ((s, l), rhs) <- mapToList $ MAC.mttTransRules trans
     ]
   where
-    replaceRHS (TdttState s u) = ATT.AttAttrSide (ATT.Synthesized (s, u))
+    replaceRHS (TdttState s u)      = ATT.AttAttrSide (ATT.Synthesized (s, u))
     replaceRHS (TdttLabelSide l cs) = ATT.AttLabelSide l $ replaceRHS <$> cs

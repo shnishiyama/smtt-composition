@@ -89,6 +89,7 @@ library:
     unicode-show:
     deriving-compat:
     singletons:
+    recursion-schemes:
 
 tests:
   lint:
