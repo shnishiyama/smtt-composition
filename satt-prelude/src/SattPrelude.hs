@@ -12,6 +12,8 @@ module SattPrelude
   , Type
   , Proxy(..)
   , Void
+  , Generic1
+  , Kleisli
   , coerce
   , (#.)
   , (.#)
@@ -20,7 +22,6 @@ module SattPrelude
   , (>>>)
   , (<<<)
   , (<&>)
-  , Generic1
   , throwErrorM
   , Nat
   , Symbol
@@ -51,10 +52,10 @@ import           Data.Kind
 import           Data.Profunctor.Unsafe
 import           Data.Proxy
 import           Data.Singletons.TypeLits
+import           Data.Void
 import           GHC.Generics
 import           Text.Groom
 import           Text.Show.Unicode
-import           Data.Void
 
 import           Data.Bifunctor.TH
 import           Data.Eq.Deriving

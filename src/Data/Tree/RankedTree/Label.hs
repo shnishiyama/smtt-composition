@@ -19,11 +19,13 @@ module Data.Tree.RankedTree.Label
     -- safe apis
   , TaggedAlphabet ()
   , pattern TaggedAlphabet
+  , taggedAlphabetUniverse
   , taggedAlphabet
   , taggedLabel
   , untaggedAlphabet
   , TaggedRankedAlphabet ()
   , pattern TaggedRankedAlphabet
+  , taggedRankedAlphabetUniverse
   , taggedRankedAlphabet
   , taggedRankedLabel
   , untaggedRankedAlphabet
@@ -31,7 +33,7 @@ module Data.Tree.RankedTree.Label
 
 import           SattPrelude
 
-import qualified Data.Promotion.Prelude as Typ
+import qualified Data.Promotion.Prelude      as Typ
 import qualified Data.Promotion.Prelude.List as Typ
 import           Data.Tree.RankedTree
 
@@ -48,7 +50,12 @@ class RankedLabel l where
 
 newtype RankedTreeLabel t l = RankedTreeLabelWrapper
   { unwrapRankedTreeLabel :: l
-  } deriving (Eq, Ord, Show, Generic)
+  } deriving (Eq, Ord, Enum, Bounded, Generic)
+
+instance Show l => Show (RankedTreeLabel t l) where
+  show (RankedTreeLabelWrapper l) = show l
+
+instance Hashable l => Hashable (RankedTreeLabel t l)
 
 instance RtConstraint t l => RankedLabel (RankedTreeLabel t l) where
   labelRank (RankedTreeLabelWrapper l) = treeLabelRank (Proxy @t) l
@@ -94,6 +101,83 @@ newtype TaggedAlphabet (tag :: [Symbol]) = TaggedAlphabetWrapper
   { untaggedAlphabet :: String
   } deriving (Eq, Ord, Generic)
 
+class KnownTypTag (tag :: k) where
+  type TypTagValue tag :: *
+
+  typTagVal :: Proxy tag -> TypTagValue tag
+
+instance KnownNat tag => KnownTypTag tag where
+  type TypTagValue tag = Integer
+
+  typTagVal = natVal
+
+instance KnownSymbol tag => KnownTypTag tag where
+  type TypTagValue tag = String
+
+  typTagVal = symbolVal
+
+instance KnownTypTag '[] where
+  type TypTagValue '[] = ()
+
+  typTagVal _ = ()
+
+instance (KnownTypTag x, KnownTypTag xs) => KnownTypTag (x ': xs) where
+  type TypTagValue (x ': xs) = (TypTagValue x, TypTagValue xs)
+
+  typTagVal _ = (typTagVal $ Proxy @x, typTagVal $ Proxy @xs)
+
+instance KnownTypTag '() where
+  type TypTagValue '() = ()
+
+  typTagVal _ = ()
+
+instance (KnownTypTag x, KnownTypTag y) => KnownTypTag '(x, y) where
+  type TypTagValue '(x, y) = (TypTagValue x, TypTagValue y)
+
+  typTagVal _ = (typTagVal $ Proxy @x, typTagVal $ Proxy @y)
+
+class FlattenTupleList a b where
+  fromTupleToFlattenList :: a -> [b]
+
+instance FlattenTupleList () a where
+  fromTupleToFlattenList () = []
+
+instance FlattenTupleList as a => FlattenTupleList (a, as) a where
+  fromTupleToFlattenList (x, xs) = x:fromTupleToFlattenList xs
+
+type UntaggedTypList tag t = (KnownTypTag tag, FlattenTupleList (TypTagValue tag) t)
+
+untaggedTypList :: UntaggedTypList tag t => Proxy tag -> [t]
+untaggedTypList = fromTupleToFlattenList . typTagVal
+
+taggedAlphabetUniverse :: forall tag. UntaggedTypList tag String
+  => Proxy (TaggedAlphabet tag) -> [TaggedAlphabet tag]
+taggedAlphabetUniverse _ = coerce (untaggedTypList @tag Proxy :: [String])
+
+coerceTailTaggedAlphabet :: TaggedAlphabet as -> TaggedAlphabet (a ': as)
+coerceTailTaggedAlphabet x = TaggedAlphabetWrapper $ untaggedAlphabet x
+
+instance (KnownSymbol a) => Enum (TaggedAlphabet (a ': '[])) where
+  toEnum 0 = taggedAlphabet @a Proxy
+  toEnum _ = error "bad argument"
+
+  fromEnum _ = 0
+
+instance (KnownSymbol a0, Enum (TaggedAlphabet (a1 ': as))) => Enum (TaggedAlphabet (a0 ': a1 ': as)) where
+  toEnum 0 = taggedAlphabet @a0 Proxy
+  toEnum i = coerceTailTaggedAlphabet $ toEnum $ i - 1
+
+  fromEnum (TaggedAlphabet (Proxy :: Proxy a0)) = 0
+  fromEnum a = fromEnum (TaggedAlphabetWrapper $ untaggedAlphabet a :: TaggedAlphabet (a1 ': as)) + 1
+
+instance (KnownSymbol x) => Bounded (TaggedAlphabet (x ': '[])) where
+  minBound = TaggedAlphabetWrapper $ symbolVal @x Proxy
+  maxBound = minBound
+
+instance (KnownSymbol x0, Bounded (TaggedAlphabet (x1 ': xs))) => Bounded (TaggedAlphabet (x0 ': (x1 ': xs))) where
+  minBound = TaggedAlphabetWrapper $ symbolVal (Proxy @x0)
+  maxBound = coerceTailTaggedAlphabet (maxBound :: TaggedAlphabet (x1 ': xs))
+
 instance Hashable (TaggedAlphabet tag)
 
 instance Show (TaggedAlphabet tag) where
@@ -127,9 +211,24 @@ type MemberTaggedRankedAlphabet symbol rank tag =
   , Typ.Lookup symbol tag ~ 'Just rank
   )
 
+type FromTaggedRankedAlphabet tag = Typ.Nub (MapFst tag)
+
 newtype TaggedRankedAlphabet (tag :: [(Symbol, Nat)]) = TaggedRankedAlphabetWrapper
-  { _untaggedRankedAlphabet :: RankedAlphabet (TaggedAlphabet (Typ.Nub (MapFst tag)))
+  { _untaggedRankedAlphabet :: RankedAlphabet (TaggedAlphabet (FromTaggedRankedAlphabet tag))
   } deriving (Eq, Ord, Generic)
+
+taggedRankedAlphabetUniverse :: forall tag.
+  ( UntaggedTypList (FromTaggedRankedAlphabet tag) String
+  , UntaggedTypList tag (String, Integer)
+  )
+  => Proxy (TaggedRankedAlphabet tag) -> [TaggedRankedAlphabet tag]
+taggedRankedAlphabetUniverse _ = coerce
+    [ RankedAlphabetWrapper x $ fromMaybe (error "unreachable") $ lookup (coerce x) rm
+    | x <- taggedAlphabetUniverse $ Proxy @(TaggedAlphabet (FromTaggedRankedAlphabet tag))
+    ]
+  where
+    rm :: HashMap String RankNumber
+    rm = mapFromList $ second fromInteger <$> untaggedTypList (Proxy @tag)
 
 instance Show (TaggedRankedAlphabet tag) where
   show (TaggedRankedAlphabetWrapper x) = show x
@@ -137,7 +236,7 @@ instance Show (TaggedRankedAlphabet tag) where
 instance Hashable (TaggedRankedAlphabet tag)
 
 instance RankedLabel (TaggedRankedAlphabet tag) where
-  labelRank = coerce (labelRank @(RankedAlphabet (TaggedAlphabet (Typ.Nub (MapFst tag)))))
+  labelRank = coerce $ labelRank @(RankedAlphabet (TaggedAlphabet (FromTaggedRankedAlphabet tag)))
 
 viewTaggedRankedAlphabet :: forall symbol rank tag. MemberTaggedRankedAlphabet symbol rank tag
   => TaggedRankedAlphabet tag -> Maybe (Proxy '(symbol, rank))

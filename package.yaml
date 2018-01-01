@@ -83,6 +83,7 @@ library:
   exposed-modules:
     # ranked tree
     - Data.Tree.RankedTree
+    - Data.Tree.RankedTree.Instances
     - Data.Tree.RankedTree.Label
     - Data.Tree.RankedTree.Zipper
 
@@ -92,6 +93,7 @@ library:
     - Data.Tree.Trans.MAC.Instances
     - Data.Tree.Trans.ATT
     - Data.Tree.Trans.ATT.Instances
+    - Data.Tree.Trans.Compose.Desc
   other-modules: []
   dependencies:
     <<: *base-dependencies

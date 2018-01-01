@@ -4,7 +4,7 @@
 
 module Data.Tree.Trans.MAC
   ( -- common
-    MacroTreeTransducer(..)
+    MacroTreeTransducer
   , MttTransducer
   , MttConstraint
   , buildMtt
@@ -26,7 +26,9 @@ module Data.Tree.Trans.MAC
   , prettyShowReductionState
 
     -- internal
-  -- , MacroTreeTransducer(..)
+  , mttStates
+  , mttInitialExpr
+  , mttTransRules
   , RightHandSideF(..)
   , prettyShowRhsF
   , ReductionStateF(..)
@@ -227,7 +229,7 @@ buildMttReduction f is trans = go is . toZipper
       MttStateF{}     -> True
       MttLabelSideF{} -> False
 
-    go x sz = case zoomNextOutRightZipper (checkReducible . toTree) sz of
+    go x sz = case zoomNextRightOutZipper (checkReducible . toTree) sz of
       Just sz' -> let
         !nsz = modifyTreeZipper reductState sz'
         !nx = f nsz x
