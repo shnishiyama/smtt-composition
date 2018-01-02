@@ -15,15 +15,13 @@ module Data.Tree.Trans.ATT
   , pattern SynAttrSide
   , pattern InhAttrSide
   , pattern AttLabelSide
+  , pattern AttBottomLabelSide
   , prettyShowRhs
 
     -- either utility
   , AttAttrEither(..)
   , isSynthesized
   , isInherited
-
-    -- bottom
-  , bottomLabelSide
 
     -- reduction system
   , ReductionState
@@ -90,7 +88,8 @@ type AttAttrDepend syn inh = AttAttrEither
 
 data RightHandSideF syn inh t l pi rhs
   = AttAttrSideF (AttAttrDepend syn inh) pi
-  | AttLabelSideF ~l (NodeVec rhs)
+  | AttLabelSideF l (NodeVec rhs)
+  | AttBottomLabelSideF
   deriving (Eq, Ord, Show, Generic, Generic1, Functor, Foldable)
 
 instance (Hashable syn, Hashable inh, Hashable l, Hashable pi, Hashable rhs)
@@ -114,8 +113,9 @@ prettyShowRhsF :: (Show syn, Show inh, Show l, RtConstraint t l)
   -> RightHandSideF syn inh t l pi rhs
   -> String
 prettyShowRhsF attrShow rhsShow x = case x of
-  AttAttrSideF a p   -> attrShow (a, p)
-  AttLabelSideF l cs -> show l <> "(" <> intercalate ", " (rhsShow <$> cs) <> ")"
+    AttAttrSideF a p    -> attrShow (a, p)
+    AttLabelSideF l cs  -> show l <> "(" <> intercalate ", " (rhsShow <$> cs) <> ")"
+    AttBottomLabelSideF -> "_|_"
 
 
 type RightHandSide syn inh t l = Fix (RightHandSideF syn inh t l ())
@@ -132,24 +132,27 @@ pattern InhAttrSide a = AttAttrSide (Inherited a)
 pattern AttLabelSide :: RtConstraint t l => l -> NodeVec (RightHandSide syn inh t l) -> RightHandSide syn inh t l
 pattern AttLabelSide l cs = Fix (AttLabelSideF l cs)
 
-{-# COMPLETE AttAttrSide, AttLabelSide #-}
-{-# COMPLETE SynAttrSide, InhAttrSide, AttLabelSide #-}
+pattern AttBottomLabelSide :: RtConstraint t l => RightHandSide syn inh t l
+pattern AttBottomLabelSide = Fix AttBottomLabelSideF
+
+{-# COMPLETE AttAttrSide, AttLabelSide, AttBottomLabelSide #-}
+{-# COMPLETE SynAttrSide, InhAttrSide, AttLabelSide, AttBottomLabelSide #-}
 
 instance (RtConstraint t l) => RankedTree (Fix (RightHandSideF syn inh t l ())) where
   type LabelType (Fix (RightHandSideF syn inh t l ())) = RightHandSideF syn inh t l () ()
 
   treeLabel (Fix x) = void x
-  treeChilds (Fix x) = case x of
-    AttAttrSideF{}     -> []
-    AttLabelSideF _ cs -> cs
+  treeChilds (Fix x) = fromList $ toList x
 
   treeLabelRank _ = length
 
   mkTreeUnchecked x cs = Fix $ case x of
-    AttAttrSideF a p  -> AttAttrSideF a p
-    AttLabelSideF l _ -> AttLabelSideF l cs
+    AttAttrSideF a p    -> AttAttrSideF a p
+    AttLabelSideF l _   -> AttLabelSideF l cs
+    AttBottomLabelSideF -> AttBottomLabelSideF
 
-prettyShowRhs :: (Show syn, Show inh, Show l, RtConstraint t l) => RightHandSide syn inh t l -> String
+prettyShowRhs :: (Show syn, Show inh, Show l, RtConstraint t l)
+  => RightHandSide syn inh t l -> String
 prettyShowRhs (Fix x) = prettyShowRhsF
     (\(a, ()) -> attrShow a)
     prettyShowRhs
@@ -157,9 +160,6 @@ prettyShowRhs (Fix x) = prettyShowRhsF
   where
     attrShow (Synthesized (a, i)) = show a <> "[" <> show i <> ", ...]"
     attrShow (Inherited a)        = show a <> "[...]"
-
-bottomLabelSide :: RtConstraint t l => RightHandSide syn inh t l
-bottomLabelSide = AttLabelSide bottomLabel []
 
 type AttAttr syn inh = AttAttrEither
   syn
@@ -255,16 +255,15 @@ buildAtt ia irules rules = do
         then pure $ Synthesized a:xs
         else throwErrorM "Using an over indexed synthesized attribute"
       AttAttrSideF (Inherited a) () -> pure $ Inherited a:xs
-      -- ignore labels with rank 0 for bottom
-      AttLabelSideF l cs -> let len = length cs in
-        if len == 0 || len == treeLabelRankOut l
-          then foldM (scanRHS k) xs cs
-          else throwErrorM "Mismatch the rank of an output label for childs"
+      AttLabelSideF l cs -> if length cs == treeLabelRankOut l
+        then foldM (scanRHS k) xs cs
+        else throwErrorM "Mismatch the rank of an output label for childs"
+      AttBottomLabelSideF -> pure xs
 
 attInitialRule :: AttConstraint syn inh ta la tb lb
   => AttributedTreeTransducer syn inh ta la tb lb
   -> AttAttrEither syn inh -> RightHandSide syn inh tb lb
-attInitialRule trans a = coerceRhsInh $ fromMaybe bottomLabelSide $ case a of
+attInitialRule trans a = coerceRhsInh $ fromMaybe AttBottomLabelSide $ case a of
     Inherited   a' -> go $ Inherited a'
     Synthesized a' -> if a' == attInitialAttr trans then go $ Synthesized () else Nothing
   where
@@ -274,7 +273,7 @@ attInitialRule trans a = coerceRhsInh $ fromMaybe bottomLabelSide $ case a of
 attTranslateRule :: AttConstraint syn inh ta la tb lb
   => AttributedTreeTransducer syn inh ta la tb lb
   -> AttAttr syn inh -> la -> RightHandSide syn inh tb lb
-attTranslateRule trans a l = fromMaybe bottomLabelSide $ lookup (a, l) $ attTransRules trans
+attTranslateRule trans a l = fromMaybe AttBottomLabelSide $ lookup (a, l) $ attTransRules trans
 
 
 -- reduction system
@@ -411,15 +410,14 @@ instance (AttConstraint syn inh ta la tb lb) => RankedTree (Fix (ReductionStateF
   type LabelType (Fix (ReductionStateF syn inh ta la tb lb tz)) = ReductionStateF syn inh ta la tb lb tz ()
 
   treeLabel (Fix x) = void x
-  treeChilds (RedFix x) = case x of
-    AttAttrSideF{}     -> []
-    AttLabelSideF _ cs -> cs
+  treeChilds (RedFix x) = fromList $ toList x
 
   treeLabelRank _ = length
 
   mkTreeUnchecked (ReductionStateF x) cs = RedFix $ case x of
-    AttAttrSideF a p  -> AttAttrSideF a p
-    AttLabelSideF l _ -> AttLabelSideF l cs
+    AttAttrSideF a p    -> AttAttrSideF a p
+    AttLabelSideF l _   -> AttLabelSideF l cs
+    AttBottomLabelSideF -> AttBottomLabelSideF
 
 type ReductionStateWithEmptySyn syn inh ta la tb lb tz
   = Either (Bool, tz ta la, syn) (ReductionState syn inh ta la tb lb tz)
@@ -455,6 +453,7 @@ buildAttReduction f is trans mt = go is' initialZipper
       AttAttrSideF Inherited{} AttPathInfo{attPathList = []} -> False
       AttAttrSideF{}                                         -> True
       AttLabelSideF{}                                        -> False
+      AttBottomLabelSideF                                    -> False
 
     go x sz = case zoomNextRightOutZipper (checkReducible . toTree) sz of
       Just sz' -> let
@@ -473,8 +472,9 @@ buildAttReduction f is trans mt = go is' initialZipper
       _ -> error "This state is irreducible"
 
     replaceRHS p (Fix x) = case x of
-      AttAttrSideF a _   -> RedFix $ AttAttrSideF a p
-      AttLabelSideF l cs -> RedFix $ AttLabelSideF l $ replaceRHS p <$> cs
+      AttAttrSideF a _    -> RedFix $ AttAttrSideF a p
+      AttLabelSideF l cs  -> RedFix $ AttLabelSideF l $ replaceRHS p <$> cs
+      AttBottomLabelSideF -> RedFix AttBottomLabelSideF
 
 runAttReduction :: forall tz syn inh ta la tb lb. (AttConstraint syn inh ta la tb lb, RankedTreeZipper tz)
   => AttributedTreeTransducer syn inh ta la tb lb
@@ -501,10 +501,12 @@ toInitialAttrState (Inherited a) p = Right . RedFix $ AttAttrSideF (Inherited a)
 
 fromReductionState :: (AttConstraint syn inh ta la tb lb, RankedTreeZipper tz)
   => ReductionState syn inh ta la tb lb tz -> Maybe tb
-fromReductionState (RedFix (AttLabelSideF l cs)) = do
-  cs' <- mapM fromReductionState cs
-  pure $ mkTreeUnchecked l cs'
-fromReductionState _ = Nothing
+fromReductionState (RedFix x) = case x of
+  AttLabelSideF l cs  -> do
+    cs' <- mapM fromReductionState cs
+    pure $ mkTreeUnchecked l cs'
+  AttBottomLabelSideF -> pure $ mkTreeUnchecked bottomLabel []
+  _                   -> Nothing
 
 prettyShowReductionState ::
   ( Show syn, Show inh, Show la, Show lb

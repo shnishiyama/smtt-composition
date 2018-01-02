@@ -80,6 +80,9 @@ default-extensions:
 library:
   source-dirs: src
   exposed-modules:
+    # utilities
+    - Data.Bifunctor.FixLR
+
     # ranked tree
     - Data.Tree.RankedTree
     - Data.Tree.RankedTree.Instances
@@ -94,9 +97,11 @@ library:
     - Data.Tree.Trans.MAC.Instances
     - Data.Tree.Trans.ATT
     - Data.Tree.Trans.ATT.Instances
+    - Data.Tree.Trans.Stack
 
     # compose/decompose tree transducers
     - Data.Tree.Trans.Compose.Desc
+    - Data.Tree.Trans.Compose.ExtendVoigt2004
     - Data.Tree.Trans.Decompose.MttToAtt
   other-modules: []
   ghc-options:
@@ -104,9 +109,9 @@ library:
   dependencies:
     <<: *base-dependencies
     unordered-containers:
-    recursion-schemes:
     vector:
     singletons:
+    mtl:
 
 executables:
   satt-composit:

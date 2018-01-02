@@ -78,6 +78,7 @@ toComposeBasedAtt attrds1 trans = fromMaybe (error "unreachable") $ buildAtt
 
     convRhs (AttAttrSide a)     = AttAttrSide a
     convRhs (AttLabelSide l cs) = AttLabelSide (AttLabelSideF l $ void cs) $ convRhs <$> cs
+    convRhs AttBottomLabelSide  = AttLabelSide AttBottomLabelSideF []
 
 
 type AttRuleIndex syn inh ta la tb lb tz
@@ -135,6 +136,10 @@ type ComposeAtt syn1 inh1 syn2 inh2 ti to = AttTransducer
   (ComposedAttInhAttr syn1 inh1 syn2 inh2)
   ti to
 
+-- FIXME: give the implentation
+checkSingleUse :: MonadThrow m => AttributedTreeTransducer syn1 inh1 ti1 li1 to1 lo1 -> m ()
+checkSingleUse _ = pure ()
+
 -- | composition of atts
 --
 -- Examples:
@@ -148,20 +153,25 @@ type ComposeAtt syn1 inh1 syn2 inh2 ti to = AttTransducer
 -- >>> traUniverse = setFromList $ taggedRankedAlphabetUniverse Proxy
 -- >>> identInputTrans = identityTransducer @(RankedLabelledTree InputSampleAlphabet) traUniverse
 -- >>> identOutputTrans = identityTransducer @(RankedLabelledTree OutputSampleAlphabet) traUniverse
--- >>> treeTrans (composeAtts sampleAtt identOutputTrans) inputSampleTree
+-- >>> sampleIdentTrans <- composeAtts sampleAtt identOutputTrans
+-- >>> treeTrans sampleIdentTrans inputSampleTree
 -- D(F,F)
--- >>> treeTrans (composeAtts identInputTrans sampleAtt) inputSampleTree
+-- >>> identSampleTrans <- composeAtts identInputTrans sampleAtt
+-- >>> treeTrans identSampleTrans inputSampleTree
 -- D(F,F)
 --
-composeAtts :: forall syn1 inh1 syn2 inh2 ti1 li1 to1 lo1 ti2 li2 to2 lo2.
+composeAtts :: forall m syn1 inh1 syn2 inh2 ti1 li1 to1 lo1 ti2 li2 to2 lo2.
   ( AttConstraint syn1 inh1 ti1 li1 to1 lo1
   , to1 ~ ti2
   , AttConstraint syn2 inh2 ti2 li2 to2 lo2
+  , MonadThrow m
   )
   => AttributedTreeTransducer syn1 inh1 ti1 li1 to1 lo1
   -> AttributedTreeTransducer syn2 inh2 ti2 li2 to2 lo2
-  -> ComposeAtt syn1 inh1 syn2 inh2 ti1 to2
-composeAtts trans1 trans2 = fromMaybe (error "unreachable") $ buildAtt
+  -> m (ComposeAtt syn1 inh1 syn2 inh2 ti1 to2)
+composeAtts trans1 trans2 = do
+  checkSingleUse trans1
+  pure $ fromMaybe (error "unreachable") $ buildAtt
     (iattr1 `SynSynAttr` iattr2)
     (foldl' (\xs irule1 -> goIrule irule1 ++ xs) [] irules1)
     (foldl' (\xs rule1  -> goRule  rule1  ++ xs) [] rules1)
@@ -206,7 +216,7 @@ composeAtts trans1 trans2 = fromMaybe (error "unreachable") $ buildAtt
             , runReductionWithRep replacerB2 initAttrStateB2
             )
 
-    toInhPathInfo True p@AttPathInfo{..} = p { attPathList = attPathList <> [1] }
+    toInhPathInfo True p@AttPathInfo{..} = p { attPathList = attPathList <> [0] }
     toInhPathInfo False p                = p
 
     buildRules a@(Synthesized a1) Nothing rhs = buildRules'
@@ -243,6 +253,7 @@ composeAtts trans1 trans2 = fromMaybe (error "unreachable") $ buildAtt
     runReductionWithRep f = replaceRedState f . runAttReduction @RTZipper composeBasedAtt
 
     replaceRedState f (RedFix x) = case x of
-      AttLabelSideF l cs -> mkTreeUnchecked l $ replaceRedState f <$> cs
+      AttLabelSideF l cs  -> mkTreeUnchecked l $ replaceRedState f <$> cs
+      AttBottomLabelSideF -> mkTreeUnchecked AttBottomLabelSideF []
       AttAttrSideF (Inherited b) AttPathInfo{ attPathList = [] } -> AttAttrSide $ f b
       _ -> error "This state is reducible"

@@ -1,20 +1,26 @@
 {-# LANGUAGE OverloadedLists #-}
+{-# LANGUAGE TemplateHaskell #-}
 
 module Data.Tree.Trans.Decompose.MttToAtt where
 
 import           SattPrelude
 
+import           Control.Monad.State
 import           Data.Tree.RankedTree
-import           Data.Tree.RankedTree.Label
-import qualified Data.Tree.Trans.ATT        as ATT
-import qualified Data.Tree.Trans.MAC        as MAC
-import qualified Data.Tree.Trans.TOP        as TOP
+import qualified Data.Tree.Trans.ATT  as ATT
+import qualified Data.Tree.Trans.MAC  as MAC
+import qualified Data.Tree.Trans.TOP  as TOP
+import qualified Data.Vector          as V
 
 data SubstitutionTreeF tb lb a
   = OriginalOutputLabelF lb
   | ContextParamF RankNumber
   | SubstitutionF (NodeVec a)
   deriving (Eq, Ord, Show, Generic, Generic1, Functor, Foldable)
+
+deriveEq1 ''SubstitutionTreeF
+deriveOrd1 ''SubstitutionTreeF
+deriveShow1 ''SubstitutionTreeF
 
 instance (Hashable lb, Hashable a) => Hashable (SubstitutionTreeF tb lb a)
 
@@ -37,36 +43,85 @@ instance RtConstraint tb lb => RankedTree (Fix (SubstitutionTreeF tb lb)) where
     ContextParamF i        -> ContextParamF i
     SubstitutionF _        -> SubstitutionF cs
 
+-- | decompose a mtt to a tdtt and an att
+--
+-- Examples:
+-- >>> import Data.Tree.RankedTree.Label
+-- >>> import Data.Tree.Trans.MAC.Instances
+-- >>> import Data.Tree.Trans.Class
+-- >>> a = taggedRankedLabel @"A"
+-- >>> b = taggedRankedLabel @"B"
+-- >>> c = taggedRankedLabel @"C"
+-- >>> inputSampleTree = mkTree a [mkTree c [], mkTree b [mkTree c []]]
+-- >>> (trans1, trans2) = decomposeMtt sampleMtt
+-- >>> treeTrans trans2 <=< treeTrans trans1 $ inputSampleTree
+-- D(F,F)
+-- >>> (==) <$> (treeTrans trans2 <=< treeTrans trans1 $ inputSampleTree) <*> treeTrans sampleMtt inputSampleTree
+-- True
+--
 decomposeMtt :: forall s ta la tb lb.
   ( MAC.MttConstraint s ta la tb lb
   , Eq lb, Hashable lb
   )
   => MAC.MacroTreeTransducer s ta la tb lb
   -> (TOP.TdttTransducer s ta (SubstitutionTree tb lb), ATT.AttTransducer () RankNumber (SubstitutionTree tb lb) tb)
-decomposeMtt trans =
-    ( fromMaybe (error "unreachable") $ TOP.buildTdtt ie1 rules1
-    , fromMaybe (error "unreachable") $ ATT.buildAtt ia2 irules2 rules2
-    )
+decomposeMtt trans = fromMaybe (error "unreachable") $ (,)
+    <$> TOP.buildTdtt ie1 rules1
+    <*> ATT.buildAtt ia2 irules2 rules2
   where
     treeLabelRankTb = treeLabelRank (Proxy @tb)
+    treeLabelRankSubst = treeLabelRank (Proxy @(SubstitutionTree tb lb))
 
-    substitution cs = TOP.TdttLabelSide (SubstitutionF $ void cs) cs
+    insertSubstLabel = modify' . first . insertSet
+    updateMaxRank = modify' . second . max
 
-    buildRhs xs (MAC.MttState s u cs) = let
-        r = labelRank s
-        (xs', cs') = undefined (r:xs, [] :: [Int])
-      in (substitution $ fromList $ TOP.tdttState s u:cs', xs')
-    buildRhs xs (MAC.MttContext c) = (TOP.TdttLabelSide (ContextParamF c) [], xs)
-    buildRhs xs (MAC.MttLabelSide l cs) = let
-        r = treeLabelRankTb l
-        (xs', cs') = undefined (r:xs, [] :: [Int])
-      in (substitution $ fromList $ TOP.TdttLabelSide (OriginalOutputLabelF l) []:cs', xs')
+    substitution i = SubstitutionF $ replicate (i + 1) ()
 
-    (ie1, subs0) = buildRhs [] (MAC.mttInitialExpr trans)
-    (rules1, subs1) = foldr
-      (\((s, l), rhs) (xs, ys) -> let (rhs', ys') = buildRhs ys rhs in ((s, l, rhs'):xs, ys'))
-      ([], subs0) $ mapToList $ MAC.mttTransRules trans
+    buildRhs (MAC.MttState s u cs) = do
+      let sub = substitution $ length cs
+      insertSubstLabel sub
+      updateMaxRank $ length cs
+      cs' <- mapM buildRhs cs
+      pure $ TOP.TdttLabelSide sub $ TOP.tdttState s u `cons` cs'
+    buildRhs (MAC.MttContext c) = do
+      let l' = ContextParamF c
+      insertSubstLabel l'
+      updateMaxRank $ c + 1
+      pure $ TOP.TdttLabelSide l' []
+    buildRhs (MAC.MttLabelSide l cs) = do
+      let sub = substitution $ length cs
+      let l' = OriginalOutputLabelF l
+      insertSubstLabel sub
+      insertSubstLabel l'
+      updateMaxRank $ length cs
+      cs' <- mapM buildRhs cs
+      pure $ TOP.TdttLabelSide sub $ TOP.TdttLabelSide l' [] `cons` cs'
+
+    ((ie1, rules1), (ls, mr)) = flip runState ([] :: HashSet (SubstitutionTreeF tb lb ()), 0) $ do
+      ie <- buildRhs $ MAC.mttInitialExpr trans
+      rules <- mapM (\((s, l), rhs) -> (s, l,) <$> buildRhs rhs) $ mapToList $ MAC.mttTransRules trans
+      pure (ie, rules)
 
     ia2 = ()
-    irules2 = undefined subs1
-    rules2 = undefined
+    irules2 = (ATT.Synthesized (), ATT.SynAttrSide () 0):[]
+    rules2
+      =  [ (ATT.Synthesized (), l, h l) | l <- setToList ls ]
+      <> do
+        l <- setToList ls
+        let p' = treeLabelRankSubst l
+        when (p' == 0) empty
+        let p = p' - 1
+
+        j <- [0..(mr - 1)]
+        i <- [0..p]
+
+        pure
+          ( ATT.Inherited (j, i), l
+          , if i == 0 && j < p
+            then ATT.SynAttrSide () $ j + 1
+            else ATT.InhAttrSide j
+          )
+
+    h (OriginalOutputLabelF l) = ATT.AttLabelSide l $ V.generate (treeLabelRankTb l) ATT.InhAttrSide
+    h (ContextParamF c)        = ATT.AttAttrSide $ ATT.Inherited c
+    h SubstitutionF{}          = ATT.SynAttrSide () 0
