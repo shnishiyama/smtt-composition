@@ -1,4 +1,4 @@
-{-# LANGUAGE NoStrict #-}
+{-# LANGUAGE NoStrict        #-}
 {-# LANGUAGE OverloadedLists #-}
 {-# LANGUAGE TemplateHaskell #-}
 
@@ -27,15 +27,21 @@ module Data.Tree.Trans.SATT
   , AttAttrEither (..)
   , isSynthesized
   , isInherited
+
+    -- internal
+  , coerceRhsInh
+  , coerceRhsInh1
   ) where
 
-import SattPrelude
+import           SattPrelude
 
-import Data.Tree.RankedTree
-import Data.Tree.Trans.ATT (AttAttrEither(..), isSynthesized, isInherited)
-import Data.Tree.Trans.Stack
-import Data.Bifunctor.FixLR
-import qualified Text.Show as S
+import           Data.Bifunctor.FixLR
+import           Data.Tree.RankedTree
+import           Data.Tree.Trans.ATT   (AttAttrEither (..), isInherited,
+                                        isSynthesized)
+import           Data.Tree.Trans.Stack
+import qualified Text.Show             as S
+import qualified Unsafe.Coerce         as Unsafe
 
 
 type SattAttrEither = AttAttrEither
@@ -255,9 +261,64 @@ instance (Show syn, Show inh, Show la, Show lb, SattConstraint syn inh ta la tb 
       attrShow (Synthesized a)    = show a <> "[...]"
       attrShow (Inherited (a, i)) = show a <> "[" <> show i <> ", ...]"
 
+-- FIXME: Maybe this coerce raise core lint warnings
+coerceRhsInh :: RightHandSide syn Void tb lb -> RightHandSide syn inh tb lb
+coerceRhsInh = Unsafe.unsafeCoerce
+
+-- FIXME: Maybe this coerce raise core lint warnings
+coerceRhsInh1 :: Functor f => f (RightHandSide syn Void tb lb) -> f (RightHandSide syn inh tb lb)
+coerceRhsInh1 = Unsafe.unsafeCoerce
+
 buildSatt :: forall m syn inh ta la tb lb. (SattConstraint syn inh ta la tb lb, MonadThrow m)
   => syn
   -> [(SattAttrEither () inh, RightHandSide syn Void tb lb)]
   -> [(SattAttr syn inh, la, RightHandSide syn inh tb lb)]
   -> m (StackAttributedTreeTransducer syn inh ta la tb lb)
-buildSatt = undefined
+buildSatt ia irules rules = do
+    let attrs0 = [Synthesized ia]
+    attrs1 <- foldM
+      (\attrs (a, rhs) -> scanRHSStk 1 (first (const ia) a:attrs) $ coerceRhsInh rhs)
+      attrs0 irules
+    (attrs2, rules') <- go rules attrs1 []
+    pure StackAttributedTreeTransducer
+      { sattAttributes   = setFromList attrs2
+      , sattInitialAttr  = ia
+      , sattInitialRules = mapFromList irules
+      , sattTransRules   = mapFromList rules'
+      }
+  where
+    treeLabelRankIn = treeLabelRank $ Proxy @ta
+    treeLabelRankOut = treeLabelRank $ Proxy @tb
+
+    go [] xs ys             = pure (xs, ys)
+    go ((a,l,rhs):rs) xs ys = do
+      let k = treeLabelRankIn l
+      attrs' <- checkAttr a k xs
+
+      attrs'' <- scanRHSStk k attrs' rhs
+
+      let rule = ((a, l), rhs)
+      go rs attrs'' $ rule:ys
+
+    checkAttr (Synthesized a)    _ xs = pure $ Synthesized a:xs
+    checkAttr (Inherited (a, i)) k xs
+      | i < k     = pure $ Inherited a:xs
+      | otherwise = throwErrorM "Using an over indexed inherited attribute"
+
+    scanRHSStk k xs (FixStk rhs) = case rhs of
+      SattAttrSideF (Synthesized (a, i)) () -> if i < k
+        then pure $ Synthesized a:xs
+        else throwErrorM "Using an over indexed synthesized attribute"
+      SattAttrSideF (Inherited a) () -> pure $ Inherited a:xs
+      SattStackEmptyF  -> pure xs
+      SattStackTailF s -> scanRHSStk k xs s
+      SattStackConsF v s -> do
+        xs' <- scanRHSVal k xs v
+        scanRHSStk k xs' s
+
+    scanRHSVal k xs (FixVal rhs) = case rhs of
+      SattStackBottomF -> pure xs
+      SattStackHeadF s -> scanRHSStk k xs s
+      SattLabelSideF l cs -> if length cs == treeLabelRankOut l
+        then foldM (scanRHSVal k) xs cs
+        else throwErrorM "Mismatch the rank of an output label for childs"

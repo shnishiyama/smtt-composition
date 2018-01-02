@@ -56,8 +56,8 @@ import           SattPrelude
 import           Data.Tree.RankedTree
 import           Data.Tree.RankedTree.Zipper
 import           Data.Tree.Trans.Class
+import qualified Text.Show                   as S
 import qualified Unsafe.Coerce               as Unsafe
-import qualified Text.Show as S
 
 
 -- TODO: Use Either (GHC 8.2.x have a critical bug for pattern synonyms)
@@ -224,7 +224,9 @@ buildAtt :: forall m syn inh ta la tb lb. (AttConstraint syn inh ta la tb lb, Mo
   -> m (AttributedTreeTransducer syn inh ta la tb lb)
 buildAtt ia irules rules = do
     let attrs0 = [Synthesized ia]
-    attrs1 <- foldM (\attrs (a, rhs) -> scanRHS 1 (first (const ia) a:attrs) $ coerceRhsInh rhs) attrs0 irules
+    attrs1 <- foldM
+      (\attrs (a, rhs) -> scanRHS 1 (first (const ia) a:attrs) $ coerceRhsInh rhs)
+      attrs0 irules
     (attrs2, rules') <- go rules attrs1 []
     pure AttributedTreeTransducer
       { attAttributes   = setFromList attrs2
@@ -269,7 +271,6 @@ attInitialRule trans a = coerceRhsInh $ fromMaybe AttBottomLabelSide $ case a of
     Synthesized a' -> if a' == attInitialAttr trans then go $ Synthesized () else Nothing
   where
     go attr = lookup attr $ attInitialRules trans
-
 
 attTranslateRule :: AttConstraint syn inh ta la tb lb
   => AttributedTreeTransducer syn inh ta la tb lb
