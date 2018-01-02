@@ -6,11 +6,11 @@ module Main where
 import           SattPrelude
 
 import           Data.Tree.RankedTree.Label
-import           Data.Tree.Trans.MAC.Instances
 import           Data.Tree.Trans.Class
-import           Data.Tree.Trans.Decompose.MttToAtt
 import           Data.Tree.Trans.Compose.Desc
-import qualified Data.Tree.Trans.TOP as TOP
+import           Data.Tree.Trans.Decompose.MttToAtt
+import           Data.Tree.Trans.MAC.Instances
+import qualified Data.Tree.Trans.TOP                as TOP
 
 main :: IO ()
 main = do

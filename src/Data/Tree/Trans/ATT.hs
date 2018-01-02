@@ -57,9 +57,10 @@ import           Data.Tree.RankedTree
 import           Data.Tree.RankedTree.Zipper
 import           Data.Tree.Trans.Class
 import qualified Unsafe.Coerce               as Unsafe
+import qualified Text.Show as S
 
 
--- strict either
+-- TODO: Use Either (GHC 8.2.x have a critical bug for pattern synonyms)
 data AttAttrEither syn inh
   = Synthesized syn
   | Inherited inh
@@ -108,14 +109,15 @@ deriveShow2 ''RightHandSideF
 deriveBifunctor ''RightHandSideF
 deriveBifoldable ''RightHandSideF
 
-prettyShowRhsF :: (Show syn, Show inh, Show l, RtConstraint t l)
-  => ((AttAttrDepend syn inh, pi) -> String) -> (rhs -> String)
+prettyShowRhsF :: (Show l, RtConstraint t l)
+  => ((AttAttrDepend syn inh, pi) -> S.ShowS)
+  -> (rhs -> S.ShowS)
   -> RightHandSideF syn inh t l pi rhs
-  -> String
+  -> S.ShowS
 prettyShowRhsF attrShow rhsShow x = case x of
-    AttAttrSideF a p    -> attrShow (a, p)
-    AttLabelSideF l cs  -> show l <> "(" <> intercalate ", " (rhsShow <$> cs) <> ")"
-    AttBottomLabelSideF -> "_|_"
+  AttAttrSideF a p    -> attrShow (a, p)
+  AttLabelSideF l cs  -> S.shows l . S.showString "(" . foldl' (.) id (intersperse (S.showString ", ") $ rhsShow <$> cs) . S.showString ")"
+  AttBottomLabelSideF -> S.showString "_|_"
 
 
 type RightHandSide syn inh t l = Fix (RightHandSideF syn inh t l ())
@@ -153,13 +155,12 @@ instance (RtConstraint t l) => RankedTree (Fix (RightHandSideF syn inh t l ())) 
 
 prettyShowRhs :: (Show syn, Show inh, Show l, RtConstraint t l)
   => RightHandSide syn inh t l -> String
-prettyShowRhs (Fix x) = prettyShowRhsF
-    (\(a, ()) -> attrShow a)
-    prettyShowRhs
-    x
+prettyShowRhs rhs = go rhs ""
   where
-    attrShow (Synthesized (a, i)) = show a <> "[" <> show i <> ", ...]"
-    attrShow (Inherited a)        = show a <> "[...]"
+    go (Fix x) = prettyShowRhsF (\(a, ()) -> attrShow a) go x
+
+    attrShow (Synthesized (a, i)) = S.shows a . S.showString "[" . S.shows i . S.showString ", ...]"
+    attrShow (Inherited a)        = S.shows a . S.showString "[...]"
 
 type AttAttr syn inh = AttAttrEither
   syn
@@ -514,17 +515,18 @@ prettyShowReductionState ::
   , RankedTreeZipper tz
   )
   => ReductionState syn inh ta la tb lb tz -> String
-prettyShowReductionState (RedFix x) = prettyShowRhsF
-    (\(a, AttPathInfo pl mz b) -> attrShow a pl mz b)
-    prettyShowReductionState
-    x
+prettyShowReductionState state = go state ""
   where
-    attrShow a pl z b = let lShow = labelShow z b in case a of
-      Synthesized (a', i) -> show a' <> show (i:pl) <> "(" <> lShow <> ")"
-      Inherited   a'      -> show a' <> show pl <> "(" <> lShow <> ")"
+    go (RedFix x) = prettyShowRhsF
+      (\(a, AttPathInfo pl mz b) -> attrShow a pl mz b)
+      go x
 
-    labelShow _ True  = "#"
-    labelShow z False = show $ toTreeLabel z
+    attrShow a pl z b = let lShow = labelShow z b in case a of
+      Synthesized (a', i) -> S.shows a' . S.shows (i:pl) . S.showString "(" . lShow . S.showString ")"
+      Inherited   a'      -> S.shows a' . S.shows pl . S.showString "(" . lShow . S.showString ")"
+
+    labelShow _ True  = S.showString "#"
+    labelShow z False = S.shows $ toTreeLabel z
 
 
 -- A tree transduction for att

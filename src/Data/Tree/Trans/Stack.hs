@@ -27,17 +27,28 @@ module Data.Tree.Trans.Stack
     -- evaluate functions
   , evalStackValExpr
   , evalStackStkExpr
+
+    -- stack expr either
+  , StackExprEither
+  , pattern ValuedExpr
+  , pattern StackedExpr
+  , isStackedExpr
+  , isValuedExpr
+  , pattern BiFixVal
+  , pattern BiFixStk
   ) where
 
-import SattPrelude
+import           SattPrelude
 
-import Data.Bifunctor.FixLR
+import           Data.Bifunctor.FixLR
 
 
 data StackExprValF val stk
   = StackBottomF
   | StackHeadF stk
   deriving (Eq, Ord, Show, Generic)
+
+instance (Hashable stk) => Hashable (StackExprValF val stk)
 
 deriveBifunctor ''StackExprValF
 deriveBifoldable ''StackExprValF
@@ -50,6 +61,8 @@ data StackExprStkF val stk
   | StackTailF stk
   | StackConsF val stk
   deriving (Eq, Ord, Show, Generic)
+
+instance (Hashable val, Hashable stk) => Hashable (StackExprStkF val stk)
 
 deriveBifunctor ''StackExprStkF
 deriveBifoldable ''StackExprStkF
@@ -66,19 +79,19 @@ type StackConstraint valf stkf =
 type FixVal = FixL
 type FixStk = FixR
 
-injectVal :: StackExprValF :<<: valf
+injectVal :: (StackExprValF :<<: valf)
   => StackExprValF (FixVal valf stkf) (FixStk valf stkf) -> FixVal valf stkf
 injectVal = injectL
 
-injectStk :: StackExprStkF :<<: stkf
+injectStk :: (StackExprStkF :<<: stkf)
   => StackExprStkF (FixVal valf stkf) (FixStk valf stkf) -> FixStk valf stkf
 injectStk = injectR
 
-projectVal :: StackExprValF :<<: valf
+projectVal :: (StackExprValF :<<: valf)
   => FixVal valf stkf -> Maybe (StackExprValF (FixVal valf stkf) (FixStk valf stkf))
 projectVal = projectL
 
-projectStk :: StackExprStkF :<<: stkf
+projectStk :: (StackExprStkF :<<: stkf)
   => FixStk valf stkf -> Maybe (StackExprStkF (FixVal valf stkf) (FixStk valf stkf))
 projectStk = projectR
 
@@ -93,34 +106,34 @@ pattern FixStk x = FixR x
 {-# COMPLETE FixStk #-}
 
 
-pattern StackBottom :: StackExprValF :<<: valf => FixVal valf stkf
+pattern StackBottom :: (StackExprValF :<<: valf) => FixVal valf stkf
 pattern StackBottom <- (projectVal -> Just StackBottomF)
 
-stackBottom :: StackExprValF :<<: valf => FixVal valf stkf
+stackBottom :: (StackExprValF :<<: valf) => FixVal valf stkf
 stackBottom = injectVal StackBottomF
 
-pattern StackHead :: StackExprValF :<<: valf => FixStk valf stkf -> FixVal valf stkf
+pattern StackHead :: (StackExprValF :<<: valf) => FixStk valf stkf -> FixVal valf stkf
 pattern StackHead s <- (projectVal -> Just (StackHeadF s))
 
-stackHead :: StackExprValF :<<: valf => FixStk valf stkf -> FixVal valf stkf
+stackHead :: (StackExprValF :<<: valf) => FixStk valf stkf -> FixVal valf stkf
 stackHead = injectVal . StackHeadF
 
-pattern StackEmpty :: StackExprStkF :<<: stkf => FixStk valf stkf
+pattern StackEmpty :: (StackExprStkF :<<: stkf) => FixStk valf stkf
 pattern StackEmpty <- (projectStk -> Just StackEmptyF)
 
-stackEmpty :: StackExprStkF :<<: stkf => FixStk valf stkf
+stackEmpty :: (StackExprStkF :<<: stkf) => FixStk valf stkf
 stackEmpty = injectStk StackEmptyF
 
-pattern StackTail :: StackExprStkF :<<: stkf => FixStk valf stkf -> FixStk valf stkf
+pattern StackTail :: (StackExprStkF :<<: stkf) => FixStk valf stkf -> FixStk valf stkf
 pattern StackTail s <- (projectStk -> Just (StackTailF s))
 
-stackTail :: StackExprStkF :<<: stkf => FixStk valf stkf -> FixStk valf stkf
+stackTail :: (StackExprStkF :<<: stkf) => FixStk valf stkf -> FixStk valf stkf
 stackTail = injectStk . StackTailF
 
-pattern StackCons :: StackExprStkF :<<: stkf => FixVal valf stkf -> FixStk valf stkf -> FixStk valf stkf
+pattern StackCons :: (StackExprStkF :<<: stkf) => FixVal valf stkf -> FixStk valf stkf -> FixStk valf stkf
 pattern StackCons v s <- (projectStk -> Just (StackConsF v s))
 
-stackCons :: StackExprStkF :<<: stkf => FixVal valf stkf -> FixStk valf stkf -> FixStk valf stkf
+stackCons :: (StackExprStkF :<<: stkf) => FixVal valf stkf -> FixStk valf stkf -> FixStk valf stkf
 stackCons v s = injectStk $ StackConsF v s
 
 
@@ -160,3 +173,30 @@ evalStackStkExpr s = case s of
     Right (_, t') -> evalStackStkExpr t'
   StackCons h t -> stackCons (evalStackValExpr h) (evalStackStkExpr t)
   FixStk s'     -> FixStk $ bimap evalStackValExpr evalStackStkExpr s'
+
+
+type StackExprEither = Either
+
+pattern ValuedExpr :: val -> StackExprEither val stk
+pattern ValuedExpr x = Left x
+
+pattern StackedExpr :: stk -> StackExprEither val stk
+pattern StackedExpr x = Right x
+
+{-# COMPLETE ValuedExpr, StackedExpr #-}
+
+isValuedExpr :: StackExprEither val stk -> Bool
+isValuedExpr = isLeft
+
+isStackedExpr :: StackExprEither val stk -> Bool
+isStackedExpr = isRight
+
+type BiStackExprFix valf stkf = BiFix valf stkf
+
+pattern BiFixVal :: valf (FixVal valf stkf) (FixStk valf stkf) -> BiStackExprFix valf stkf
+pattern BiFixVal x = BiFixL x
+
+pattern BiFixStk :: stkf (FixVal valf stkf) (FixStk valf stkf) -> BiStackExprFix valf stkf
+pattern BiFixStk x = BiFixR x
+
+{-# COMPLETE BiFixVal, BiFixStk #-}

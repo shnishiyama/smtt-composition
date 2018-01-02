@@ -1,13 +1,15 @@
 module Data.Tree.Trans.Compose.ExtendVoigt2004 where
 
-import SattPrelude
+import           SattPrelude
 
-import Data.Tree.RankedTree
-import qualified Data.Tree.Trans.TOP as TOP
-import qualified Data.Tree.Trans.MAC as MAC
-import qualified Data.Tree.Trans.ATT as ATT
-import Data.Tree.Trans.Compose.Desc (composeAtts, ComposedAttSynAttr(..), ComposedAttInhAttr(..))
-import Data.Tree.Trans.Decompose.MttToAtt (decomposeMtt)
+import           Data.Tree.RankedTree
+import qualified Data.Tree.Trans.ATT                as ATT
+import           Data.Tree.Trans.Compose.Desc       (ComposedAttInhAttr (..),
+                                                     ComposedAttSynAttr (..),
+                                                     composeAtts)
+import           Data.Tree.Trans.Decompose.MttToAtt (decomposeMtt)
+import qualified Data.Tree.Trans.MAC                as MAC
+import qualified Data.Tree.Trans.TOP                as TOP
 
 -- FIXME: give the implementation
 checkWeaklySingleUse :: MonadThrow m => MAC.MacroTreeTransducer s ta la tb lb -> m ()

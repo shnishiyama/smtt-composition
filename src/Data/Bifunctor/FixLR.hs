@@ -1,8 +1,8 @@
 module Data.Bifunctor.FixLR where
 
-import SattPrelude
+import           SattPrelude
 
-import qualified Text.Show as S
+import qualified Text.Show   as S
 
 newtype FixL p1 p2 = FixL
   { unFixL :: p1 (FixL p1 p2) (FixR p1 p2)
@@ -40,16 +40,17 @@ instance (Show2 p1, Show2 p2) => Show (FixR p1 p2) where
 
 
 infixr 6 :+|+:
-
 data (p1 :+|+: p2) a b
   = BiInL (p1 a b)
   | BiInR (p2 a b)
   deriving (Eq, Ord, Show, Generic)
 
+instance (Hashable (p1 a b), Hashable (p2 a b)) => Hashable ((p1 :+|+: p2) a b)
+
 instance (Eq2 p1, Eq2 p2) => Eq2 (p1 :+|+: p2) where
   liftEq2 f g (BiInL a) (BiInL b) = liftEq2 f g a b
   liftEq2 f g (BiInR a) (BiInR b) = liftEq2 f g a b
-  liftEq2 _ _ _ _ = False
+  liftEq2 _ _ _ _                 = False
 
 instance (Ord2 p1, Ord2 p2) => Ord2 (p1 :+|+: p2) where
   liftCompare2 f g (BiInL a) (BiInL b) = liftCompare2 f g a b
@@ -112,3 +113,14 @@ projectL (FixL x) = proj x
 
 projectR :: (p :<<: p2) => FixR p1 p2 -> Maybe (p (FixL p1 p2) (FixR p1 p2))
 projectR (FixR x) = proj x
+
+
+type BiFix p1 p2 = Either (FixL p1 p2) (FixR p1 p2)
+
+pattern BiFixL :: p1 (FixL p1 p2) (FixR p1 p2) -> BiFix p1 p2
+pattern BiFixL x = Left (FixL x)
+
+pattern BiFixR :: p2 (FixL p1 p2) (FixR p1 p2) -> BiFix p1 p2
+pattern BiFixR x = Right (FixR x)
+
+{-# COMPLETE BiFixL, BiFixR #-}

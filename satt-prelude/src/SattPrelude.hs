@@ -6,23 +6,24 @@ module SattPrelude
 
     -- useful modules
   , module Data.Bifoldable
+  , module Data.Function
+  , module Control.Arrow
   , module Data.Functor.Classes
   , module Data.Functor.Foldable
+  , module Data.Either
+  , module Data.Kind
 
     -- useful components
-  , Type
   , Proxy(..)
   , Void
   , Generic1
-  , Kleisli
   , coerce
   , (#.)
   , (.#)
   , groom
   , ushow
-  , (>>>)
-  , (<<<)
   , (<&>)
+  , bivoid
   , throwErrorM
   , Nat
   , Symbol
@@ -45,13 +46,15 @@ module SattPrelude
 
 import           ClassyPrelude
 
-import           Control.Arrow
+import           Control.Arrow ((<<<), (>>>), Kleisli(..))
 import           Data.Bifoldable
 import           Data.Coerce
+import Data.Either (isLeft, isRight)
+import           Data.Function ((&))
 import           Data.Functor.Classes
 import           Data.Functor.Foldable    (Corecursive (..), Fix (..),
                                            Recursive (..))
-import           Data.Kind
+import           Data.Kind (Type)
 import           Data.Profunctor.Unsafe
 import           Data.Proxy
 import           Data.Singletons.TypeLits
@@ -73,3 +76,6 @@ throwErrorM s = throwM $ errorCallWithCallStackException s ?callStack
 
 (<&>) :: Functor f => f a -> (a -> b) -> f b
 x <&> f = fmap f x
+
+bivoid :: Bifunctor f => f a b -> f () ()
+bivoid = bimap (const ()) (const ())

@@ -27,7 +27,7 @@ custom-setup:
 ghc-options:
   - -Wall
   - -fprint-explicit-foralls
-  - -fmax-pmcheck-iterations=5000000
+  - -fmax-pmcheck-iterations=500000
   - -funbox-strict-fields
 
 default-extensions:
@@ -98,6 +98,7 @@ library:
     - Data.Tree.Trans.ATT
     - Data.Tree.Trans.ATT.Instances
     - Data.Tree.Trans.Stack
+    - Data.Tree.Trans.SATT
 
     # compose/decompose tree transducers
     - Data.Tree.Trans.Compose.Desc
