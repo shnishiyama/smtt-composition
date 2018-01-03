@@ -31,11 +31,14 @@ type ComposedAttRHS syn1 inh1 syn2 inh2 t l = RightHandSide
   t l
 
 
-type ComposeBasedAttInputTree syn1 inh1 to1 lo1 = RightHandSide syn1 inh1 to1 lo1
+type ComposeBasedAttInputTree syn1 inh1 to1 lo1
+  = RightHandSide syn1 inh1 to1 lo1
 
-type ComposeBasedAttOutputTree syn1 inh1 syn2 inh2 to2 lo2 = ComposedAttRHS syn1 inh1 syn2 inh2 to2 lo2
+type ComposeBasedAttOutputTree syn1 inh1 syn2 inh2 to2 lo2
+  = ComposedAttRHS syn1 inh1 syn2 inh2 to2 lo2
 
-type ComposeBasedAtt syn1 inh1 syn2 inh2 to1 lo1 to2 lo2 = AttTransducer syn2 inh2
+type ComposeBasedAtt syn1 inh1 syn2 inh2 to1 lo1 to2 lo2 = AttTransducer
+  syn2 inh2
   (ComposeBasedAttInputTree syn1 inh1 to1 lo1)
   (ComposeBasedAttOutputTree syn1 inh1 syn2 inh2 to2 lo2)
 
@@ -74,15 +77,19 @@ toComposeBasedAtt attrds1 trans = fromMaybe errorUnreachable $ buildAtt
         _ -> empty
 
     rules1 = mapToList (attTransRules trans) <&> \((a, l), rhs) ->
-      (a, AttLabelSideF l $ replicate (treeLabelRank (Proxy @ti2) l) (), convRhs id rhs)
+      ( a
+      , AttLabelSideF l $ replicate (treeLabelRank (Proxy @ti2) l) ()
+      , convRhs id rhs
+      )
 
     convRhs f (AttAttrSide a)     = AttAttrSide $ f a
     convRhs f (AttLabelSide l cs) = AttLabelSide (AttLabelSideF l $ void cs) $ convRhs f <$> cs
     convRhs _ AttBottomLabelSide  = AttLabelSide AttBottomLabelSideF []
 
 
-type AttRuleIndex syn inh ta la tb lb tz
-  = HashMap (AttAttr syn inh, Maybe la) [(AttAttrDepend syn inh, RtApply (AttPathInfo tz) (RightHandSide syn inh tb lb))]
+type AttRuleIndex syn inh ta la tb lb tz = HashMap
+  (AttAttr syn inh, Maybe la)
+  [(AttAttrDepend syn inh, RtApply (AttPathInfo tz) (RightHandSide syn inh tb lb))]
 
 indexAttRule :: forall tz syn inh ta la tb lb.
   ( AttConstraint syn inh ta la tb lb

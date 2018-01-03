@@ -11,6 +11,7 @@ module Data.Tree.Trans.SATT
   , SattAttrDepend
   , SattAttr
   , RightHandSide
+  , BiRightHandSide
   , pattern SattAttrSide
   , pattern SynAttrSide
   , pattern InhAttrSide
@@ -45,6 +46,15 @@ module Data.Tree.Trans.SATT
   , sattTransRules
   , sattInitialRule
   , sattTranslateRule
+  , pattern SattLabelSideF
+  , pattern SattStackBottomF
+  , pattern SattStackHeadF
+  , pattern SattAttrSideF
+  , pattern SattStackEmptyF
+  , pattern SattStackTailF
+  , pattern SattStackConsF
+  , prettyShowRhsValF
+  , prettyShowRhsStkF
   , SattPathInfo
   , pattern SattPathInfo
   , sattPathList
@@ -150,9 +160,13 @@ prettyShowRhsStkF attrShow vrhsShow srhsShow x = case x of
   SattStackConsF v s -> S.showString "Cons(" . vrhsShow v . S.showString ", " . srhsShow s . S.showString ")"
 
 
-type RightHandSideVal syn inh t l = FixVal (RightHandSideValF syn inh t l ()) (RightHandSideStkF syn inh t l ())
+type RightHandSideVal syn inh t l = FixVal
+  (RightHandSideValF syn inh t l ())
+  (RightHandSideStkF syn inh t l ())
 
-type RightHandSideStk syn inh t l = FixStk (RightHandSideValF syn inh t l ()) (RightHandSideStkF syn inh t l ())
+type RightHandSideStk syn inh t l = FixStk
+  (RightHandSideValF syn inh t l ())
+  (RightHandSideStkF syn inh t l ())
 
 type RightHandSide syn inh t l = RightHandSideStk syn inh t l
 

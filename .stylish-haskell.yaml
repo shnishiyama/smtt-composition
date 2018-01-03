@@ -26,7 +26,7 @@ columns: 80
 newline: native
 
 language_extensions:
-# use classy-prelude
+  # use classy-prelude
   - NoImplicitPrelude
 
   # performance supports
