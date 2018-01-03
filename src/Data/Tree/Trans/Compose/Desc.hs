@@ -7,7 +7,6 @@ import           SattPrelude
 import           Data.Tree.RankedTree
 import           Data.Tree.RankedTree.Zipper
 import           Data.Tree.Trans.ATT
-import qualified Unsafe.Coerce               as Unsafe
 
 
 data ComposedAttSynAttr syn1 inh1 syn2 inh2
@@ -49,12 +48,13 @@ toComposeBasedAtt :: forall syn1 inh1 syn2 inh2 to1 lo1 ti2 li2 to2 lo2.
   => HashSet (AttAttrDepend syn1 inh1)
   -> AttributedTreeTransducer syn2 inh2 ti2 li2 to2 lo2
   -> ComposeBasedAtt syn1 inh1 syn2 inh2 to1 lo1 to2 lo2
-toComposeBasedAtt attrds1 trans = fromMaybe (error "unreachable") $ buildAtt
+toComposeBasedAtt attrds1 trans = fromMaybe errorUnreachable $ buildAtt
     (attInitialAttr trans)
     initialRules
     $ rules0 <> rules1
   where
-    initialRules = second convRhs <$> mapToList (attInitialRules trans)
+    initialRules = second (convRhs $ second errorVoid)
+      <$> mapToList (attInitialRules trans)
 
     rules0 = do
       attrd1 <- setToList attrds1
@@ -74,11 +74,11 @@ toComposeBasedAtt attrds1 trans = fromMaybe (error "unreachable") $ buildAtt
         _ -> empty
 
     rules1 = mapToList (attTransRules trans) <&> \((a, l), rhs) ->
-      (a, AttLabelSideF l $ replicate (treeLabelRank (Proxy @ti2) l) (), convRhs rhs)
+      (a, AttLabelSideF l $ replicate (treeLabelRank (Proxy @ti2) l) (), convRhs id rhs)
 
-    convRhs (AttAttrSide a)     = AttAttrSide a
-    convRhs (AttLabelSide l cs) = AttLabelSide (AttLabelSideF l $ void cs) $ convRhs <$> cs
-    convRhs AttBottomLabelSide  = AttLabelSide AttBottomLabelSideF []
+    convRhs f (AttAttrSide a)     = AttAttrSide $ f a
+    convRhs f (AttLabelSide l cs) = AttLabelSide (AttLabelSideF l $ void cs) $ convRhs f <$> cs
+    convRhs _ AttBottomLabelSide  = AttLabelSide AttBottomLabelSideF []
 
 
 type AttRuleIndex syn inh ta la tb lb tz
@@ -102,7 +102,7 @@ indexAttRule trans = (mapFromList idx, setFromList attrds)
           let
             a' = bimap (const ia) (,0) a
             l' = Nothing
-            p  = initialPathInfo $ coerceRhsInh rhs
+            p  = initialPathInfo rhs
           in go a' l' p s)
           cxt0 irules
         cxt2 = foldl' (\s ((a, l), rhs) ->
@@ -125,7 +125,7 @@ indexAttRule trans = (mapFromList idx, setFromList attrds)
       AttAttrSide ad -> scanRHS a l
         (zoomNextRightOutZipper1 (checkAttrSide . toTree) p')
         ((ad, p'):xs) (ad:ys)
-      _ -> error "unreachable"
+      _ -> errorUnreachable
 
     checkAttrSide AttAttrSide{} = True
     checkAttrSide _             = False
@@ -171,10 +171,10 @@ composeAtts :: forall m syn1 inh1 syn2 inh2 ti1 li1 to1 lo1 ti2 li2 to2 lo2.
   -> m (ComposeAtt syn1 inh1 syn2 inh2 ti1 to2)
 composeAtts trans1 trans2 = do
   checkSingleUse trans1
-  pure $ fromMaybe (error "unreachable") $ buildAtt
+  pure $ fromMaybe errorUnreachable $ buildAtt
     (iattr1 `SynSynAttr` iattr2)
-    (foldl' (\xs irule1 -> goIrule irule1 ++ xs) [] irules1)
-    (foldl' (\xs rule1  -> goRule  rule1  ++ xs) [] rules1)
+    (foldl' (\xs irule1 -> goIrule irule1 <> xs) [] irules1)
+    (foldl' (\xs rule1  -> goRule  rule1  <> xs) [] rules1)
   where
     iattr1 = attInitialAttr trans1
     iattr2 = attInitialAttr trans2
@@ -190,11 +190,6 @@ composeAtts trans1 trans2 = do
         Synthesized a' -> first (a':)
         Inherited   a' -> second (a':)
       ) ([], []) attrs2
-
-    -- FIXME: Maybe this coerce raise core lint warnings
-    unsafeInitialRhsInhCoerce :: (Functor f, Functor g)
-      => f (g (RightHandSide syn inh tb lb)) -> f (g (RightHandSide syn Void tb lb))
-    unsafeInitialRhsInhCoerce = Unsafe.unsafeCoerce
 
     buildRules' replacerB2 replacerA2 isInitial a l rhs =
       [ ( replacerA2 a2
@@ -216,8 +211,8 @@ composeAtts trans1 trans2 = do
             , runReductionWithRep replacerB2 initAttrStateB2
             )
 
-    toInhPathInfo True p@AttPathInfo{..} = p { attPathList = attPathList <> [0] }
-    toInhPathInfo False p                = p
+    toInhPathInfo True  p = p & _attPathList %~ (<> [0])
+    toInhPathInfo False p = p
 
     buildRules a@(Synthesized a1) Nothing rhs = buildRules'
       (const $ error "Not contains any inherited attributes in initial rules")
@@ -232,17 +227,19 @@ composeAtts trans1 trans2 = do
     buildRules a@(Inherited (b1, j)) l rhs = buildRules'
       (\b2' -> Synthesized (b1 `InhInhAttr` b2', j))
       (\a2 -> Inherited (b1 `InhSynAttr` a2, j))
-      (maybe True (const False) l)
+      (isNothing l)
       a l rhs
 
-    goIrule (attr1, rhs) = let
-        rhs' = coerceRhsInh rhs
+    toInitialRhs (AttAttrSide a)     = AttAttrSide $ second errorVoid a
+    toInitialRhs (AttLabelSide l cs) = AttLabelSide l $ toInitialRhs <$> cs
+    toInitialRhs AttBottomLabelSide  = AttBottomLabelSide
 
-        formatRule (Synthesized _,    r) = (Synthesized (), r)
-        formatRule (Inherited (a, _), r) = (Inherited a,    r)
-      in unsafeInitialRhsInhCoerce $ formatRule <$> case attr1 of
-        Synthesized () -> buildRules (Synthesized iattr1) Nothing rhs'
-        Inherited   b1 -> buildRules (Inherited (b1, 0)) Nothing rhs'
+    goIrule (attr1, rhs) = let
+        formatRule (Synthesized _,    r) = (Synthesized (), toInitialRhs r)
+        formatRule (Inherited (a, _), r) = (Inherited a,    toInitialRhs r)
+      in formatRule <$> case attr1 of
+        Synthesized () -> buildRules (Synthesized iattr1) Nothing rhs
+        Inherited   b1 -> buildRules (Inherited (b1, 0))  Nothing rhs
 
     goRule ((attr1, l), rhs) = let
         formatRule (a, r) = (a, l, r)
@@ -255,5 +252,5 @@ composeAtts trans1 trans2 = do
     replaceRedState f (RedFix x) = case x of
       AttLabelSideF l cs  -> mkTreeUnchecked l $ replaceRedState f <$> cs
       AttBottomLabelSideF -> mkTreeUnchecked AttBottomLabelSideF []
-      AttAttrSideF (Inherited b) AttPathInfo{ attPathList = [] } -> AttAttrSide $ f b
+      AttAttrSideF (Inherited b) p | p ^. _attPathList . to null -> AttAttrSide $ f b
       _ -> error "This state is reducible"

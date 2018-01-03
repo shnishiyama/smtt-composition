@@ -14,6 +14,9 @@ module Data.Tree.RankedTree.Zipper
     -- a main instance
   , RTZipper
   , rtZipper
+  , RtPathZipper (..)
+  , rtPathZipper
+  , _rtPathList
   ) where
 
 import           SattPrelude
@@ -156,6 +159,8 @@ fromTreeCrumb RTZCrumb{..} t = mkTreeUnchecked rtzcLabel rtzcChilds'
 -- :}
 --
 -- >>> treeABCZipper = rtZipper treeABCSample
+-- >>> toTree treeABCZipper
+-- A(C,B(C))
 -- >>> toTree <$> zoomInRtZipper treeABCZipper
 -- Just C
 -- >>> toTree <$> (zoomInRtZipper >=> zoomRightRtZipper) treeABCZipper
@@ -279,3 +284,108 @@ instance RankedTreeZipper RTZipper where
     { rtzTree   = t
     }
 
+
+-- | A zipper with path
+--
+-- Examples:
+--
+-- >>> :set -XOverloadedLists
+-- >>> import Data.Tree.RankedTree.Label
+-- >>> type ABCAlphabet = TaggedRankedAlphabet ['("A", 2), '("B", 1), '("C", 0)]
+-- >>> a = taggedRankedLabel @"A"
+-- >>> b = taggedRankedLabel @"B"
+-- >>> c = taggedRankedLabel @"C"
+-- >>> :{
+-- treeABCSample :: RankedLabelledTree ABCAlphabet
+-- treeABCSample = mkLabelledTree a
+--   [ mkTree c []
+--   , mkTree b [mkTree c []]
+--   ]
+-- :}
+--
+-- >>> treeABCZipper = toZipper @(AttPathInfo RTZipper) treeABCSample
+-- >>> toTreeWithPath = toTree &&& tzPathList
+-- >>> toTreeWithPath treeABCZipper
+-- (A(C,B(C),[])
+-- >>> toTreeWithPath <$> zoomInRtZipper treeABCZipper
+-- Just (C,[0])
+-- >>> toTreeWithPath <$> (zoomInRtZipper >=> zoomRightRtZipper) treeABCZipper
+-- Just (B(C),[1])
+-- >>> :{
+--   toTreeWithPath <$>
+--   (   zoomInRtZipper
+--   >=> zoomRightRtZipper
+--   >=> zoomOutRtZipper
+--   ) treeABCZipper
+-- :}
+-- Just (A(C,B(C)),[])
+--
+-- >>> :{
+-- toTopTree
+--   <$> setTreeZipper (mkTree a [mkTree c [], mkTree c []])
+--   <$> zoomInRtZipper treeABCZipper
+-- :}
+-- Just A(A(C,C),B(C))
+--
+-- >>> toTreeWithPath <$> zoomOutRtZipper treeABCZipper
+-- Nothing
+-- >>> toTreeWithPath <$> zoomRightRtZipper treeABCZipper
+-- Nothing
+-- >>> toTreeWithPath <$> (zoomNextRightOutZipper (const True) <=< zoomInRtZipper) treeABCZipper
+-- Just (C,[0])
+-- >>> toTreeWithPath <$> (zoomNextRightOutZipper1 (const True) <=< zoomInRtZipper) treeABCZipper
+-- Just (B(C),[1])
+--
+data RtPathZipper tz t l = RtPathZipper
+  { rtPathList           :: [RankNumber]
+  , rtPathInternalZipper :: tz t l
+  } deriving (Eq, Ord, Show, Generic)
+
+rtPathZipper :: forall tz t l. (RankedTreeZipper tz, RtConstraint t l)
+  => t -> RtPathZipper tz t l
+rtPathZipper = toZipper
+
+_rtPathList :: Lens' (RtPathZipper tz t l) [RankNumber]
+_rtPathList = lens rtPathList $ \p pl -> p { rtPathList = pl }
+
+instance RankedTreeZipper tz => RankedTreeZipper (RtPathZipper tz) where
+  toZipper t = RtPathZipper
+    { rtPathList           = []
+    , rtPathInternalZipper = toZipper t
+    }
+  toTree = toTree . rtPathInternalZipper
+
+  zoomInIdxRtZipper i RtPathZipper{..}
+    = zoomInIdxRtZipper i rtPathInternalZipper <&> \ntz -> RtPathZipper
+      { rtPathList           = i:rtPathList
+      , rtPathInternalZipper = ntz
+      }
+
+  zoomOutRtZipper RtPathZipper{..} = case rtPathList of
+    []   -> Nothing
+    _:pl -> zoomOutRtZipper rtPathInternalZipper <&> \ntz -> RtPathZipper
+      { rtPathList           = pl
+      , rtPathInternalZipper = ntz
+      }
+
+  zoomLeftRtZipper RtPathZipper{..} = case rtPathList of
+    []   -> Nothing
+    i:pl -> zoomLeftRtZipper rtPathInternalZipper <&> \ntz -> RtPathZipper
+      { rtPathList           = (i - 1):pl
+      , rtPathInternalZipper = ntz
+      }
+
+  zoomRightRtZipper RtPathZipper{..} = case rtPathList of
+    []   -> Nothing
+    i:pl -> zoomRightRtZipper rtPathInternalZipper <&> \ntz -> RtPathZipper
+      { rtPathList           = (i + 1):pl
+      , rtPathInternalZipper = ntz
+      }
+
+  modifyTreeZipper f p@RtPathZipper{..} = p
+    { rtPathInternalZipper = modifyTreeZipper f rtPathInternalZipper
+    }
+
+  setTreeZipper t p@RtPathZipper{..} = p
+    { rtPathInternalZipper = setTreeZipper t rtPathInternalZipper
+    }

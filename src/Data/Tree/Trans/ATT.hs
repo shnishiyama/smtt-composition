@@ -45,9 +45,14 @@ module Data.Tree.Trans.ATT
   , attInitialRule
   , attTranslateRule
   , AttPathInfo(..)
+  , pattern AttPathInfo
+  , attPathList
+  , attNonPathZipper
+  , attIsInitial
+  , _attPathList
   , emptyAttPathInfo
-  , coerceRhsInh
-  , coerceRhsInh1
+  , emptyAttPathInfoFromZipper
+  , zoomInIdxPathInfo
   , pattern RedFix
   ) where
 
@@ -57,7 +62,6 @@ import           Data.Tree.RankedTree
 import           Data.Tree.RankedTree.Zipper
 import           Data.Tree.Trans.Class
 import qualified Text.Show                   as S
-import qualified Unsafe.Coerce               as Unsafe
 
 
 -- TODO: Use Either (GHC 8.2.x have a critical bug for pattern synonyms)
@@ -140,8 +144,8 @@ pattern AttBottomLabelSide = Fix AttBottomLabelSideF
 {-# COMPLETE AttAttrSide, AttLabelSide, AttBottomLabelSide #-}
 {-# COMPLETE SynAttrSide, InhAttrSide, AttLabelSide, AttBottomLabelSide #-}
 
-instance (RtConstraint t l) => RankedTree (Fix (RightHandSideF syn inh t l ())) where
-  type LabelType (Fix (RightHandSideF syn inh t l ())) = RightHandSideF syn inh t l () ()
+instance (RtConstraint t l) => RankedTree (RightHandSide syn inh t l) where
+  type LabelType (RightHandSide syn inh t l) = RightHandSideF syn inh t l () ()
 
   treeLabel (Fix x) = void x
   treeChilds (Fix x) = fromList $ toList x
@@ -169,7 +173,7 @@ type AttAttr syn inh = AttAttrEither
 data AttributedTreeTransducer syn inh ta la tb lb = AttributedTreeTransducer
   { attAttributes   :: HashSet (AttAttrEither syn inh)
   , attInitialAttr  :: syn
-  , attInitialRules :: HashMap (AttAttrEither () inh) (RightHandSide syn Void tb lb)
+  , attInitialRules :: HashMap (AttAttrEither () inh) (RightHandSide syn inh tb lb)
   , attTransRules   :: HashMap (AttAttr syn inh, la) (RightHandSide syn inh tb lb)
   } deriving (Eq, Generic)
 
@@ -209,13 +213,11 @@ instance (Show syn, Show inh, Show la, Show lb, AttConstraint syn inh ta la tb l
       attrShow (Synthesized a)    = show a <> "[...]"
       attrShow (Inherited (a, i)) = show a <> "[" <> show i <> ", ...]"
 
--- FIXME: Maybe this coerce raise core lint warnings
-coerceRhsInh :: RightHandSide syn Void tb lb -> RightHandSide syn inh tb lb
-coerceRhsInh = Unsafe.unsafeCoerce
-
--- FIXME: Maybe this coerce raise core lint warnings
-coerceRhsInh1 :: Functor f => f (RightHandSide syn Void tb lb) -> f (RightHandSide syn inh tb lb)
-coerceRhsInh1 = Unsafe.unsafeCoerce
+coerceRhsInh :: forall syn inh tb lb. RightHandSide syn Void tb lb -> RightHandSide syn inh tb lb
+coerceRhsInh (Fix x) = Fix $ case x of
+  AttAttrSideF a ()   -> AttAttrSideF (second absurd a) ()
+  AttLabelSideF l cs  -> AttLabelSideF l $ coerceRhsInh <$> cs
+  AttBottomLabelSideF -> AttBottomLabelSideF
 
 buildAtt :: forall m syn inh ta la tb lb. (AttConstraint syn inh ta la tb lb, MonadThrow m)
   => syn
@@ -224,19 +226,27 @@ buildAtt :: forall m syn inh ta la tb lb. (AttConstraint syn inh ta la tb lb, Mo
   -> m (AttributedTreeTransducer syn inh ta la tb lb)
 buildAtt ia irules rules = do
     let attrs0 = [Synthesized ia]
-    attrs1 <- foldM
-      (\attrs (a, rhs) -> scanRHS 1 (first (const ia) a:attrs) $ coerceRhsInh rhs)
-      attrs0 irules
+    (attrs1, irules') <- goInitial irules attrs0 []
     (attrs2, rules') <- go rules attrs1 []
     pure AttributedTreeTransducer
       { attAttributes   = setFromList attrs2
       , attInitialAttr  = ia
-      , attInitialRules = mapFromList irules
+      , attInitialRules = mapFromList irules'
       , attTransRules   = mapFromList rules'
       }
   where
     treeLabelRankIn = treeLabelRank $ Proxy @ta
     treeLabelRankOut = treeLabelRank $ Proxy @tb
+
+    goInitial []            xs ys = pure (xs, ys)
+    goInitial ((a, rhs):rs) xs ys = do
+      let rhs' = coerceRhsInh rhs
+      let attrs = first (const ia) a:xs
+
+      attrs' <- scanRHS 1 attrs rhs'
+
+      let irule = (a, rhs')
+      goInitial rs attrs' $ irule:ys
 
     go [] xs ys             = pure (xs, ys)
     go ((a,l,rhs):rs) xs ys = do
@@ -266,7 +276,7 @@ buildAtt ia irules rules = do
 attInitialRule :: AttConstraint syn inh ta la tb lb
   => AttributedTreeTransducer syn inh ta la tb lb
   -> AttAttrEither syn inh -> RightHandSide syn inh tb lb
-attInitialRule trans a = coerceRhsInh $ fromMaybe AttBottomLabelSide $ case a of
+attInitialRule trans a = fromMaybe AttBottomLabelSide $ case a of
     Inherited   a' -> go $ Inherited a'
     Synthesized a' -> if a' == attInitialAttr trans then go $ Synthesized () else Nothing
   where
@@ -280,26 +290,52 @@ attTranslateRule trans a l = fromMaybe AttBottomLabelSide $ lookup (a, l) $ attT
 
 -- reduction system
 
-data AttPathInfo tz t l = AttPathInfo
-  { attPathList   :: [RankNumber]
-  , attPathZipper :: tz t l
-  , attIsInitial  :: Bool
+data AttPathInfo tz t l = InternalAttPathInfo
+  { internalAttRtPathZipper :: RtPathZipper tz t l
+  , internalAttIsInitial    :: Bool
   } deriving (Eq, Ord, Show, Generic)
+
+pattern AttPathInfo :: [RankNumber] -> tz t l -> Bool -> AttPathInfo tz t l
+pattern AttPathInfo{attPathList,attNonPathZipper,attIsInitial} = InternalAttPathInfo
+  { internalAttRtPathZipper = RtPathZipper
+    { rtPathList            = attPathList
+    , rtPathInternalZipper  = attNonPathZipper
+    }
+  , internalAttIsInitial    = attIsInitial
+  }
+
+{-# COMPLETE AttPathInfo #-}
+
+attRtPathZipper :: Lens' (AttPathInfo tz t l) (RtPathZipper tz t l)
+attRtPathZipper = lens internalAttRtPathZipper $ \p rtz ->
+  p { internalAttRtPathZipper = rtz }
+
+_attPathList :: Lens' (AttPathInfo tz t l) [RankNumber]
+_attPathList = lens attPathList $ \p pl ->
+  p { attPathList = pl }
 
 emptyAttPathInfo :: forall tz t l. (RtConstraint t l, RankedTreeZipper tz)
   => Bool -> t -> AttPathInfo tz t l
-emptyAttPathInfo b t = AttPathInfo
-  { attPathList   = []
-  , attPathZipper = toZipper t
-  , attIsInitial  = b
+emptyAttPathInfo b = emptyAttPathInfoFromZipper b . toZipper
+
+emptyAttPathInfoFromZipper :: forall tz t l. (RtConstraint t l, RankedTreeZipper tz)
+  => Bool -> tz t l -> AttPathInfo tz t l
+emptyAttPathInfoFromZipper b tz = AttPathInfo
+  { attPathList      = []
+  , attNonPathZipper = tz
+  , attIsInitial     = b
   }
 
 zoomInIdxPathInfo :: (RankedTreeZipper tz, RtConstraint t l)
   => RankNumber -> AttPathInfo tz t l -> Maybe (AttPathInfo tz t l)
 zoomInIdxPathInfo i p@AttPathInfo{ attIsInitial = True }
-  | i == 0    = Just $ p { attPathList = i:attPathList p, attIsInitial = False }
+  | i == 0    = Just $ p
+    { attPathList  = i:attPathList p
+    , attIsInitial = False
+    }
   | otherwise = Nothing
-zoomInIdxPathInfo i p@AttPathInfo{ attIsInitial = False } = zoomInIdxRtZipper i p
+zoomInIdxPathInfo i p@AttPathInfo{ attIsInitial = False }
+  = zoomInIdxRtZipper i p
 
 -- | A zipper for att traversaling
 --
@@ -351,46 +387,14 @@ zoomInIdxPathInfo i p@AttPathInfo{ attIsInitial = False } = zoomInIdxRtZipper i 
 --
 instance RankedTreeZipper tz => RankedTreeZipper (AttPathInfo tz) where
   toZipper = emptyAttPathInfo False
-  toTree = toTree . attPathZipper
+  toTree p = p ^. attRtPathZipper . to toTree
 
-  zoomInIdxRtZipper n p@AttPathInfo{..}
-    = zoomInIdxRtZipper n attPathZipper <&> \nz ->
-      p
-        { attPathList   = n:attPathList
-        , attPathZipper = nz
-        }
-
-  zoomOutRtZipper AttPathInfo{ attPathList = [] } = Nothing
-  zoomOutRtZipper p@AttPathInfo{ attPathList = _:pl }
-    = zoomOutRtZipper (attPathZipper p) <&> \nz ->
-      p
-        { attPathList   = pl
-        , attPathZipper = nz
-        }
-
-  zoomLeftRtZipper AttPathInfo{ attPathList = [] } = Nothing
-  zoomLeftRtZipper p@AttPathInfo{ attPathList = i:pl }
-    = zoomLeftRtZipper (attPathZipper p) <&> \nz ->
-      p
-        { attPathList   = (i - 1):pl
-        , attPathZipper = nz
-        }
-
-  zoomRightRtZipper AttPathInfo{ attPathList = [] } = Nothing
-  zoomRightRtZipper p@AttPathInfo{ attPathList = i:pl }
-    = zoomRightRtZipper (attPathZipper p) <&> \nz ->
-      p
-        { attPathList   = (i + 1):pl
-        , attPathZipper = nz
-        }
-
-  modifyTreeZipper f p@AttPathInfo{..} = p
-    { attPathZipper = modifyTreeZipper f attPathZipper
-    }
-
-  setTreeZipper t p@AttPathInfo{..} = p
-    { attPathZipper = setTreeZipper t attPathZipper
-    }
+  zoomInIdxRtZipper n = traverseOf attRtPathZipper $ zoomInIdxRtZipper n
+  zoomOutRtZipper = traverseOf attRtPathZipper zoomOutRtZipper
+  zoomLeftRtZipper = traverseOf attRtPathZipper zoomLeftRtZipper
+  zoomRightRtZipper = traverseOf attRtPathZipper zoomRightRtZipper
+  modifyTreeZipper f = attRtPathZipper %~ modifyTreeZipper f
+  setTreeZipper t = attRtPathZipper %~ setTreeZipper t
 
 newtype ReductionStateF syn inh ta la tb lb tz state = ReductionStateF
   { unwrapReductionStateF :: RightHandSideF syn inh tb lb (AttPathInfo tz ta la) state
@@ -408,8 +412,8 @@ pattern RedFix
 pattern RedFix s = Fix (ReductionStateF s)
 {-# COMPLETE RedFix #-}
 
-instance (AttConstraint syn inh ta la tb lb) => RankedTree (Fix (ReductionStateF syn inh ta la tb lb tz)) where
-  type LabelType (Fix (ReductionStateF syn inh ta la tb lb tz)) = ReductionStateF syn inh ta la tb lb tz ()
+instance (AttConstraint syn inh ta la tb lb) => RankedTree (ReductionState syn inh ta la tb lb tz) where
+  type LabelType (ReductionState syn inh ta la tb lb tz) = ReductionStateF syn inh ta la tb lb tz ()
 
   treeLabel (Fix x) = void x
   treeChilds (RedFix x) = fromList $ toList x
@@ -445,17 +449,13 @@ buildAttReduction f is trans mt = go is' initialZipper
     toRedState True  tz a = toRedState' True  tz $ initialRule (Synthesized a)
     toRedState False tz a = toRedState' False tz $ rule (Synthesized a) (toTreeLabel tz)
 
-    toRedState' b tz = replaceRHS $ AttPathInfo
-      { attPathList   = []
-      , attPathZipper = tz
-      , attIsInitial  = b
-      }
+    toRedState' b tz = replaceRHS $ emptyAttPathInfoFromZipper b tz
 
     checkReducible (RedFix x) = case x of
-      AttAttrSideF Inherited{} AttPathInfo{attPathList = []} -> False
-      AttAttrSideF{}                                         -> True
-      AttLabelSideF{}                                        -> False
-      AttBottomLabelSideF                                    -> False
+      AttAttrSideF Inherited{} AttPathInfo{ attPathList = [] } -> False
+      AttAttrSideF{}       -> True
+      AttLabelSideF{}      -> False
+      AttBottomLabelSideF  -> False
 
     go x sz = case zoomNextRightOutZipper (checkReducible . toTree) sz of
       Just sz' -> let
@@ -473,35 +473,50 @@ buildAttReduction f is trans mt = go is' initialZipper
         Just z' -> replaceRHS (AttPathInfo pl z' False) $ rule (Inherited (a, i)) (toTreeLabel z')
       _ -> error "This state is irreducible"
 
-    replaceRHS p (Fix x) = case x of
-      AttAttrSideF a _    -> RedFix $ AttAttrSideF a p
-      AttLabelSideF l cs  -> RedFix $ AttLabelSideF l $ replaceRHS p <$> cs
-      AttBottomLabelSideF -> RedFix AttBottomLabelSideF
+    replaceRHS p (Fix x) = RedFix $ case x of
+      AttAttrSideF a _    -> AttAttrSideF a p
+      AttLabelSideF l cs  -> AttLabelSideF l $ replaceRHS p <$> cs
+      AttBottomLabelSideF -> AttBottomLabelSideF
 
-runAttReduction :: forall tz syn inh ta la tb lb. (AttConstraint syn inh ta la tb lb, RankedTreeZipper tz)
+runAttReduction :: forall tz syn inh ta la tb lb.
+  ( AttConstraint syn inh ta la tb lb, RankedTreeZipper tz
+  )
   => AttributedTreeTransducer syn inh ta la tb lb
-  -> ReductionStateWithEmptySyn syn inh ta la tb lb tz -> ReductionState syn inh ta la tb lb tz
+  -> ReductionStateWithEmptySyn syn inh ta la tb lb tz
+  -> ReductionState syn inh ta la tb lb tz
 runAttReduction trans istate = toTopTree
-  $ buildAttReduction const (either (const $ error "unreachable") toZipper istate) trans istate
+  $ buildAttReduction const (either (const errorUnreachable) toZipper istate) trans istate
 
-runAttReductionWithHistory :: forall tz syn inh ta la tb lb. (AttConstraint syn inh ta la tb lb, RankedTreeZipper tz)
+runAttReductionWithHistory :: forall tz syn inh ta la tb lb.
+  ( AttConstraint syn inh ta la tb lb, RankedTreeZipper tz
+  )
   => AttributedTreeTransducer syn inh ta la tb lb
-  -> ReductionStateWithEmptySyn syn inh ta la tb lb tz -> [ReductionState syn inh ta la tb lb tz]
+  -> ReductionStateWithEmptySyn syn inh ta la tb lb tz
+  -> [ReductionState syn inh ta la tb lb tz]
 runAttReductionWithHistory trans istate
   = buildAttReduction (\tz -> (. (toTopTree tz:))) id trans istate []
 
-toInitialReductionState :: forall tz syn inh ta la tb lb. (AttConstraint syn inh ta la tb lb, RankedTreeZipper tz)
-  => AttributedTreeTransducer syn inh ta la tb lb -> ta -> ReductionStateWithEmptySyn syn inh ta la tb lb tz
+toInitialReductionState :: forall tz syn inh ta la tb lb.
+  ( AttConstraint syn inh ta la tb lb, RankedTreeZipper tz
+  )
+  => AttributedTreeTransducer syn inh ta la tb lb
+  -> ta -> ReductionStateWithEmptySyn syn inh ta la tb lb tz
 toInitialReductionState trans t = Left (True, toZipper t, attInitialAttr trans)
 
-toInitialAttrState :: forall tz syn inh ta la tb lb. (AttConstraint syn inh ta la tb lb, RankedTreeZipper tz)
-  => AttAttrEither syn inh -> AttPathInfo tz ta la -> ReductionStateWithEmptySyn syn inh ta la tb lb tz
-toInitialAttrState (Synthesized a) (AttPathInfo [] tz b) = Left (b, tz, a)
-toInitialAttrState (Synthesized a) p@AttPathInfo{ attPathList = i:pl } = Right . RedFix
-  $ AttAttrSideF (Synthesized (a, i)) $ p { attPathList = pl }
+toInitialAttrState :: forall tz syn inh ta la tb lb.
+  ( AttConstraint syn inh ta la tb lb, RankedTreeZipper tz
+  )
+  => AttAttrEither syn inh -> AttPathInfo tz ta la
+  -> ReductionStateWithEmptySyn syn inh ta la tb lb tz
+toInitialAttrState (Synthesized a) p = case attPathList p of
+  []   ->Left (attIsInitial p, attNonPathZipper p, a)
+  i:pl -> Right . RedFix
+    $ AttAttrSideF (Synthesized (a, i)) $ p { attPathList = pl }
 toInitialAttrState (Inherited a) p = Right . RedFix $ AttAttrSideF (Inherited a) p
 
-fromReductionState :: (AttConstraint syn inh ta la tb lb, RankedTreeZipper tz)
+fromReductionState ::
+  ( AttConstraint syn inh ta la tb lb, RankedTreeZipper tz
+  )
   => ReductionState syn inh ta la tb lb tz -> Maybe tb
 fromReductionState (RedFix x) = case x of
   AttLabelSideF l cs  -> do
@@ -531,7 +546,9 @@ prettyShowReductionState state = go state ""
 
 
 -- A tree transduction for att
-instance AttConstraint syn inh ta la tb lb => TreeTransducer (AttributedTreeTransducer syn inh ta la tb lb) ta tb where
+instance AttConstraint syn inh ta la tb lb
+    => TreeTransducer (AttributedTreeTransducer syn inh ta la tb lb) ta tb where
+
   treeTrans trans
     =   (toInitialReductionState @RTZipper trans)
     >>> runAttReduction trans

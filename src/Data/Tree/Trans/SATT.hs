@@ -28,23 +28,45 @@ module Data.Tree.Trans.SATT
   , isSynthesized
   , isInherited
 
+    -- reduction system
+  , ReductionState
+  , ReductionStateWithEmptySyn
+  , buildSattReduction
+  , runSattReduction
+  , runSattReductionWithHistory
+  , toInitialReductionState
+  , fromReductionState
+  , prettyShowReductionState
+
     -- internal
-  , coerceRhsInh
-  , coerceRhsInh1
+  , sattAttributes
+  , sattInitialAttr
+  , sattInitialRules
+  , sattTransRules
+  , sattInitialRule
+  , sattTranslateRule
+  , SattPathInfo
+  , pattern SattPathInfo
+  , sattPathList
+  , sattNonPathZipper
+  , sattIsInitial
+  , emptySattPathInfo
+  , zoomInIdxPathInfo
   ) where
 
 import           SattPrelude
 
+import Data.Tree.Trans.Class
+import Data.Tree.RankedTree.Zipper
 import           Data.Bifunctor.FixLR
 import           Data.Tree.RankedTree
-import           Data.Tree.Trans.ATT   (AttAttrEither (..), isInherited,
-                                        isSynthesized)
+import           Data.Tree.Trans.ATT (AttAttrEither(..), isSynthesized, isInherited)
+import qualified Data.Tree.Trans.ATT as ATT
 import           Data.Tree.Trans.Stack
 import qualified Text.Show             as S
-import qualified Unsafe.Coerce         as Unsafe
 
 
-type SattAttrEither = AttAttrEither
+type SattAttrEither = ATT.AttAttrEither
 
 type SattAttrDepend syn inh = SattAttrEither
   (syn, RankNumber)
@@ -173,8 +195,14 @@ pattern SattStackCons v s = FixStk (SattStackConsF v s)
 {-# COMPLETE SattAttrSide, SattStackEmpty, SattStackTail, SattStackCons #-}
 {-# COMPLETE SynAttrSide, InhAttrSide, SattStackEmpty, SattStackTail, SattStackCons #-}
 
-instance (RtConstraint t l) => RankedTree (StackExprEither (RightHandSideVal syn inh t l) (RightHandSideStk syn inh t l)) where
-  type LabelType (StackExprEither (RightHandSideVal syn inh t l) (RightHandSideStk syn inh t l)) = StackExprEither (RightHandSideValF syn inh t l () () ()) (RightHandSideStkF syn inh t l () () ())
+type BiRightHandSide syn inh t l = StackExprEither
+  (RightHandSideVal syn inh t l)
+  (RightHandSideStk syn inh t l)
+
+instance (RtConstraint t l) => RankedTree (BiRightHandSide syn inh t l) where
+  type LabelType (BiRightHandSide syn inh t l) = StackExprEither
+    (RightHandSideValF syn inh t l () () ())
+    (RightHandSideStkF syn inh t l () () ())
 
   treeLabel (BiFixVal x) = ValuedExpr  $ bivoid x
   treeLabel (BiFixStk x) = StackedExpr $ bivoid x
@@ -194,7 +222,9 @@ instance (RtConstraint t l) => RankedTree (StackExprEither (RightHandSideVal syn
         SattAttrSideF a p -> BiFixStk $ SattAttrSideF a p
         SattStackEmptyF   -> BiFixStk SattStackEmptyF
         SattStackTailF{}  -> BiFixStk $ SattStackTailF (fromStackedExpr $ cs `indexEx` 0)
-        SattStackConsF{}  -> BiFixStk $ SattStackConsF (fromValuedExpr $ cs `indexEx` 0) (fromStackedExpr $ cs `indexEx` 1)
+        SattStackConsF{}  -> BiFixStk $ SattStackConsF
+          (fromValuedExpr $ cs `indexEx` 0)
+          (fromStackedExpr $ cs `indexEx` 1)
     where
       fromValuedExpr (ValuedExpr x) = x
       fromValuedExpr _              = error "expected a valued expression"
@@ -221,7 +251,7 @@ type SattAttr syn inh = SattAttrEither
 data StackAttributedTreeTransducer syn inh ta la tb lb = StackAttributedTreeTransducer
   { sattAttributes   :: HashSet (SattAttrEither syn inh)
   , sattInitialAttr  :: syn
-  , sattInitialRules :: HashMap (SattAttrEither () inh) (RightHandSide syn Void tb lb)
+  , sattInitialRules :: HashMap (SattAttrEither () inh) (RightHandSide syn inh tb lb)
   , sattTransRules   :: HashMap (SattAttr syn inh, la) (RightHandSide syn inh tb lb)
   } deriving (Eq, Generic)
 
@@ -261,13 +291,18 @@ instance (Show syn, Show inh, Show la, Show lb, SattConstraint syn inh ta la tb 
       attrShow (Synthesized a)    = show a <> "[...]"
       attrShow (Inherited (a, i)) = show a <> "[" <> show i <> ", ...]"
 
--- FIXME: Maybe this coerce raise core lint warnings
-coerceRhsInh :: RightHandSide syn Void tb lb -> RightHandSide syn inh tb lb
-coerceRhsInh = Unsafe.unsafeCoerce
+coerceRhsStkInh :: forall syn inh tb lb. RightHandSideStk syn Void tb lb -> RightHandSideStk syn inh tb lb
+coerceRhsStkInh (FixStk x) = FixStk $ case x of
+  SattAttrSideF a () -> SattAttrSideF (second absurd a) ()
+  SattStackEmptyF    -> SattStackEmptyF
+  SattStackTailF s   -> SattStackTailF (coerceRhsStkInh s)
+  SattStackConsF v s -> SattStackConsF (coerceRhsValInh v) (coerceRhsStkInh s)
 
--- FIXME: Maybe this coerce raise core lint warnings
-coerceRhsInh1 :: Functor f => f (RightHandSide syn Void tb lb) -> f (RightHandSide syn inh tb lb)
-coerceRhsInh1 = Unsafe.unsafeCoerce
+coerceRhsValInh :: forall syn inh tb lb. RightHandSideVal syn Void tb lb -> RightHandSideVal syn inh tb lb
+coerceRhsValInh (FixVal x) = FixVal $ case x of
+  SattLabelSideF l cs -> SattLabelSideF l $ coerceRhsValInh <$> cs
+  SattStackBottomF    -> SattStackBottomF
+  SattStackHeadF s    -> SattStackHeadF (coerceRhsStkInh s)
 
 buildSatt :: forall m syn inh ta la tb lb. (SattConstraint syn inh ta la tb lb, MonadThrow m)
   => syn
@@ -276,19 +311,27 @@ buildSatt :: forall m syn inh ta la tb lb. (SattConstraint syn inh ta la tb lb, 
   -> m (StackAttributedTreeTransducer syn inh ta la tb lb)
 buildSatt ia irules rules = do
     let attrs0 = [Synthesized ia]
-    attrs1 <- foldM
-      (\attrs (a, rhs) -> scanRHSStk 1 (first (const ia) a:attrs) $ coerceRhsInh rhs)
-      attrs0 irules
+    (attrs1, irules') <- goInitial irules attrs0 []
     (attrs2, rules') <- go rules attrs1 []
     pure StackAttributedTreeTransducer
       { sattAttributes   = setFromList attrs2
       , sattInitialAttr  = ia
-      , sattInitialRules = mapFromList irules
+      , sattInitialRules = mapFromList irules'
       , sattTransRules   = mapFromList rules'
       }
   where
     treeLabelRankIn = treeLabelRank $ Proxy @ta
     treeLabelRankOut = treeLabelRank $ Proxy @tb
+
+    goInitial []            xs ys = pure (xs, ys)
+    goInitial ((a, rhs):rs) xs ys = do
+      let rhs' = coerceRhsStkInh rhs
+      let attrs = first (const ia) a:xs
+
+      attrs' <- scanRHSStk 1 attrs rhs'
+
+      let irule = (a, rhs')
+      goInitial rs attrs' $ irule:ys
 
     go [] xs ys             = pure (xs, ys)
     go ((a,l,rhs):rs) xs ys = do
@@ -322,3 +365,264 @@ buildSatt ia irules rules = do
       SattLabelSideF l cs -> if length cs == treeLabelRankOut l
         then foldM (scanRHSVal k) xs cs
         else throwErrorM "Mismatch the rank of an output label for childs"
+
+sattInitialRule :: SattConstraint syn inh ta la tb lb
+  => StackAttributedTreeTransducer syn inh ta la tb lb
+  -> SattAttrEither syn inh -> RightHandSide syn inh tb lb
+sattInitialRule trans a = fromMaybe SattStackEmpty $ case a of
+    Inherited   a' -> go $ Inherited a'
+    Synthesized a' -> if a' == sattInitialAttr trans then go $ Synthesized () else Nothing
+  where
+    go attr = lookup attr $ sattInitialRules trans
+
+sattTranslateRule :: SattConstraint syn inh ta la tb lb
+  => StackAttributedTreeTransducer syn inh ta la tb lb
+  -> SattAttr syn inh -> la -> RightHandSide syn inh tb lb
+sattTranslateRule trans a l = fromMaybe SattStackEmpty $ lookup (a, l) $ sattTransRules trans
+
+
+-- reduction system
+
+type SattPathInfo = ATT.AttPathInfo
+
+pattern SattPathInfo :: [RankNumber] -> tz t l -> Bool -> SattPathInfo tz t l
+pattern SattPathInfo{sattPathList,sattNonPathZipper,sattIsInitial} = ATT.AttPathInfo
+  { ATT.attPathList      = sattPathList
+  , ATT.attNonPathZipper = sattNonPathZipper
+  , ATT.attIsInitial     = sattIsInitial
+  }
+
+{-# COMPLETE SattPathInfo #-}
+
+emptySattPathInfo :: forall tz t l. (RtConstraint t l, RankedTreeZipper tz)
+  => Bool -> t -> SattPathInfo tz t l
+emptySattPathInfo = ATT.emptyAttPathInfo
+
+emptySattPathInfoFromZipper :: forall tz t l. (RtConstraint t l, RankedTreeZipper tz)
+  => Bool -> tz t l -> SattPathInfo tz t l
+emptySattPathInfoFromZipper = ATT.emptyAttPathInfoFromZipper
+
+zoomInIdxPathInfo :: (RankedTreeZipper tz, RtConstraint t l)
+  => RankNumber -> SattPathInfo tz t l -> Maybe (SattPathInfo tz t l)
+zoomInIdxPathInfo = ATT.zoomInIdxPathInfo
+
+type ReductionState syn inh ta la tb lb tz = BiStackExprFix
+  (RightHandSideValF syn inh tb lb (SattPathInfo tz ta la))
+  (RightHandSideStkF syn inh tb lb (SattPathInfo tz ta la))
+
+pattern RedFixVal
+  :: BiStackExprFixVal
+    (RightHandSideValF syn inh tb lb (SattPathInfo tz ta la))
+    (RightHandSideStkF syn inh tb lb (SattPathInfo tz ta la))
+  -> ReductionState syn inh ta la tb lb tz
+pattern RedFixVal s = BiFixVal s
+
+pattern RedFixStk
+  :: BiStackExprFixStk
+    (RightHandSideValF syn inh tb lb (SattPathInfo tz ta la))
+    (RightHandSideStkF syn inh tb lb (SattPathInfo tz ta la))
+  -> ReductionState syn inh ta la tb lb tz
+pattern RedFixStk s = BiFixStk s
+
+{-# COMPLETE RedFixVal, RedFixStk #-}
+
+type ReductionStateValF syn inh ta la tb lb tz val stk
+  = RightHandSideValF syn inh tb lb (SattPathInfo tz ta la) val stk
+
+type ReductionStateStkF syn inh ta la tb lb tz val stk
+  = RightHandSideStkF syn inh tb lb (SattPathInfo tz ta la) val stk
+
+instance (SattConstraint syn inh ta la tb lb) => RankedTree (ReductionState syn inh ta la tb lb tz) where
+  type LabelType (ReductionState syn inh ta la tb lb tz) = StackExprEither
+    (ReductionStateValF syn inh ta la tb lb tz () ())
+    (ReductionStateStkF syn inh ta la tb lb tz () ())
+
+  treeLabel (RedFixVal x) = ValuedExpr  $ bivoid x
+  treeLabel (RedFixStk x) = StackedExpr $ bivoid x
+
+  treeChilds (RedFixVal x) = fromList $ biList $ bimap ValuedExpr StackedExpr x
+  treeChilds (RedFixStk x) = fromList $ biList $ bimap ValuedExpr StackedExpr x
+
+  treeLabelRank _ (ValuedExpr  x) = bilength x
+  treeLabelRank _ (StackedExpr x) = bilength x
+
+  mkTreeUnchecked e cs = case e of
+      ValuedExpr ve -> case ve of
+        SattLabelSideF l _ -> BiFixVal $ SattLabelSideF l $ fromValuedExpr <$> cs
+        SattStackBottomF   -> BiFixVal SattStackBottomF
+        SattStackHeadF{}   -> BiFixVal $ SattStackHeadF (fromStackedExpr $ cs `indexEx` 0)
+      StackedExpr se -> case se of
+        SattAttrSideF a p -> BiFixStk $ SattAttrSideF a p
+        SattStackEmptyF   -> BiFixStk SattStackEmptyF
+        SattStackTailF{}  -> BiFixStk $ SattStackTailF (fromStackedExpr $ cs `indexEx` 0)
+        SattStackConsF{}  -> BiFixStk $ SattStackConsF
+          (fromValuedExpr $ cs `indexEx` 0)
+          (fromStackedExpr $ cs `indexEx` 1)
+    where
+      fromValuedExpr (ValuedExpr x) = x
+      fromValuedExpr _              = error "expected a valued expression"
+
+      fromStackedExpr (StackedExpr x) = x
+      fromStackedExpr _               = error "expected a stacked expression"
+
+type ReductionStateWithEmptySyn syn inh ta la tb lb tz
+  = Either (Bool, tz ta la, syn) (ReductionState syn inh ta la tb lb tz)
+
+buildSattReduction :: forall tz b syn inh ta la tb lb.
+  (SattConstraint syn inh ta la tb lb, RankedTreeZipper tz)
+  => (RtApply tz (ReductionState syn inh ta la tb lb tz) -> b -> b) -> b
+  -> StackAttributedTreeTransducer syn inh ta la tb lb
+  -> ReductionStateWithEmptySyn syn inh ta la tb lb tz
+  -> b
+buildSattReduction f is trans mt = go is' initialZipper
+  where
+    (initialZipper, is') = case mt of
+      Left (b, tz, a) -> let
+          !sz   = toZipper $ toRedState b tz a
+          !nis = f sz is
+        in (sz, nis)
+      Right s         -> (toZipper s, is)
+
+    initialRule = sattInitialRule trans
+    rule = sattTranslateRule trans
+
+    toRedState True  tz a = toRedState' True  tz $ initialRule (Synthesized a)
+    toRedState False tz a = toRedState' False tz $ rule (Synthesized a) (toTreeLabel tz)
+
+    toRedState' b tz = RedFixVal . SattStackHeadF
+      . replaceRHSStk (emptySattPathInfoFromZipper b tz)
+
+    checkReducible (RedFixVal x) = case x of
+      SattLabelSideF{}   -> False
+      SattStackBottomF{} -> False
+      SattStackHeadF{}   -> False
+    checkReducible (RedFixStk x) = case x of
+      SattAttrSideF Inherited{} SattPathInfo{ sattPathList = [] } -> False
+      SattAttrSideF{}    -> True
+      SattStackEmptyF{}  -> False
+      SattStackTailF{}   -> False
+      SattStackConsF{}   -> True
+
+    go x sz = case zoomNextRightOutZipper (checkReducible . toTree) sz of
+      Just sz' -> let
+          !nsz = reductState sz'
+          !nx = f nsz x
+        in go nx nsz
+      Nothing -> x
+
+    reductState sz = case toTree sz of
+      RedFixStk x -> case x of
+        SattAttrSideF a p  -> setTreeZipper (reductAttrSide a p) sz
+        SattStackConsF h t -> deconsStackCons h t sz
+        _ -> error "This state is irreducible"
+      RedFixVal _ -> error "This state is irreducible"
+
+    reductAttrSide (Synthesized (a, i)) p = case zoomInIdxPathInfo i p of
+      Nothing -> error "Using an over indexed synthesized attribute"
+      Just np -> replaceRHS np $ rule (Synthesized a) (toTreeLabel np)
+    reductAttrSide (Inherited a) (SattPathInfo (i:pl) z False) = case zoomOutRtZipper z of
+      Nothing -> replaceRHS (SattPathInfo pl z  True)  $ initialRule (Inherited a)
+      Just z' -> replaceRHS (SattPathInfo pl z' False) $ rule (Inherited (a, i)) (toTreeLabel z')
+    reductAttrSide Inherited{} SattPathInfo{} = error "This state is irreducible"
+
+    deconsStackCons h t sz = case zoomOutRtZipper sz of
+      Nothing  -> errorUnreachable
+      Just nsz -> case toTree nsz of
+        RedFixVal x -> case x of
+          SattStackHeadF{} -> setTreeZipper (ValuedExpr h) nsz
+          _                -> errorUnreachable
+        RedFixStk x -> case x of
+          SattStackTailF{} -> setTreeZipper (StackedExpr t) nsz
+          _                -> errorUnreachable
+
+    replaceRHS p = StackedExpr . replaceRHSStk p
+
+    replaceRHSVal p (FixVal x) = FixVal $ case x of
+      SattLabelSideF l cs  -> SattLabelSideF l $ replaceRHSVal p <$> cs
+      SattStackBottomF     -> SattStackBottomF
+      SattStackHeadF s     -> SattStackHeadF $ replaceRHSStk p s
+
+    replaceRHSStk p (FixStk x) = FixStk $ case x of
+      SattAttrSideF a _    -> SattAttrSideF a p
+      SattStackEmptyF      -> SattStackEmptyF
+      SattStackTailF s     -> SattStackTailF $ replaceRHSStk p s
+      SattStackConsF v s   -> SattStackConsF
+        (replaceRHSVal p v)
+        (replaceRHSStk p s)
+
+runSattReduction :: forall tz syn inh ta la tb lb.
+  ( SattConstraint syn inh ta la tb lb, RankedTreeZipper tz
+  )
+  => StackAttributedTreeTransducer syn inh ta la tb lb
+  -> ReductionStateWithEmptySyn syn inh ta la tb lb tz
+  -> ReductionState syn inh ta la tb lb tz
+runSattReduction trans istate = toTopTree
+  $ buildSattReduction const (either (const errorUnreachable) toZipper istate) trans istate
+
+runSattReductionWithHistory :: forall tz syn inh ta la tb lb.
+  ( SattConstraint syn inh ta la tb lb, RankedTreeZipper tz
+  )
+  => StackAttributedTreeTransducer syn inh ta la tb lb
+  -> ReductionStateWithEmptySyn syn inh ta la tb lb tz
+  -> [ReductionState syn inh ta la tb lb tz]
+runSattReductionWithHistory trans istate
+  = buildSattReduction (\tz -> (. (toTopTree tz:))) id trans istate []
+
+toInitialReductionState :: forall tz syn inh ta la tb lb.
+  ( SattConstraint syn inh ta la tb lb, RankedTreeZipper tz
+  )
+  => StackAttributedTreeTransducer syn inh ta la tb lb
+  -> ta -> ReductionStateWithEmptySyn syn inh ta la tb lb tz
+toInitialReductionState trans t = Left (True, toZipper t, sattInitialAttr trans)
+
+fromReductionState ::
+  ( SattConstraint syn inh ta la tb lb, RankedTreeZipper tz
+  )
+  => ReductionState syn inh ta la tb lb tz -> Maybe tb
+fromReductionState x = case x of
+    ValuedExpr  x' -> fromReductionStateVal x'
+    StackedExpr x' -> fromReductionStateStk x'
+  where
+    fromReductionStateVal (FixVal x') = case x' of
+      SattLabelSideF l cs  -> do
+        cs' <- mapM fromReductionStateVal cs
+        pure $ mkTreeUnchecked l cs'
+      SattStackBottomF    -> pure $ mkTreeUnchecked bottomLabel []
+      _                   -> Nothing
+
+    fromReductionStateStk (FixStk x') = case x' of
+      _ -> Nothing
+
+prettyShowReductionState ::
+  ( Show syn, Show inh, Show la, Show lb
+  , RtConstraint ta la, RtConstraint tb lb
+  , RankedTreeZipper tz
+  )
+  => ReductionState syn inh ta la tb lb tz -> String
+prettyShowReductionState state = go state ""
+  where
+    go (ValuedExpr  x) = goVal x
+    go (StackedExpr x) = goStk x
+
+    goVal (FixVal x) = prettyShowRhsValF attrShow' goVal goStk x
+    goStk (FixStk x) = prettyShowRhsStkF attrShow' goVal goStk x
+
+    attrShow' (a, SattPathInfo pl mz b) = attrShow a pl mz b
+
+    attrShow a pl z b = let lShow = labelShow z b in case a of
+      Synthesized (a', i) -> S.shows a' . S.shows (i:pl) . S.showString "(" . lShow . S.showString ")"
+      Inherited   a'      -> S.shows a' . S.shows pl . S.showString "(" . lShow . S.showString ")"
+
+    labelShow _ True  = S.showString "#"
+    labelShow z False = S.shows $ toTreeLabel z
+
+
+-- A tree transduction for satts
+instance SattConstraint syn inh ta la tb lb
+    => TreeTransducer (StackAttributedTreeTransducer syn inh ta la tb lb) ta tb where
+
+  treeTrans trans
+    =   (toInitialReductionState @RTZipper trans)
+    >>> runSattReduction trans
+    >>> fromReductionState
+    >>> maybe (throwErrorM "This tree transducer is illegal.") pure

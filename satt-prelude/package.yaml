@@ -50,9 +50,12 @@ default-extensions:
   - BinaryLiterals
   - FlexibleContexts
   - FlexibleInstances
+  - NamedFieldPuns
+  - NegativeLiterals
   - LambdaCase
   - PatternSynonyms
   - RecordWildCards
+  - RecursiveDo
   - StandaloneDeriving
   - TupleSections
   - ViewPatterns
@@ -90,6 +93,7 @@ library:
     deriving-compat:
     singletons:
     recursion-schemes:
+    microlens:
 
 tests:
   lint:

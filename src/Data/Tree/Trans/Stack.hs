@@ -34,6 +34,9 @@ module Data.Tree.Trans.Stack
   , pattern StackedExpr
   , isStackedExpr
   , isValuedExpr
+  , BiStackExprFix
+  , BiStackExprFixVal
+  , BiStackExprFixStk
   , pattern BiFixVal
   , pattern BiFixStk
   ) where
@@ -193,10 +196,13 @@ isStackedExpr = isRight
 
 type BiStackExprFix valf stkf = BiFix valf stkf
 
-pattern BiFixVal :: valf (FixVal valf stkf) (FixStk valf stkf) -> BiStackExprFix valf stkf
+type BiStackExprFixVal valf stkf = valf (FixVal valf stkf) (FixStk valf stkf)
+type BiStackExprFixStk valf stkf = stkf (FixVal valf stkf) (FixStk valf stkf)
+
+pattern BiFixVal :: BiStackExprFixVal valf stkf -> BiStackExprFix valf stkf
 pattern BiFixVal x = BiFixL x
 
-pattern BiFixStk :: stkf (FixVal valf stkf) (FixStk valf stkf) -> BiStackExprFix valf stkf
+pattern BiFixStk :: BiStackExprFixStk valf stkf -> BiStackExprFix valf stkf
 pattern BiFixStk x = BiFixR x
 
 {-# COMPLETE BiFixVal, BiFixStk #-}

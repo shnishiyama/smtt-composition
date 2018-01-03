@@ -8,23 +8,25 @@ module SattPrelude
   , module Control.Arrow
   , module Data.Bifoldable
   , module Data.Either
-  , module Data.Function
   , module Data.Functor.Classes
   , module Data.Functor.Foldable
   , module Data.Kind
+  , module Lens.Micro
+  , module Data.Void
+  , absurd
 
     -- useful components
   , Proxy(..)
-  , Void
   , Generic1
   , coerce
   , (#.)
   , (.#)
   , groom
   , ushow
-  , (<&>)
   , bivoid
   , throwErrorM
+  , errorVoid
+  , errorUnreachable
   , Nat
   , Symbol
   , KnownNat
@@ -50,7 +52,6 @@ import           Control.Arrow            (Kleisli (..), (<<<), (>>>))
 import           Data.Bifoldable
 import           Data.Coerce
 import           Data.Either              (isLeft, isRight)
-import           Data.Function            ((&))
 import           Data.Functor.Classes
 import           Data.Functor.Foldable    (Corecursive (..), Fix (..),
                                            Recursive (..))
@@ -58,10 +59,11 @@ import           Data.Kind                (Type)
 import           Data.Profunctor.Unsafe
 import           Data.Proxy
 import           Data.Singletons.TypeLits
-import           Data.Void
-import           GHC.Generics
+import           Data.Void            hiding (absurd)
+import           GHC.Generics             (Generic1)
 import           Text.Groom
 import           Text.Show.Unicode
+import           Lens.Micro
 
 import           Data.Bifunctor.TH
 import           Data.Eq.Deriving
@@ -74,8 +76,15 @@ import           GHC.Stack                (HasCallStack)
 throwErrorM :: (HasCallStack, MonadThrow m) => String -> m a
 throwErrorM s = throwM $ errorCallWithCallStackException s ?callStack
 
-(<&>) :: Functor f => f a -> (a -> b) -> f b
-x <&> f = fmap f x
-
 bivoid :: Bifunctor f => f a b -> f () ()
 bivoid = bimap (const ()) (const ())
+
+errorVoid :: a -> Void
+errorVoid = error "error void"
+
+errorUnreachable :: a
+errorUnreachable = error "unreachable"
+
+-- for GHC 8.2.x bug (https://ghc.haskell.org/trac/ghc/ticket/13990)
+absurd :: Void -> a
+absurd = error "absurd"

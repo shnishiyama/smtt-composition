@@ -26,6 +26,7 @@ custom-setup:
 
 ghc-options:
   - -Wall
+  - -dcore-lint
   - -fprint-explicit-foralls
   - -fmax-pmcheck-iterations=500000
   - -funbox-strict-fields
@@ -48,6 +49,7 @@ default-extensions:
   - FlexibleInstances
   - InstanceSigs
   - LambdaCase
+  - NamedFieldPuns
   - NegativeLiterals
   - PatternSynonyms
   - RecordWildCards
@@ -99,14 +101,13 @@ library:
     - Data.Tree.Trans.ATT.Instances
     - Data.Tree.Trans.Stack
     - Data.Tree.Trans.SATT
+    - Data.Tree.Trans.SATT.Instances
 
     # compose/decompose tree transducers
     - Data.Tree.Trans.Compose.Desc
     - Data.Tree.Trans.Compose.ExtendVoigt2004
     - Data.Tree.Trans.Decompose.MttToAtt
   other-modules: []
-  ghc-options:
-  - -dcore-lint
   dependencies:
     <<: *base-dependencies
     unordered-containers:
