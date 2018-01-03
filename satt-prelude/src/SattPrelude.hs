@@ -78,6 +78,7 @@ throwErrorM s = throwM $ errorCallWithCallStackException s ?callStack
 
 bivoid :: Bifunctor f => f a b -> f () ()
 bivoid = bimap (const ()) (const ())
+{-# INLINE bivoid #-}
 
 errorVoid :: a -> Void
 errorVoid = error "error void"
