@@ -26,7 +26,8 @@ custom-setup:
 
 ghc-options:
   - -Wall
-  - -dcore-lint
+  # for GHC 8.2.x bugs... (disable only executable/tests)
+  #- -dcore-lint
   - -fprint-explicit-foralls
   - -fmax-pmcheck-iterations=500000
   - -funbox-strict-fields
@@ -108,6 +109,8 @@ library:
     - Data.Tree.Trans.Compose.ExtendVoigt2004
     - Data.Tree.Trans.Decompose.MttToAtt
   other-modules: []
+  ghc-options:
+  - -dcore-lint
   dependencies:
     <<: *base-dependencies
     unordered-containers:

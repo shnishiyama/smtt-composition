@@ -453,9 +453,9 @@ buildAttReduction f is trans mt = go is' initialZipper
 
     checkReducible (RedFix x) = case x of
       AttAttrSideF Inherited{} AttPathInfo{ attPathList = [] } -> False
-      AttAttrSideF{}       -> True
-      AttLabelSideF{}      -> False
-      AttBottomLabelSideF  -> False
+      AttAttrSideF{}                                           -> True
+      AttLabelSideF{}                                          -> False
+      AttBottomLabelSideF                                      -> False
 
     go x sz = case zoomNextRightOutZipper (checkReducible . toTree) sz of
       Just sz' -> let

@@ -1,9 +1,11 @@
+{-# LANGUAGE OverloadedLists #-}
+
 module Data.Tree.Trans.SATT.Instances where
 
 import           SattPrelude
 
 import           Data.Tree.RankedTree.Label
-import Data.Tree.Trans.SATT
+import           Data.Tree.Trans.SATT
 
 type InputSampleAlphabet = TaggedRankedAlphabet
   ['("A", 2), '("B", 1), '("C", 0)]

@@ -59,11 +59,11 @@ import           Data.Kind                (Type)
 import           Data.Profunctor.Unsafe
 import           Data.Proxy
 import           Data.Singletons.TypeLits
-import           Data.Void            hiding (absurd)
+import           Data.Void                hiding (absurd)
 import           GHC.Generics             (Generic1)
+import           Lens.Micro
 import           Text.Groom
 import           Text.Show.Unicode
-import           Lens.Micro
 
 import           Data.Bifunctor.TH
 import           Data.Eq.Deriving

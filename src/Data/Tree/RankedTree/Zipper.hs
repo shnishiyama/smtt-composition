@@ -303,10 +303,10 @@ instance RankedTreeZipper RTZipper where
 --   ]
 -- :}
 --
--- >>> treeABCZipper = toZipper @(AttPathInfo RTZipper) treeABCSample
--- >>> toTreeWithPath = toTree &&& tzPathList
+-- >>> treeABCZipper = toZipper @(RtPathZipper RTZipper) treeABCSample
+-- >>> toTreeWithPath = toTree &&& rtPathList
 -- >>> toTreeWithPath treeABCZipper
--- (A(C,B(C),[])
+-- (A(C,B(C)),[])
 -- >>> toTreeWithPath <$> zoomInRtZipper treeABCZipper
 -- Just (C,[0])
 -- >>> toTreeWithPath <$> (zoomInRtZipper >=> zoomRightRtZipper) treeABCZipper

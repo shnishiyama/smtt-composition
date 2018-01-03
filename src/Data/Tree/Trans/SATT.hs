@@ -56,14 +56,15 @@ module Data.Tree.Trans.SATT
 
 import           SattPrelude
 
-import Data.Tree.Trans.Class
-import Data.Tree.RankedTree.Zipper
 import           Data.Bifunctor.FixLR
 import           Data.Tree.RankedTree
-import           Data.Tree.Trans.ATT (AttAttrEither(..), isSynthesized, isInherited)
-import qualified Data.Tree.Trans.ATT as ATT
+import           Data.Tree.RankedTree.Zipper
+import           Data.Tree.Trans.ATT         (AttAttrEither (..), isInherited,
+                                              isSynthesized)
+import qualified Data.Tree.Trans.ATT         as ATT
+import           Data.Tree.Trans.Class
 import           Data.Tree.Trans.Stack
-import qualified Text.Show             as S
+import qualified Text.Show                   as S
 
 
 type SattAttrEither = ATT.AttAttrEither
@@ -498,10 +499,10 @@ buildSattReduction f is trans mt = go is' initialZipper
       SattStackHeadF{}   -> False
     checkReducible (RedFixStk x) = case x of
       SattAttrSideF Inherited{} SattPathInfo{ sattPathList = [] } -> False
-      SattAttrSideF{}    -> True
-      SattStackEmptyF{}  -> False
-      SattStackTailF{}   -> False
-      SattStackConsF{}   -> True
+      SattAttrSideF{}                                             -> True
+      SattStackEmptyF{}                                           -> False
+      SattStackTailF{}                                            -> False
+      SattStackConsF{}                                            -> True
 
     go x sz = case zoomNextRightOutZipper (checkReducible . toTree) sz of
       Just sz' -> let
@@ -514,7 +515,7 @@ buildSattReduction f is trans mt = go is' initialZipper
       RedFixStk x -> case x of
         SattAttrSideF a p  -> setTreeZipper (reductAttrSide a p) sz
         SattStackConsF h t -> deconsStackCons h t sz
-        _ -> error "This state is irreducible"
+        _                  -> error "This state is irreducible"
       RedFixVal _ -> error "This state is irreducible"
 
     reductAttrSide (Synthesized (a, i)) p = case zoomInIdxPathInfo i p of
@@ -538,9 +539,9 @@ buildSattReduction f is trans mt = go is' initialZipper
     replaceRHS p = StackedExpr . replaceRHSStk p
 
     replaceRHSVal p (FixVal x) = FixVal $ case x of
-      SattLabelSideF l cs  -> SattLabelSideF l $ replaceRHSVal p <$> cs
-      SattStackBottomF     -> SattStackBottomF
-      SattStackHeadF s     -> SattStackHeadF $ replaceRHSStk p s
+      SattLabelSideF l cs -> SattLabelSideF l $ replaceRHSVal p <$> cs
+      SattStackBottomF    -> SattStackBottomF
+      SattStackHeadF s    -> SattStackHeadF $ replaceRHSStk p s
 
     replaceRHSStk p (FixStk x) = FixStk $ case x of
       SattAttrSideF a _    -> SattAttrSideF a p
