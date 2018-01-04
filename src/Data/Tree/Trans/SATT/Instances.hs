@@ -36,6 +36,8 @@ type SampleSatt = SattTransducer
 -- >>> inputSampleTree = mkTree a [mkTree c [], mkTree b [mkTree c []]]
 -- >>> treeTrans sampleSatt inputSampleTree
 -- D(F,F)
+-- >>> treeTrans (toStandardForm sampleSatt) inputSampleTree
+-- D(F,F)
 --
 sampleSatt :: SampleSatt
 sampleSatt = fromMaybe (error "unreachable") $ buildSatt
@@ -53,11 +55,16 @@ sampleSatt = fromMaybe (error "unreachable") $ buildSatt
     [ (Synthesized a0,    a, SynAttrSide a0 0)
     , (Inherited (b0, 0), a, SynAttrSide a1 1)
     , (Inherited (b0, 1), a, InhAttrSide b0)
-    , (Synthesized a0,    b, SattStackCons
-        (SattLabelSide e
-          [ SattStackHead $ InhAttrSide b0
-          ])
-        SattStackEmpty
+    , (Synthesized a0,    b, SattStackTail
+        (SattStackCons
+          SattStackBottom
+          (SattStackCons
+            (SattLabelSide e
+              [ SattStackHead $ InhAttrSide b0
+              ])
+            SattStackEmpty
+          )
+        )
       )
     , (Inherited (b0, 0), b, InhAttrSide b0)
     , (Synthesized a0,    c, InhAttrSide b0)
@@ -70,7 +77,10 @@ sampleSatt = fromMaybe (error "unreachable") $ buildSatt
           [ SattStackHead $ SynAttrSide a0 0
           , SattStackHead $ InhAttrSide b1
           ])
-        SattStackEmpty
+        (SattStackCons
+          SattStackBottom
+          SattStackEmpty
+        )
       )
     , (Synthesized a1,    c, InhAttrSide b1)
     ]

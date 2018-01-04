@@ -29,6 +29,9 @@ module Data.Tree.Trans.SATT
   , isSynthesized
   , isInherited
 
+    -- standard form
+  , toStandardForm
+
     -- reduction system
   , ReductionState
   , ReductionStateWithEmptySyn
@@ -641,3 +644,18 @@ instance SattConstraint syn inh ta la tb lb
     >>> runSattReduction trans
     >>> fromReductionState
     >>> maybe (throwErrorM "This tree transducer is illegal.") pure
+
+
+-- standard form
+
+toStandardForm :: SattConstraint syn inh ta la tb lb
+  => StackAttributedTreeTransducer syn inh ta la tb lb
+  -> StackAttributedTreeTransducer syn inh ta la tb lb
+toStandardForm trans = trans
+    { sattInitialRules = initialRules
+    , sattTransRules   = rules
+    }
+  where
+    initialRules = evalStackStkExpr <$> sattInitialRules trans
+
+    rules = evalStackStkExpr <$> sattTransRules trans

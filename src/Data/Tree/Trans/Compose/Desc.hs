@@ -54,12 +54,22 @@ toComposeBasedAtt :: forall syn1 inh1 syn2 inh2 to1 lo1 ti2 li2 to2 lo2.
 toComposeBasedAtt attrds1 trans = fromMaybe errorUnreachable $ buildAtt
     (attInitialAttr trans)
     initialRules
-    $ rules0 <> rules1
+    $ rules1 <> rules0
   where
     initialRules = second (convRhs $ second errorVoid)
       <$> mapToList (attInitialRules trans)
 
-    rules0 = do
+    rules0 = mapToList (attTransRules trans) <&> \((a, l), rhs) ->
+      ( a
+      , AttLabelSideF l $ replicate (treeLabelRank (Proxy @ti2) l) ()
+      , convRhs id rhs
+      )
+
+    convRhs f (AttAttrSide a)     = AttAttrSide $ f a
+    convRhs f (AttLabelSide l cs) = AttLabelSide (AttLabelSideF l $ void cs) $ convRhs f <$> cs
+    convRhs _ AttBottomLabelSide  = AttLabelSide AttBottomLabelSideF []
+
+    rules1 = do
       attrd1 <- setToList attrds1
       attr2  <- setToList $ attAttributes trans
       case attr2 of
@@ -75,16 +85,6 @@ toComposeBasedAtt attrds1 trans = fromMaybe errorUnreachable $ buildAtt
             , AttLabelSide (AttAttrSideF (Inherited (b1 `InhSynAttr` a2)) ()) []
             )
         _ -> empty
-
-    rules1 = mapToList (attTransRules trans) <&> \((a, l), rhs) ->
-      ( a
-      , AttLabelSideF l $ replicate (treeLabelRank (Proxy @ti2) l) ()
-      , convRhs id rhs
-      )
-
-    convRhs f (AttAttrSide a)     = AttAttrSide $ f a
-    convRhs f (AttLabelSide l cs) = AttLabelSide (AttLabelSideF l $ void cs) $ convRhs f <$> cs
-    convRhs _ AttBottomLabelSide  = AttLabelSide AttBottomLabelSideF []
 
 
 type AttRuleIndex syn inh ta la tb lb tz = HashMap
