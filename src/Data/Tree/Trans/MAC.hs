@@ -37,7 +37,6 @@ module Data.Tree.Trans.MAC
 import           SattPrelude
 
 import qualified Data.Foldable               as F
-import           Data.Monoid                 (Endo (..))
 import           Data.Tree.RankedTree
 import           Data.Tree.RankedTree.Label
 import           Data.Tree.RankedTree.Zipper
@@ -70,10 +69,10 @@ prettyShowRhsF tShow cShow rhsShow x = case x of
     MttStateF s t cs -> S.shows s . S.showString "(" . tShow t
       . joinShows (cs <&> \rhs -> S.showString ", " . rhsShow rhs) . S.showString ")"
     MttLabelSideF l cs -> S.shows l . S.showString "("
-      . joinShows (intersperse (S.showString ", ") (rhsShow <$> cs)) . S.showString ")"
+      . joinShows (intersperse (S.showString ", ") $ rhsShow <$> cs) . S.showString ")"
     MttBottomLabelSideF -> S.showString "_|_"
   where
-    joinShows = appEndo . foldMap Endo
+    joinShows = foldl' (.) id
 
 
 type RightHandSide s t l = Fix (RightHandSideF s t l RankNumber RankNumber)

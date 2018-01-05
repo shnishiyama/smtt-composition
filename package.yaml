@@ -103,6 +103,7 @@ library:
     - Data.Tree.Trans.Stack
     - Data.Tree.Trans.SATT
     - Data.Tree.Trans.SATT.Instances
+    - Data.Tree.Trans.SMAC
 
     # compose/decompose tree transducers
     - Data.Tree.Trans.Compose.Desc

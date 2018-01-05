@@ -174,40 +174,31 @@ type RightHandSideStk syn inh t l = FixStk
 
 type RightHandSide syn inh t l = RightHandSideStk syn inh t l
 
-pattern SattAttrSide :: RtConstraint t l
-  => SattAttrDepend syn inh -> RightHandSideStk syn inh t l
+pattern SattAttrSide :: SattAttrDepend syn inh -> RightHandSideStk syn inh t l
 pattern SattAttrSide a = FixStk (SattAttrSideF a ())
 
-pattern SynAttrSide :: RtConstraint t l
-  => syn -> RankNumber -> RightHandSideStk syn inh t l
+pattern SynAttrSide :: syn -> RankNumber -> RightHandSideStk syn inh t l
 pattern SynAttrSide a i = SattAttrSide (Synthesized (a, i))
 
-pattern InhAttrSide :: RtConstraint t l
-  => inh -> RightHandSideStk syn inh t l
+pattern InhAttrSide :: inh -> RightHandSideStk syn inh t l
 pattern InhAttrSide a = SattAttrSide (Inherited a)
 
-pattern SattLabelSide :: RtConstraint t l
-  => l -> NodeVec (RightHandSideVal syn inh t l) -> RightHandSideVal syn inh t l
+pattern SattLabelSide :: l -> NodeVec (RightHandSideVal syn inh t l) -> RightHandSideVal syn inh t l
 pattern SattLabelSide l cs = FixVal (SattLabelSideF l cs)
 
-pattern SattStackBottom :: RtConstraint t l
-  => RightHandSideVal syn inh t l
+pattern SattStackBottom :: RightHandSideVal syn inh t l
 pattern SattStackBottom = FixVal SattStackBottomF
 
-pattern SattStackHead :: RtConstraint t l
-  => RightHandSideStk syn inh t l -> RightHandSideVal syn inh t l
+pattern SattStackHead :: RightHandSideStk syn inh t l -> RightHandSideVal syn inh t l
 pattern SattStackHead s = FixVal (SattStackHeadF s)
 
-pattern SattStackEmpty :: RtConstraint t l
-  => RightHandSideStk syn inh t l
+pattern SattStackEmpty :: RightHandSideStk syn inh t l
 pattern SattStackEmpty = FixStk SattStackEmptyF
 
-pattern SattStackTail :: RtConstraint t l
-  => RightHandSideStk syn inh t l -> RightHandSideStk syn inh t l
+pattern SattStackTail :: RightHandSideStk syn inh t l -> RightHandSideStk syn inh t l
 pattern SattStackTail s = FixStk (SattStackTailF s)
 
-pattern SattStackCons :: RtConstraint t l
-  => RightHandSideVal syn inh t l -> RightHandSideStk syn inh t l -> RightHandSideStk syn inh t l
+pattern SattStackCons :: RightHandSideVal syn inh t l -> RightHandSideStk syn inh t l -> RightHandSideStk syn inh t l
 pattern SattStackCons v s = FixStk (SattStackConsF v s)
 
 {-# COMPLETE SattLabelSide, SattStackBottom, SattStackHead #-}
@@ -379,11 +370,11 @@ buildSatt ia irules rules = do
         scanRHSStk k xs' s
 
     scanRHSVal k xs (FixVal rhs) = case rhs of
-      SattStackBottomF -> pure xs
-      SattStackHeadF s -> scanRHSStk k xs s
       SattLabelSideF l cs -> if length cs == treeLabelRankOut l
         then foldM (scanRHSVal k) xs cs
         else throwErrorM "Mismatch the rank of an output label for childs"
+      SattStackBottomF -> pure xs
+      SattStackHeadF s -> scanRHSStk k xs s
 
 sattInitialRule :: SattConstraint syn inh ta la tb lb
   => StackAttributedTreeTransducer syn inh ta la tb lb
