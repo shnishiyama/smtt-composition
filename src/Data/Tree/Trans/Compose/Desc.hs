@@ -144,7 +144,8 @@ type ComposeAtt syn1 inh1 syn2 inh2 ti to = AttTransducer
   ti to
 
 -- FIXME: give the implentation
-checkSingleUse :: MonadThrow m => AttributedTreeTransducer syn1 inh1 ti1 li1 to1 lo1 -> m ()
+checkSingleUse :: MonadThrow m
+  => AttributedTreeTransducer syn1 inh1 ti1 li1 to1 lo1 -> m ()
 checkSingleUse _ = pure ()
 
 -- | composition of atts
@@ -205,8 +206,8 @@ composeAtts trans1 trans2 = do
       | a2 <- if isInitial && isSynthesized a then [iattr2] else synAttrs2
       , let pathInfo = emptyAttPathInfo isInitial rhs
       ] <> do
-        (ad1, p) <- ruleIndex a l
         b2 <- inhAttrs2
+        (ad1, p) <- ruleIndex a l
         let initAttrStateB2 = toInitialAttrState (Inherited b2) $ toInhPathInfo isInitial p
         pure $ case ad1 of
           Synthesized (a1', j') ->

@@ -27,6 +27,7 @@ module Data.Tree.Trans.Stack
     -- evaluate functions
   , evalStackValExpr
   , evalStackStkExpr
+  , unconsStackStkExpr
 
     -- stack expr either
   , StackExprEither
@@ -37,6 +38,8 @@ module Data.Tree.Trans.Stack
   , BiStackExprFix
   , BiStackExprFixVal
   , BiStackExprFixStk
+  , pattern BiFixValuedExpr
+  , pattern BiFixStackedExpr
   , pattern BiFixVal
   , pattern BiFixStk
   ) where
@@ -152,26 +155,26 @@ evalStackStkHeadExpr :: StackConstraint valf stkf
   => FixStk valf stkf -> Either (FixStk valf stkf) (FixVal valf stkf, FixStk valf stkf)
 evalStackStkHeadExpr s = case s of
   StackEmpty    -> Right (stackBottom, s)
-  StackTail t   -> case evalStackStkUnconsExpr t of
+  StackTail t   -> case unconsStackStkExpr t of
     Left t'       -> Left t'
     Right (_, t') -> evalStackStkHeadExpr t'
   StackCons h t -> Right (evalStackValExpr h, t)
   _             -> Left s
 
-evalStackStkUnconsExpr :: StackConstraint valf stkf
+unconsStackStkExpr :: StackConstraint valf stkf
   => FixStk valf stkf -> Either (FixStk valf stkf) (FixVal valf stkf, FixStk valf stkf)
-evalStackStkUnconsExpr s = case s of
+unconsStackStkExpr s = case s of
   StackEmpty    -> Right (stackBottom, s)
-  StackTail t   -> case evalStackStkUnconsExpr t of
+  StackTail t   -> case unconsStackStkExpr t of
     Left t'       -> Left $ stackTail t'
-    Right (_, t') -> evalStackStkUnconsExpr t'
+    Right (_, t') -> unconsStackStkExpr t'
   StackCons h t -> Right (h, t)
   _             -> Left s
 
 evalStackStkExpr :: StackConstraint valf stkf => FixStk valf stkf -> FixStk valf stkf
 evalStackStkExpr s = case s of
   StackEmpty    -> s
-  StackTail t   -> case evalStackStkUnconsExpr t of
+  StackTail t   -> case unconsStackStkExpr t of
     Left t'       -> stackTail $ evalStackStkExpr t'
     Right (_, t') -> evalStackStkExpr t'
   StackCons h t -> stackCons (evalStackValExpr h) (evalStackStkExpr t)
@@ -198,6 +201,14 @@ type BiStackExprFix valf stkf = BiFix valf stkf
 
 type BiStackExprFixVal valf stkf = valf (FixVal valf stkf) (FixStk valf stkf)
 type BiStackExprFixStk valf stkf = stkf (FixVal valf stkf) (FixStk valf stkf)
+
+pattern BiFixValuedExpr :: FixVal valf stkf -> BiStackExprFix valf stkf
+pattern BiFixValuedExpr x = ValuedExpr x
+
+pattern BiFixStackedExpr :: FixStk valf stkf -> BiStackExprFix valf stkf
+pattern BiFixStackedExpr x = StackedExpr x
+
+{-# COMPLETE BiFixValuedExpr, BiFixStackedExpr #-}
 
 pattern BiFixVal :: BiStackExprFixVal valf stkf -> BiStackExprFix valf stkf
 pattern BiFixVal x = BiFixL x

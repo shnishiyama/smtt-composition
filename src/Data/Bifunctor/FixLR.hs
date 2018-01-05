@@ -117,10 +117,18 @@ projectR (FixR x) = proj x
 
 type BiFix p1 p2 = Either (FixL p1 p2) (FixR p1 p2)
 
+pattern BiFixLeft :: FixL p1 p2 -> BiFix p1 p2
+pattern BiFixLeft x = Left x
+
+pattern BiFixRight :: FixR p1 p2 -> BiFix p1 p2
+pattern BiFixRight x = Right x
+
+{-# COMPLETE BiFixLeft, BiFixRight #-}
+
 pattern BiFixL :: p1 (FixL p1 p2) (FixR p1 p2) -> BiFix p1 p2
-pattern BiFixL x = Left (FixL x)
+pattern BiFixL x = BiFixLeft (FixL x)
 
 pattern BiFixR :: p2 (FixL p1 p2) (FixR p1 p2) -> BiFix p1 p2
-pattern BiFixR x = Right (FixR x)
+pattern BiFixR x = BiFixRight (FixR x)
 
 {-# COMPLETE BiFixL, BiFixR #-}

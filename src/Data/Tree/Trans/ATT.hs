@@ -501,7 +501,9 @@ toInitialReductionState :: forall tz syn inh ta la tb lb.
   )
   => AttributedTreeTransducer syn inh ta la tb lb
   -> ta -> ReductionStateWithEmptySyn syn inh ta la tb lb tz
-toInitialReductionState trans t = Left (True, toZipper t, attInitialAttr trans)
+toInitialReductionState trans t = toInitialAttrState
+  (Synthesized $ attInitialAttr trans)
+  $ emptyAttPathInfo True t
 
 toInitialAttrState :: forall tz syn inh ta la tb lb.
   ( AttConstraint syn inh ta la tb lb, RankedTreeZipper tz
@@ -509,7 +511,7 @@ toInitialAttrState :: forall tz syn inh ta la tb lb.
   => AttAttrEither syn inh -> AttPathInfo tz ta la
   -> ReductionStateWithEmptySyn syn inh ta la tb lb tz
 toInitialAttrState (Synthesized a) p = case attPathList p of
-  []   ->Left (attIsInitial p, attNonPathZipper p, a)
+  []   -> Left (attIsInitial p, attNonPathZipper p, a)
   i:pl -> Right . RedFix
     $ AttAttrSideF (Synthesized (a, i)) $ p { attPathList = pl }
 toInitialAttrState (Inherited a) p = Right . RedFix $ AttAttrSideF (Inherited a) p

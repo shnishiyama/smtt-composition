@@ -39,6 +39,7 @@ module Data.Tree.Trans.SATT
   , runSattReduction
   , runSattReductionWithHistory
   , toInitialReductionState
+  , toInitialAttrState
   , fromReductionState
   , prettyShowReductionState
 
@@ -591,7 +592,20 @@ toInitialReductionState :: forall tz syn inh ta la tb lb.
   )
   => StackAttributedTreeTransducer syn inh ta la tb lb
   -> ta -> ReductionStateWithEmptySyn syn inh ta la tb lb tz
-toInitialReductionState trans t = Left (True, toZipper t, sattInitialAttr trans)
+toInitialReductionState trans t = toInitialAttrState
+  (Synthesized $ sattInitialAttr trans)
+  $ emptySattPathInfo True t
+
+toInitialAttrState :: forall tz syn inh ta la tb lb.
+  ( SattConstraint syn inh ta la tb lb, RankedTreeZipper tz
+  )
+  => SattAttrEither syn inh -> SattPathInfo tz ta la
+  -> ReductionStateWithEmptySyn syn inh ta la tb lb tz
+toInitialAttrState (Synthesized a) p = case sattPathList p of
+  []   ->Left (sattIsInitial p, sattNonPathZipper p, a)
+  i:pl -> Right . RedFixStk
+    $ SattAttrSideF (Synthesized (a, i)) $ p { sattPathList = pl }
+toInitialAttrState (Inherited a) p = Right . RedFixStk $ SattAttrSideF (Inherited a) p
 
 fromReductionState ::
   ( SattConstraint syn inh ta la tb lb, RankedTreeZipper tz
