@@ -4,12 +4,12 @@ module Data.Tree.Trans.Compose.ExtendDesc where
 
 import           SattPrelude
 
+import qualified Data.HashMap.Strict         as HashMap
 import           Data.Tree.RankedTree
 import           Data.Tree.RankedTree.Zipper
 import qualified Data.Tree.Trans.ATT         as ATT
 import qualified Data.Tree.Trans.SATT        as SATT
 import           Data.Tree.Trans.Stack
-import qualified Data.HashMap.Strict as HashMap
 
 
 data ComposedSattSynAttr syn1 inh1 syn2 inh2

@@ -96,6 +96,8 @@ decomposeMtt trans = fromMaybe (error "unreachable") $ (,)
       updateMaxRank $ length cs
       cs' <- mapM buildRhs cs
       pure $ TOP.TdttLabelSide sub $ TOP.TdttLabelSide l' [] `cons` cs'
+    buildRhs MAC.MttBottomLabelSide = do
+      pure $ TOP.TdttBottomLabelSide
 
     ((ie1, rules1), (ls, mr)) = flip runState ([] :: HashSet (SubstitutionTreeF tb lb ()), 0) $ do
       ie <- buildRhs $ MAC.mttInitialExpr trans

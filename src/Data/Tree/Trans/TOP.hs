@@ -10,10 +10,8 @@ module Data.Tree.Trans.TOP
   , pattern TdttState
   , tdttState
   , pattern TdttLabelSide
+  , pattern TdttBottomLabelSide
   , MAC.prettyShowRhs
-
-    -- bottom
-  , MAC.bottomLabelSide
 
     -- conversion
   , toMacroTreeTransducer
@@ -52,7 +50,10 @@ tdttState s u = MAC.MttState (ConstRankedLabelWrapper s) u []
 pattern TdttLabelSide :: l -> NodeVec (RightHandSide s t l) -> RightHandSide s t l
 pattern TdttLabelSide l cs = MAC.MttLabelSide l cs
 
-{-# COMPLETE TdttState, TdttLabelSide #-}
+pattern TdttBottomLabelSide :: RightHandSide s t l
+pattern TdttBottomLabelSide = MAC.MttBottomLabelSide
+
+{-# COMPLETE TdttState, TdttLabelSide, TdttBottomLabelSide #-}
 
 newtype TopDownTreeTransducer s ta la tb lb = TopDownTreeTransducer
   { toMacroTreeTransducer :: MAC.MacroTreeTransducer (TdttState s) ta la tb lb
@@ -138,3 +139,4 @@ toAttributedTreeTransducer (TopDownTreeTransducer trans) = fromMaybe (error "unr
   where
     replaceRHS (TdttState s u)      = ATT.AttAttrSide (ATT.Synthesized (s, u))
     replaceRHS (TdttLabelSide l cs) = ATT.AttLabelSide l $ replaceRHS <$> cs
+    replaceRHS TdttBottomLabelSide  = ATT.AttBottomLabelSide
