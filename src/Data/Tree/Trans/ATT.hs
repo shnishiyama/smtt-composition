@@ -293,7 +293,16 @@ attTranslateRule trans a l = fromMaybe AttBottomLabelSide $ lookup (a, l) $ attT
 data AttPathInfo tz t l = InternalAttPathInfo
   { internalAttRtPathZipper :: RtPathZipper tz t l
   , internalAttIsInitial    :: Bool
-  } deriving (Eq, Ord, Show, Generic)
+  } deriving (Eq, Ord, Generic)
+
+instance Show (tz t l) => Show (AttPathInfo tz t l) where
+  showsPrec d InternalAttPathInfo{..}
+      | internalAttIsInitial = S.showParen (d > appPrec)
+        $ S.showString "AttPathInfoWithInitial " . S.shows internalAttRtPathZipper
+      | otherwise            = S.showParen (d > appPrec)
+        $ S.showString "AttPathInfoWithoutInitial " . S.shows internalAttRtPathZipper
+    where
+      appPrec = 10
 
 pattern AttPathInfo :: [RankNumber] -> tz t l -> Bool -> AttPathInfo tz t l
 pattern AttPathInfo{attPathList,attNonPathZipper,attIsInitial} = InternalAttPathInfo

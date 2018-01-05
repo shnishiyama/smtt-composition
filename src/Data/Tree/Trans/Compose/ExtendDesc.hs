@@ -245,6 +245,20 @@ checkSingleUse _ = pure ()
 -- >>> sampleIdentTrans <- composeSattAndAtt sampleSatt identOutputTrans
 -- >>> treeTrans sampleIdentTrans inputSampleTree
 -- D(F,F)
+-- >>> pOne   = taggedRankedLabel @"one"
+-- >>> pTwo   = taggedRankedLabel @"two"
+-- >>> pPlus  = taggedRankedLabel @"plus"
+-- >>> pMulti = taggedRankedLabel @"multi"
+-- >>> pEnd   = taggedRankedLabel @"end"
+-- >>> :{
+-- inputPostfixTree = mkTree pOne [ mkTree pTwo [mkTree pPlus
+--   [mkTree pTwo [mkTree pMulti [mkTree pEnd []]]]
+--   ]]
+-- :}
+--
+-- >>> identPostfixTrans <- composeSattAndAtt postfixToInfixSatt ATT.infixToPostfixAtt
+-- >>> treeTrans identPostfixTrans inputPostfixTree
+-- one(two(plus(two(multi(end)))))
 --
 composeSattAndAtt :: forall m syn1 inh1 syn2 inh2 ti1 li1 to1 lo1 ti2 li2 to2 lo2.
   ( SATT.SattConstraint syn1 inh1 ti1 li1 to1 lo1
@@ -252,6 +266,7 @@ composeSattAndAtt :: forall m syn1 inh1 syn2 inh2 ti1 li1 to1 lo1 ti2 li2 to2 lo
   , ATT.AttConstraint syn2 inh2 ti2 li2 to2 lo2
   , Eq lo2
   , MonadThrow m
+  , Show syn1, Show inh1, Show syn2, Show inh2, Show li1, Show lo2
   )
   => SATT.StackAttributedTreeTransducer syn1 inh1 ti1 li1 to1 lo1
   -> ATT.AttributedTreeTransducer syn2 inh2 ti2 li2 to2 lo2
@@ -293,10 +308,11 @@ composeSattAndAtt trans1NoST trans2 = do
           (_, Nothing) -> e1
           (Just (SATT.SattStackBottom, e1'), Just (eh, e2')) -> stackCons eh $ zipS e1' e2'
           (Just (eh, e1'), Just (SATT.SattStackBottom, e2')) -> stackCons eh $ zipS e1' e2'
-          _ -> error "The format is not allowed"
+          (Just _, Just _) -> error "The format is not allowed"
+
         zipRules' = foldl' zipS stackEmpty
-      in mapToList $ zipRules'
-        <$> HashMap.fromListWith (<>) [(a, r:[]) | (a, r) <- rules]
+      in mapToList $ fmap zipRules'
+        $ HashMap.fromListWith (<>) [(a, r:[]) | (a, r) <- rules]
 
     buildRules' replacerB2 replacerA2 isInitial a l rhs = zipRules $
       [ ( replacerA2 a2
@@ -308,14 +324,15 @@ composeSattAndAtt trans1NoST trans2 = do
         b2 <- inhAttrs2
         (ad1, p) <- ruleIndex a l
         let initAttrStateB2 = ATT.toInitialAttrState (ATT.Inherited b2) $ toInhPathInfo isInitial p
+        let rhs' = runReductionWithRep replacerB2 initAttrStateB2
         pure $ case ad1 of
           SATT.Synthesized (a1', j') ->
             ( SATT.Inherited (a1' `SynInhAttr` b2, j')
-            , runReductionWithRep replacerB2 initAttrStateB2
+            , rhs'
             )
           SATT.Inherited b1' ->
             ( SATT.Synthesized $ b1' `InhInhAttr` b2
-            , runReductionWithRep replacerB2 initAttrStateB2
+            , rhs'
             )
 
     toInhPathInfo True  p = p & ATT._attPathList %~ (<> [0])
@@ -366,7 +383,7 @@ composeSattAndAtt trans1NoST trans2 = do
         birhs' = replaceRedState f (BiFixStackedExpr SATT.SattStackEmpty) state
       in case birhs' of
         StackedExpr rhs' -> rhs'
-        ValuedExpr  _    -> error "Right hand sides must have stack types"
+        ValuedExpr  rhs' -> SATT.SattStackCons rhs' SATT.SattStackEmpty
 
     replaceRedState f bot (ATT.RedFix x) = case x of
       ATT.AttLabelSideF l cs  -> mkTreeUnchecked l

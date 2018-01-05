@@ -143,6 +143,25 @@ stackCons :: (StackExprStkF :<<: stkf) => FixVal valf stkf -> FixStk valf stkf -
 stackCons v s = injectStk $ StackConsF v s
 
 
+-- | evaluate value expression
+--
+-- Examples:
+-- >>> import qualified Text.Show as S
+-- >>> data Proxy1 val stk = Proxy1
+-- >>> :{
+-- instance Show2 Proxy1 where
+--   liftShowsPrec2 _ _ _ _ d Proxy1 = S.showParen (d > 10) $ S.showString "Proxy1"
+-- :}
+--
+-- >>> instance Bifunctor Proxy1 where bimap _ _ Proxy1 = Proxy1
+-- >>> :{
+-- stkProxy1 :: BiStackExprFixStk (Proxy1 :+|+: StackExprValF) (Proxy1 :+|+: StackExprStkF)
+-- stkProxy1 = BiInL Proxy1
+-- :}
+--
+-- >>> evalStackValExpr $ stackHead $ stackTail $ FixStk stkProxy1
+-- FixL (BiInR (StackHeadF (FixR (BiInR (StackTailF (FixR (BiInL (Proxy1))))))))
+--
 evalStackValExpr :: StackConstraint valf stkf => FixVal valf stkf -> FixVal valf stkf
 evalStackValExpr v = case v of
   StackBottom -> v
@@ -156,7 +175,7 @@ evalStackStkHeadExpr :: StackConstraint valf stkf
 evalStackStkHeadExpr s = case s of
   StackEmpty    -> Right (stackBottom, s)
   StackTail t   -> case unconsStackStkExpr t of
-    Left t'       -> Left t'
+    Left t'       -> Left $ stackTail t'
     Right (_, t') -> evalStackStkHeadExpr t'
   StackCons h t -> Right (evalStackValExpr h, t)
   _             -> Left s
@@ -171,6 +190,25 @@ unconsStackStkExpr s = case s of
   StackCons h t -> Right (h, t)
   _             -> Left s
 
+-- | evaluate stack expression
+--
+-- Examples:
+-- >>> import qualified Text.Show as S
+-- >>> data Proxy1 val stk = Proxy1
+-- >>> :{
+-- instance Show2 Proxy1 where
+--   liftShowsPrec2 _ _ _ _ d Proxy1 = S.showParen (d > 10) $ S.showString "Proxy1"
+-- :}
+--
+-- >>> instance Bifunctor Proxy1 where bimap _ _ Proxy1 = Proxy1
+-- >>> :{
+-- stkProxy1 :: BiStackExprFixStk (Proxy1 :+|+: StackExprValF) (Proxy1 :+|+: StackExprStkF)
+-- stkProxy1 = BiInL Proxy1
+-- :}
+--
+-- >>> evalStackStkExpr $ stackTail $ stackTail $ stackCons stackBottom $ FixStk stkProxy1
+-- FixR (BiInR (StackTailF (FixR (BiInL (Proxy1)))))
+--
 evalStackStkExpr :: StackConstraint valf stkf => FixStk valf stkf -> FixStk valf stkf
 evalStackStkExpr s = case s of
   StackEmpty    -> s

@@ -23,6 +23,8 @@ module SattPrelude
   , (.#)
   , groom
   , ushow
+  , groomPrint
+  , uprint
   , bivoid
   , throwErrorM
   , errorVoid
@@ -89,3 +91,6 @@ errorUnreachable = error "unreachable"
 -- for GHC 8.2.x bug (https://ghc.haskell.org/trac/ghc/ticket/13990)
 absurd :: Void -> a
 absurd = error "absurd"
+
+groomPrint :: Show a => a -> IO ()
+groomPrint = putStrLn . pack . groom

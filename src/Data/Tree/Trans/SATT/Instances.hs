@@ -6,6 +6,7 @@ import           SattPrelude
 
 import           Data.Tree.RankedTree.Label
 import           Data.Tree.Trans.SATT
+import           Data.Tree.Trans.ATT.Instances (InfixOpAlphabet, PostfixOpAlphabet)
 
 type InputSampleAlphabet = TaggedRankedAlphabet
   ['("A", 2), '("B", 1), '("C", 0)]
@@ -96,3 +97,78 @@ sampleSatt = fromMaybe (error "unreachable") $ buildSatt
     d = taggedRankedLabel @"D"
     e = taggedRankedLabel @"E"
     f = taggedRankedLabel @"F"
+
+
+type SynPtoIAttr = TaggedAlphabet
+  '["a0"]
+
+type InhPtoIAttr = TaggedAlphabet
+  '["a1"]
+
+type PostfixToInfixSatt = SattTransducer
+  SynPtoIAttr
+  InhPtoIAttr
+  (RankedLabelledTree PostfixOpAlphabet)
+  (RankedLabelledTree InfixOpAlphabet)
+
+-- | An stack-attributed tree transducer converting postfix to infix
+--
+-- Sample:
+-- >>> :set -XOverloadedLists
+-- >>> import Data.Tree.Trans.Class
+-- >>> pOne   = taggedRankedLabel @"one"
+-- >>> pTwo   = taggedRankedLabel @"two"
+-- >>> pPlus  = taggedRankedLabel @"plus"
+-- >>> pMulti = taggedRankedLabel @"multi"
+-- >>> pEnd   = taggedRankedLabel @"end"
+-- >>> :{
+-- inputPostfixTree = mkTree pTwo [mkTree pOne [mkTree pTwo
+--   [mkTree pPlus [mkTree pMulti [mkTree pEnd []]]]
+--   ]]
+-- :}
+--
+-- >>> treeTrans postfixToInfixSatt inputPostfixTree
+-- multi(two,plus(one,two))
+--
+postfixToInfixSatt :: PostfixToInfixSatt
+postfixToInfixSatt = fromMaybe (error "unreachable") $ buildSatt
+    a0
+    [ (Synthesized (), SynAttrSide a0 0)
+    , (Inherited   a1, SattStackEmpty)
+    ]
+    [ (Synthesized a0,    pOne,   SynAttrSide a0 0)
+    , (Inherited (a1, 0), pOne,   SattStackCons (SattLabelSide iOne []) (InhAttrSide a1))
+    , (Synthesized a0,    pTwo,   SynAttrSide a0 0)
+    , (Inherited (a1, 0), pTwo,   SattStackCons (SattLabelSide iTwo []) (InhAttrSide a1))
+    , (Synthesized a0,    pPlus,  SynAttrSide a0 0)
+    , (Inherited (a1, 0), pPlus,  SattStackCons
+        (SattLabelSide iPlus
+          [ SattStackHead $ SattStackTail $ InhAttrSide a1
+          , SattStackHead $ InhAttrSide a1
+          ])
+        (SattStackTail $ SattStackTail $ InhAttrSide a1)
+      )
+    , (Synthesized a0,    pMulti, SynAttrSide a0 0)
+    , (Inherited (a1, 0), pMulti, SattStackCons
+        (SattLabelSide iMulti
+          [ SattStackHead $ SattStackTail $ InhAttrSide a1
+          , SattStackHead $ InhAttrSide a1
+          ])
+        (SattStackTail $ SattStackTail $ InhAttrSide a1)
+      )
+    , (Synthesized a0,    pEnd,   InhAttrSide a1)
+    ]
+  where
+    a0 = taggedLabel @"a0"
+    a1 = taggedLabel @"a1"
+
+    iOne   = taggedRankedLabel @"one"
+    iTwo   = taggedRankedLabel @"two"
+    iPlus  = taggedRankedLabel @"plus"
+    iMulti = taggedRankedLabel @"multi"
+
+    pOne   = taggedRankedLabel @"one"
+    pTwo   = taggedRankedLabel @"two"
+    pPlus  = taggedRankedLabel @"plus"
+    pMulti = taggedRankedLabel @"multi"
+    pEnd   = taggedRankedLabel @"end"
