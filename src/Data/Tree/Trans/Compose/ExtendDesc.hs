@@ -62,11 +62,13 @@ toComposeBasedAtt attrds1 trans = fromMaybe errorUnreachable $ ATT.buildAtt
     initialRules = second (convRhs $ second errorVoid)
       <$> mapToList (ATT.attInitialRules trans)
 
-    rules0 = mapToList (ATT.attTransRules trans) <&> \((a, l), rhs) ->
-      ( a
-      , ValuedExpr $ SATT.SattLabelSideF l $ replicate (treeLabelRank (Proxy @ti2) l) ()
-      , convRhs id rhs
-      )
+    rules0 =
+      [ ( a
+        , ValuedExpr $ SATT.SattLabelSideF l $ replicate (treeLabelRank (Proxy @ti2) l) ()
+        , convRhs id rhs
+        )
+      | ((a, l), rhs) <- mapToList (ATT.attTransRules trans)
+      ]
 
     convRhs f (ATT.AttAttrSide a)     = ATT.AttAttrSide $ f a
     convRhs f (ATT.AttLabelSide l cs) = ATT.AttLabelSide
@@ -219,7 +221,7 @@ indexSattRule trans = (mapFromList idx, setFromList attrds)
     checkAttrSide _                   = False
 
 
-type ComposeSatt syn1 inh1 syn2 inh2 ti to = SATT.SattTransducer
+type ComposedSatt syn1 inh1 syn2 inh2 ti to = SATT.SattTransducer
   (ComposedSattSynAttr syn1 inh1 syn2 inh2)
   (ComposedSattInhAttr syn1 inh1 syn2 inh2)
   ti to
@@ -270,7 +272,7 @@ composeSattAndAtt :: forall m syn1 inh1 syn2 inh2 ti1 li1 to1 lo1 ti2 li2 to2 lo
   )
   => SATT.StackAttributedTreeTransducer syn1 inh1 ti1 li1 to1 lo1
   -> ATT.AttributedTreeTransducer syn2 inh2 ti2 li2 to2 lo2
-  -> m (ComposeSatt syn1 inh1 syn2 inh2 ti1 to2)
+  -> m (ComposedSatt syn1 inh1 syn2 inh2 ti1 to2)
 composeSattAndAtt trans1NoST trans2 = do
     checkSingleUse trans1
     pure $ fromMaybe errorUnreachable $ SATT.buildSatt
@@ -306,9 +308,10 @@ composeSattAndAtt trans1NoST trans2 = do
         zipS e1 e2 = case (unconsS e1, unconsS e2) of
           (Nothing, _) -> e2
           (_, Nothing) -> e1
-          (Just (SATT.SattStackBottom, e1'), Just (eh, e2')) -> stackCons eh $ zipS e1' e2'
-          (Just (eh, e1'), Just (SATT.SattStackBottom, e2')) -> stackCons eh $ zipS e1' e2'
-          (Just _, Just _) -> error "The format is not allowed"
+          (Just (eh1, e1'), Just (eh2, e2')) -> case (eh1, eh2) of
+            (SATT.SattStackBottom, eh) -> stackCons eh $ zipS e1' e2'
+            (eh, SATT.SattStackBottom) -> stackCons eh $ zipS e1' e2'
+            _                          -> error "The format is not allowed"
 
         zipRules' = foldl' zipS stackEmpty
       in mapToList $ fmap zipRules'

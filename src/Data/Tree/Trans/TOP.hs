@@ -25,6 +25,12 @@ module Data.Tree.Trans.TOP
   , toInitialReductionState
   , fromReductionState
   , MAC.prettyShowReductionState
+
+    -- internal
+  , pattern TdttStateF
+  , tdttStateF
+  , pattern TdttLabelSideF
+  , pattern TdttBottomLabelSideF
   ) where
 
 import           SattPrelude
@@ -38,6 +44,23 @@ import qualified Data.Tree.Trans.MAC         as MAC
 
 
 type TdttState s = ConstRankedLabel 1 s
+
+type RightHandSideF s t l
+  = MAC.RightHandSideF (TdttState s) t l RankNumber RankNumber
+
+pattern TdttStateF :: s -> RankNumber -> RightHandSideF s t l rhs
+pattern TdttStateF s u <- MAC.MttStateF (ConstRankedLabelWrapper s) u []
+
+tdttStateF :: s -> RankNumber -> RightHandSideF s t l rhs
+tdttStateF s u = MAC.MttStateF (ConstRankedLabelWrapper s) u []
+
+pattern TdttLabelSideF :: l -> NodeVec rhs -> RightHandSideF s t l rhs
+pattern TdttLabelSideF l cs = MAC.MttLabelSideF l cs
+
+pattern TdttBottomLabelSideF :: RightHandSideF s t l rhs
+pattern TdttBottomLabelSideF = MAC.MttBottomLabelSideF
+
+{-# COMPLETE TdttStateF, TdttLabelSideF, TdttBottomLabelSideF #-}
 
 type RightHandSide s tb lb = MAC.RightHandSide (TdttState s) tb lb
 
@@ -111,7 +134,8 @@ runTdttReductionWithHistory :: forall s ta la tb lb. (TdttConstraint s ta la tb 
   -> ReductionState s ta la tb lb -> [ReductionState s ta la tb lb]
 runTdttReductionWithHistory (TopDownTreeTransducer trans) = MAC.runMttReductionWithHistory trans
 
-toInitialReductionState :: TdttConstraint s ta la tb lb => TopDownTreeTransducer s ta la tb lb -> ta -> ReductionState s ta la tb lb
+toInitialReductionState :: TdttConstraint s ta la tb lb
+  => TopDownTreeTransducer s ta la tb lb -> ta -> ReductionState s ta la tb lb
 toInitialReductionState (TopDownTreeTransducer trans) = MAC.toInitialReductionState trans
 
 fromReductionState :: TdttConstraint s ta la tb lb => ReductionState s ta la tb lb -> Maybe tb

@@ -138,7 +138,7 @@ indexAttRule trans = (mapFromList idx, setFromList attrds)
     checkAttrSide _             = False
 
 
-type ComposeAtt syn1 inh1 syn2 inh2 ti to = AttTransducer
+type ComposedAtt syn1 inh1 syn2 inh2 ti to = AttTransducer
   (ComposedAttSynAttr syn1 inh1 syn2 inh2)
   (ComposedAttInhAttr syn1 inh1 syn2 inh2)
   ti to
@@ -176,7 +176,7 @@ composeAtts :: forall m syn1 inh1 syn2 inh2 ti1 li1 to1 lo1 ti2 li2 to2 lo2.
   )
   => AttributedTreeTransducer syn1 inh1 ti1 li1 to1 lo1
   -> AttributedTreeTransducer syn2 inh2 ti2 li2 to2 lo2
-  -> m (ComposeAtt syn1 inh1 syn2 inh2 ti1 to2)
+  -> m (ComposedAtt syn1 inh1 syn2 inh2 ti1 to2)
 composeAtts trans1 trans2 = do
   checkSingleUse trans1
   pure $ fromMaybe errorUnreachable $ buildAtt

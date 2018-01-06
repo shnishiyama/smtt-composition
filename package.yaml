@@ -29,7 +29,7 @@ ghc-options:
   # for GHC 8.2.x bugs... (disable only executable/tests)
   #- -dcore-lint
   - -fprint-explicit-foralls
-  - -fmax-pmcheck-iterations=500000
+  - -fmax-pmcheck-iterations=1000000
   - -funbox-strict-fields
 
 default-extensions:
@@ -104,6 +104,7 @@ library:
     - Data.Tree.Trans.SATT
     - Data.Tree.Trans.SATT.Instances
     - Data.Tree.Trans.SMAC
+    - Data.Tree.Trans.SMAC.Instances
 
     # compose/decompose tree transducers
     - Data.Tree.Trans.Compose.Desc

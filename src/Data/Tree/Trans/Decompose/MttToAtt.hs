@@ -11,6 +11,7 @@ import qualified Data.Tree.Trans.ATT  as ATT
 import qualified Data.Tree.Trans.MAC  as MAC
 import qualified Data.Tree.Trans.TOP  as TOP
 import qualified Data.Vector          as V
+import qualified Data.HashSet as HashSet
 
 data SubstitutionTreeF tb lb a
   = OriginalOutputLabelF lb
@@ -64,7 +65,10 @@ decomposeMtt :: forall s ta la tb lb.
   , Eq lb, Hashable lb
   )
   => MAC.MacroTreeTransducer s ta la tb lb
-  -> (TOP.TdttTransducer s ta (SubstitutionTree tb lb), ATT.AttTransducer () RankNumber (SubstitutionTree tb lb) tb)
+  ->
+    ( TOP.TdttTransducer s ta (SubstitutionTree tb lb)
+    , ATT.AttTransducer () RankNumber (SubstitutionTree tb lb) tb
+    )
 decomposeMtt trans = fromMaybe errorUnreachable $ (,)
     <$> TOP.buildTdtt ie1 rules1
     <*> ATT.buildAtt ia2 irules2 rules2
@@ -99,7 +103,7 @@ decomposeMtt trans = fromMaybe errorUnreachable $ (,)
     buildRhs MAC.MttBottomLabelSide = do
       pure $ TOP.TdttBottomLabelSide
 
-    ((ie1, rules1), (ls, mr)) = flip runState ([] :: HashSet (SubstitutionTreeF tb lb ()), 0) $ do
+    ((ie1, rules1), (ls, mr)) = flip runState (HashSet.empty, 0) $ do
       ie <- buildRhs $ MAC.mttInitialExpr trans
       rules <- mapM (\((s, l), rhs) -> (s, l,) <$> buildRhs rhs) $ mapToList $ MAC.mttTransRules trans
       pure (ie, rules)

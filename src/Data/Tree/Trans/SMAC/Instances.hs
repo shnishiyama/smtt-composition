@@ -42,10 +42,13 @@ sampleSmtt = fromMaybe errorUnreachable $ buildSmtt
     , (f1, a, SmttContext 0)
     , (f1, b, SmttState f1 0
         [ SmttStackCons
-          (SmttLabelSide d [SmttStackHead $ SmttState f0 0 [SmttContext 0], SmttContext 0])
+          (SmttLabelSide d
+            [ SmttStackHead $ SmttState f0 0 [SmttContext 0]
+            , SmttStackHead $ SmttContext 0
+            ])
           SmttStackEmpty
         ])
-    , (f1, c, MttContext 0)
+    , (f1, c, SmttContext 0)
     ]
   where
     f0 = taggedRankedLabel @"f0"

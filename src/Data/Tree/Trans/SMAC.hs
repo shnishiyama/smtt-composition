@@ -113,7 +113,8 @@ prettyShowRhsValF :: (Show s, Show l)
   -> RightHandSideValF s t l u c valrhs stkrhs
   -> S.ShowS
 prettyShowRhsValF _ _ vrhsShow srhsShow x = case x of
-  SmttLabelSideF l cs -> S.shows l . S.showString "(" . foldl' (.) id (intersperse (S.showString ", ") $ vrhsShow <$> cs) . S.showString ")"
+  SmttLabelSideF l cs -> S.shows l . S.showString "("
+    . foldl' (.) id (intersperse (S.showString ", ") $ vrhsShow <$> cs) . S.showString ")"
   SmttStackBottomF    -> S.showString "_|_"
   SmttStackHeadF s    -> S.showString "Head(" . srhsShow s . S.showString ")"
 
@@ -518,11 +519,11 @@ buildSmttReduction f is trans = go is . toZipper
       SmttStackBottomF{} -> False
       SmttStackHeadF{}   -> False
     checkReducible (RedFixStk x) = case x of
-      SmttContextF{}    -> error "SmttContext should be reduce in replacements"
       SmttStateF{}      -> True
       SmttStackEmptyF{} -> False
       SmttStackTailF{}  -> False
       SmttStackConsF{}  -> True
+      SmttContextF{}    -> error "SmttContext should be reduce in replacements"
 
     go x sz = case zoomNextRightOutZipper (checkReducible . toTree) sz of
       Just sz' -> let

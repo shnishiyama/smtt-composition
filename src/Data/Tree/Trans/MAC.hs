@@ -228,10 +228,10 @@ buildMttReduction f is trans = go is . toZipper
     rule = mttTranslateRule trans
 
     checkReducible (RedFix x) = case x of
-      MttContextF{}         -> error "MttContext should be reduce in replacements"
       MttStateF{}           -> True
       MttLabelSideF{}       -> False
       MttBottomLabelSideF{} -> False
+      MttContextF{}         -> error "MttContext should be reduce in replacements"
 
     go x sz = case zoomNextRightOutZipper (checkReducible . toTree) sz of
       Just sz' -> let
