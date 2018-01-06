@@ -72,10 +72,12 @@ import           SattPrelude
 
 import           Data.Bifunctor.FixLR
 import           Data.Tree.RankedTree
+import           Data.Tree.RankedTree.Label
 import           Data.Tree.RankedTree.Zipper
 import           Data.Tree.Trans.ATT         (AttAttrEither (..), isInherited,
                                               isSynthesized)
 import qualified Data.Tree.Trans.ATT         as ATT
+import qualified Data.Tree.Trans.SMAC        as SMAC
 import           Data.Tree.Trans.Class
 import           Data.Tree.Trans.Stack
 import qualified Text.Show                   as S
@@ -664,3 +666,11 @@ toStandardForm trans = trans
     initialRules = evalStackStkExpr <$> sattInitialRules trans
 
     rules = evalStackStkExpr <$> sattTransRules trans
+
+
+type SmttStateFromSatt syn = RankedAlphabet syn
+
+toStackMacroTreeTransducer :: SattConstraint syn inh ta la tb lb
+  => StackAttributedTreeTransducer syn inh ta la tb lb
+  -> SMAC.StackMacroTreeTransducer (SmttStateFromSatt syn) ta la tb lb
+toStackMacroTreeTransducer = undefined

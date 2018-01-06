@@ -59,15 +59,18 @@ toComposeBasedAtt attrds1 trans = fromMaybe errorUnreachable $ ATT.buildAtt
     initialRules
     $ rules1 <> rules2 <> rules0
   where
+    treeLabelRankTi2 = treeLabelRank (Proxy @ti2)
+
     initialRules = second (convRhs $ second errorVoid)
       <$> mapToList (ATT.attInitialRules trans)
 
     rules0 =
       [ ( a
-        , ValuedExpr $ SATT.SattLabelSideF l $ replicate (treeLabelRank (Proxy @ti2) l) ()
+        , ValuedExpr $ SATT.SattLabelSideF l $ replicate r ()
         , convRhs id rhs
         )
-      | ((a, l), rhs) <- mapToList (ATT.attTransRules trans)
+      | ((a, l), rhs) <- mapToList $ ATT.attTransRules trans
+      , let r = treeLabelRankTi2 l
       ]
 
     convRhs f (ATT.AttAttrSide a)     = ATT.AttAttrSide $ f a
@@ -237,13 +240,21 @@ checkSingleUse _ = pure ()
 -- >>> import Data.Tree.RankedTree.Label
 -- >>> import Data.Tree.Trans.SATT.Instances
 -- >>> import qualified Data.Tree.Trans.ATT.Instances as ATT
+-- >>> import qualified Data.Tree.Trans.TOP.Instances as TOP
+-- >>> import qualified Data.Tree.Trans.TOP as TOP
 -- >>> import Data.Tree.Trans.Class
 -- >>> a = taggedRankedLabel @"A"
 -- >>> b = taggedRankedLabel @"B"
 -- >>> c = taggedRankedLabel @"C"
 -- >>> inputSampleTree = mkTree a [mkTree c [], mkTree b [mkTree c []]]
 -- >>> traUniverse = setFromList $ taggedRankedAlphabetUniverse Proxy
--- >>> identOutputTrans = ATT.identityTransducer @(RankedLabelledTree OutputSampleAlphabet) traUniverse
+-- >>> :{
+-- identityTransducer :: (RankedTree ta, Eq (LabelType ta), Hashable (LabelType ta))
+--   => HashSet (LabelType ta) -> ATT.AttTransducer () Void ta ta
+-- identityTransducer = TOP.toAttributedTreeTransducer . TOP.identityTransducer
+-- :}
+--
+-- >>> identOutputTrans = identityTransducer @(RankedLabelledTree OutputSampleAlphabet) traUniverse
 -- >>> sampleIdentTrans <- composeSattAndAtt sampleSatt identOutputTrans
 -- >>> treeTrans sampleIdentTrans inputSampleTree
 -- D(F,F)

@@ -5,7 +5,7 @@
 :set -Wno-type-defaults
 
 -- For Debugging
--- :set -prof -fexternal-interpreter
+-- :set -fexternal-interpreter
 
 -- Languages
 :set -XOverloadedStrings

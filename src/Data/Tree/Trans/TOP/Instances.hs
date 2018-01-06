@@ -4,8 +4,22 @@ module Data.Tree.Trans.TOP.Instances where
 
 import           SattPrelude
 
+import           Data.Tree.RankedTree
 import           Data.Tree.RankedTree.Label
 import           Data.Tree.Trans.TOP
+import qualified Data.Vector as V
+
+identityTransducer :: forall t l.
+  ( RtConstraint t l
+  , Eq l, Hashable l
+  )
+  => HashSet l -> TopDownTreeTransducer () t l t l
+identityTransducer ls = fromMaybe errorUnreachable $ buildTdtt
+  (tdttState () 0)
+  [ ((), l, TdttLabelSide l $ V.generate r (tdttState ()))
+  | l <- setToList ls
+  , let r = treeLabelRank (Proxy @t) l
+  ]
 
 type InputSampleAlphabet = TaggedRankedAlphabet
   ['("A", 2), '("B", 1), '("C", 0)]

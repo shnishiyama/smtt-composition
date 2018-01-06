@@ -27,10 +27,14 @@ module Data.Tree.Trans.TOP
   , MAC.prettyShowReductionState
 
     -- internal
+  , RightHandSideF
   , pattern TdttStateF
   , tdttStateF
   , pattern TdttLabelSideF
   , pattern TdttBottomLabelSideF
+  , tdttStates
+  , tdttInitialExpr
+  , tdttTransRules
   ) where
 
 import           SattPrelude
@@ -54,7 +58,7 @@ pattern TdttStateF s u <- MAC.MttStateF (ConstRankedLabelWrapper s) u []
 tdttStateF :: s -> RankNumber -> RightHandSideF s t l rhs
 tdttStateF s u = MAC.MttStateF (ConstRankedLabelWrapper s) u []
 
-pattern TdttLabelSideF :: l -> NodeVec rhs -> RightHandSideF s t l rhs
+pattern TdttLabelSideF :: RtConstraint t l => l -> NodeVec rhs -> RightHandSideF s t l rhs
 pattern TdttLabelSideF l cs = MAC.MttLabelSideF l cs
 
 pattern TdttBottomLabelSideF :: RightHandSideF s t l rhs
@@ -62,7 +66,7 @@ pattern TdttBottomLabelSideF = MAC.MttBottomLabelSideF
 
 {-# COMPLETE TdttStateF, TdttLabelSideF, TdttBottomLabelSideF #-}
 
-type RightHandSide s tb lb = MAC.RightHandSide (TdttState s) tb lb
+type RightHandSide s t l = MAC.RightHandSide (TdttState s) t l
 
 pattern TdttState :: s -> RankNumber -> RightHandSide s t l
 pattern TdttState s u <- MAC.MttState (ConstRankedLabelWrapper s) u []
@@ -81,6 +85,15 @@ pattern TdttBottomLabelSide = MAC.MttBottomLabelSide
 newtype TopDownTreeTransducer s ta la tb lb = TopDownTreeTransducer
   { toMacroTreeTransducer :: MAC.MacroTreeTransducer (TdttState s) ta la tb lb
   } deriving (Eq, Generic)
+
+tdttStates :: TopDownTreeTransducer s ta la tb lb -> HashSet (TdttState s)
+tdttStates = MAC.mttStates .# toMacroTreeTransducer
+
+tdttInitialExpr :: TopDownTreeTransducer s ta la tb lb -> RightHandSide s tb lb
+tdttInitialExpr = coerce #. MAC.mttInitialExpr .# toMacroTreeTransducer
+
+tdttTransRules :: TopDownTreeTransducer s ta la tb lb -> HashMap (TdttState s, la) (RightHandSide s tb lb)
+tdttTransRules = coerce #. MAC.mttTransRules .# toMacroTreeTransducer
 
 instance (Show s, Show la, Show lb, TdttConstraint s ta la tb lb)
     => Show (TopDownTreeTransducer s ta la tb lb) where

@@ -4,22 +4,8 @@ module Data.Tree.Trans.ATT.Instances where
 
 import           SattPrelude
 
-import           Data.Tree.RankedTree
 import           Data.Tree.RankedTree.Label
 import           Data.Tree.Trans.ATT
-import qualified Data.Vector                as V
-
-identityTransducer :: forall t l.
-  ( RtConstraint t l
-  , Eq l, Hashable l
-  )
-  => HashSet l -> AttributedTreeTransducer () Void t l t l
-identityTransducer ls = fromMaybe errorUnreachable $ buildAtt
-  ()
-  [ (Synthesized (), SynAttrSide () 0)]
-  [ (Synthesized (), l, AttLabelSide l $ V.generate (treeLabelRank (Proxy @t) l) (SynAttrSide ()))
-  | l <- setToList ls
-  ]
 
 type InputSampleAlphabet = TaggedRankedAlphabet
   ['("A", 2), '("B", 1), '("C", 0)]

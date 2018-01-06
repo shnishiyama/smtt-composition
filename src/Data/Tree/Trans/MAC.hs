@@ -25,6 +25,7 @@ module Data.Tree.Trans.MAC
   , prettyShowReductionState
 
     -- internal
+  , pattern RedFix
   , mttStates
   , mttInitialExpr
   , mttTransRules
@@ -60,6 +61,13 @@ deriveShow2 ''RightHandSideF
 deriveBifunctor ''RightHandSideF
 deriveBifoldable ''RightHandSideF
 
+instance (Hashable s, Hashable l, Hashable u, Hashable c, Hashable rhs)
+  => Hashable (RightHandSideF s t l u c rhs)
+
+type instance Element (RightHandSideF s t l u c rhs) = rhs
+
+instance MonoFoldable (RightHandSideF s t l u c rhs)
+
 prettyShowRhsF :: (Show s, Show l)
   => (u -> S.ShowS) -> (c -> S.ShowS) -> (rhs -> S.ShowS)
   -> RightHandSideF s t l u c rhs
@@ -90,6 +98,20 @@ pattern MttBottomLabelSide :: RightHandSide s t l
 pattern MttBottomLabelSide = Fix MttBottomLabelSideF
 
 {-# COMPLETE MttContext, MttState, MttLabelSide, MttBottomLabelSide #-}
+
+instance (RtConstraint t l) => RankedTree (RightHandSide s t l) where
+  type LabelType (RightHandSide s t l) = RightHandSideF s t l RankNumber RankNumber ()
+
+  treeLabel (Fix x) = void x
+  treeChilds (Fix x) = fromList $ toList x
+
+  treeLabelRank _ = length
+
+  mkTreeUnchecked x cs = Fix $ case x of
+    MttStateF s u _     -> MttStateF s u cs
+    MttContextF c       -> MttContextF c
+    MttLabelSideF l _   -> MttLabelSideF l cs
+    MttBottomLabelSideF -> MttBottomLabelSideF
 
 prettyShowRhs :: (Show s, Show l) => RightHandSide s t l -> String
 prettyShowRhs rhs = go rhs ""

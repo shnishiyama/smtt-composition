@@ -153,12 +153,20 @@ checkSingleUse _ = pure ()
 -- Examples:
 -- >>> import Data.Tree.RankedTree.Label
 -- >>> import Data.Tree.Trans.ATT.Instances
+-- >>> import qualified Data.Tree.Trans.TOP.Instances as TOP
+-- >>> import qualified Data.Tree.Trans.TOP as TOP
 -- >>> import Data.Tree.Trans.Class
 -- >>> a = taggedRankedLabel @"A"
 -- >>> b = taggedRankedLabel @"B"
 -- >>> c = taggedRankedLabel @"C"
 -- >>> inputSampleTree = mkTree a [mkTree c [], mkTree b [mkTree c []]]
 -- >>> traUniverse = setFromList $ taggedRankedAlphabetUniverse Proxy
+-- >>> :{
+-- identityTransducer :: (RankedTree ta, Eq (LabelType ta), Hashable (LabelType ta))
+--   => HashSet (LabelType ta) -> AttTransducer () Void ta ta
+-- identityTransducer = TOP.toAttributedTreeTransducer . TOP.identityTransducer
+-- :}
+--
 -- >>> identInputTrans = identityTransducer @(RankedLabelledTree InputSampleAlphabet) traUniverse
 -- >>> identOutputTrans = identityTransducer @(RankedLabelledTree OutputSampleAlphabet) traUniverse
 -- >>> sampleIdentTrans <- composeAtts sampleAtt identOutputTrans

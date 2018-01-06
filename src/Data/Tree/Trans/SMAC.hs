@@ -35,6 +35,17 @@ module Data.Tree.Trans.SMAC
     -- internal
   , ReductionStateValF (..)
   , ReductionStateStkF (..)
+  , pattern SmttStateF
+  , pattern SmttLabelSideF
+  , pattern SmttContextF
+  , pattern SmttStackBottomF
+  , pattern SmttStackHeadF
+  , pattern SmttStackEmptyF
+  , pattern SmttStackTailF
+  , pattern SmttStackConsF
+  , smttStates
+  , smttInitialExpr
+  , smttTransRules
   ) where
 
 import           SattPrelude
@@ -148,7 +159,7 @@ pattern SmttContext c = FixStk (SmttContextF c)
 pattern SmttState :: s -> RankNumber -> NodeVec (RightHandSideStk s t l) -> RightHandSideStk s t l
 pattern SmttState s t cs = FixStk (SmttStateF s t cs)
 
-pattern SmttLabelSide :: l -> NodeVec (RightHandSideVal s t l) -> RightHandSideVal s t l
+pattern SmttLabelSide :: RtConstraint t l => l -> NodeVec (RightHandSideVal s t l) -> RightHandSideVal s t l
 pattern SmttLabelSide l cs = FixVal (SmttLabelSideF l cs)
 
 pattern SmttStackBottom :: RightHandSideVal s t l

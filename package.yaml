@@ -109,6 +109,7 @@ library:
     # compose/decompose tree transducers
     - Data.Tree.Trans.Compose.Desc
     - Data.Tree.Trans.Compose.ExtendDesc
+    - Data.Tree.Trans.Compose.TdttAndSmtt
     - Data.Tree.Trans.Compose.ExtendVoigt2004
     - Data.Tree.Trans.Decompose.MttToAtt
   other-modules: []
