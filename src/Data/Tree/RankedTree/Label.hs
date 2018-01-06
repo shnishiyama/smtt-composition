@@ -237,7 +237,7 @@ taggedRankedAlphabetUniverse :: forall tag.
   )
   => Proxy (TaggedRankedAlphabet tag) -> [TaggedRankedAlphabet tag]
 taggedRankedAlphabetUniverse _ = coerce
-    [ RankedAlphabetWrapper x $ fromMaybe (error "unreachable") $ lookup (coerce x) rm
+    [ RankedAlphabetWrapper x $ fromMaybe errorUnreachable $ lookup (coerce x) rm
     | x <- taggedAlphabetUniverse $ Proxy @(TaggedAlphabet (FromTaggedRankedAlphabet tag))
     ]
   where

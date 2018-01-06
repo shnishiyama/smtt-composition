@@ -34,7 +34,7 @@ type SampleMtt = MttTransducer
 -- D(F,F)
 --
 sampleMtt :: SampleMtt
-sampleMtt = fromMaybe (error "unreachable") $ buildMtt
+sampleMtt = fromMaybe errorUnreachable $ buildMtt
     (MttState f0 0 [MttLabelSide f []])
     [ (f0, a, MttState f0 0 [MttState f1 1 [MttContext 0]])
     , (f0, b, MttLabelSide e [MttContext 0])

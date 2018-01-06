@@ -65,7 +65,7 @@ decomposeMtt :: forall s ta la tb lb.
   )
   => MAC.MacroTreeTransducer s ta la tb lb
   -> (TOP.TdttTransducer s ta (SubstitutionTree tb lb), ATT.AttTransducer () RankNumber (SubstitutionTree tb lb) tb)
-decomposeMtt trans = fromMaybe (error "unreachable") $ (,)
+decomposeMtt trans = fromMaybe errorUnreachable $ (,)
     <$> TOP.buildTdtt ie1 rules1
     <*> ATT.buildAtt ia2 irules2 rules2
   where

@@ -14,7 +14,7 @@ identityTransducer :: forall t l.
   , Eq l, Hashable l
   )
   => HashSet l -> AttributedTreeTransducer () Void t l t l
-identityTransducer ls = fromMaybe (error "unreachable") $ buildAtt
+identityTransducer ls = fromMaybe errorUnreachable $ buildAtt
   ()
   [ (Synthesized (), SynAttrSide () 0)]
   [ (Synthesized (), l, AttLabelSide l $ V.generate (treeLabelRank (Proxy @t) l) (SynAttrSide ()))
@@ -52,7 +52,7 @@ type SampleAtt = AttTransducer
 -- D(F,F)
 --
 sampleAtt :: SampleAtt
-sampleAtt = fromMaybe (error "unreachable") $ buildAtt
+sampleAtt = fromMaybe errorUnreachable $ buildAtt
     a0
     [ (Synthesized (), SynAttrSide a0 0)
     , (Inherited   b0, AttLabelSide f [])
@@ -117,7 +117,7 @@ type InfixToPostfixAtt = AttTransducer
 -- two(one(two(plus(multi(end)))))
 --
 infixToPostfixAtt :: InfixToPostfixAtt
-infixToPostfixAtt = fromMaybe (error "unreachable") $ buildAtt
+infixToPostfixAtt = fromMaybe errorUnreachable $ buildAtt
     a0
     [ (Synthesized (), SynAttrSide a0 0)
     , (Inherited   a1, AttLabelSide pEnd [])

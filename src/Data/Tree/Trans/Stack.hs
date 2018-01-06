@@ -147,20 +147,20 @@ stackCons v s = injectStk $ StackConsF v s
 --
 -- Examples:
 -- >>> import qualified Text.Show as S
--- >>> data Proxy1 val stk = Proxy1
+-- >>> data Proxy2 val stk = Proxy2
 -- >>> :{
--- instance Show2 Proxy1 where
---   liftShowsPrec2 _ _ _ _ d Proxy1 = S.showParen (d > 10) $ S.showString "Proxy1"
+-- instance Show2 Proxy2 where
+--   liftShowsPrec2 _ _ _ _ d Proxy2 = S.showParen (d > 10) $ S.showString "Proxy2"
 -- :}
 --
--- >>> instance Bifunctor Proxy1 where bimap _ _ Proxy1 = Proxy1
+-- >>> instance Bifunctor Proxy2 where bimap _ _ Proxy2 = Proxy2
 -- >>> :{
--- stkProxy1 :: BiStackExprFixStk (Proxy1 :+|+: StackExprValF) (Proxy1 :+|+: StackExprStkF)
--- stkProxy1 = BiInL Proxy1
+-- stkProxy2 :: BiStackExprFixStk (Proxy2 :+|+: StackExprValF) (Proxy2 :+|+: StackExprStkF)
+-- stkProxy2 = BiInL Proxy2
 -- :}
 --
--- >>> evalStackValExpr $ stackHead $ stackTail $ FixStk stkProxy1
--- FixL (BiInR (StackHeadF (FixR (BiInR (StackTailF (FixR (BiInL (Proxy1))))))))
+-- >>> evalStackValExpr $ stackHead $ stackTail $ FixStk stkProxy2
+-- FixL (BiInR (StackHeadF (FixR (BiInR (StackTailF (FixR (BiInL (Proxy2))))))))
 --
 evalStackValExpr :: StackConstraint valf stkf => FixVal valf stkf -> FixVal valf stkf
 evalStackValExpr v = case v of
@@ -194,20 +194,20 @@ unconsStackStkExpr s = case s of
 --
 -- Examples:
 -- >>> import qualified Text.Show as S
--- >>> data Proxy1 val stk = Proxy1
+-- >>> data Proxy2 val stk = Proxy2
 -- >>> :{
--- instance Show2 Proxy1 where
---   liftShowsPrec2 _ _ _ _ d Proxy1 = S.showParen (d > 10) $ S.showString "Proxy1"
+-- instance Show2 Proxy2 where
+--   liftShowsPrec2 _ _ _ _ d Proxy2 = S.showParen (d > 10) $ S.showString "Proxy2"
 -- :}
 --
--- >>> instance Bifunctor Proxy1 where bimap _ _ Proxy1 = Proxy1
+-- >>> instance Bifunctor Proxy2 where bimap _ _ Proxy2 = Proxy2
 -- >>> :{
--- stkProxy1 :: BiStackExprFixStk (Proxy1 :+|+: StackExprValF) (Proxy1 :+|+: StackExprStkF)
--- stkProxy1 = BiInL Proxy1
+-- stkProxy2 :: BiStackExprFixStk (Proxy2 :+|+: StackExprValF) (Proxy2 :+|+: StackExprStkF)
+-- stkProxy2 = BiInL Proxy2
 -- :}
 --
--- >>> evalStackStkExpr $ stackTail $ stackTail $ stackCons stackBottom $ FixStk stkProxy1
--- FixR (BiInR (StackTailF (FixR (BiInL (Proxy1)))))
+-- >>> evalStackStkExpr $ stackTail $ stackTail $ stackCons stackBottom $ FixStk stkProxy2
+-- FixR (BiInR (StackTailF (FixR (BiInL (Proxy2)))))
 --
 evalStackStkExpr :: StackConstraint valf stkf => FixStk valf stkf -> FixStk valf stkf
 evalStackStkExpr s = case s of

@@ -42,7 +42,7 @@ type SampleSatt = SattTransducer
 -- D(F,F)
 --
 sampleSatt :: SampleSatt
-sampleSatt = fromMaybe (error "unreachable") $ buildSatt
+sampleSatt = fromMaybe errorUnreachable $ buildSatt
     a0
     [ (Synthesized (), SynAttrSide a0 0)
     , (Inherited   b0, SattStackCons
@@ -132,7 +132,7 @@ type PostfixToInfixSatt = SattTransducer
 -- multi(two,plus(one,two))
 --
 postfixToInfixSatt :: PostfixToInfixSatt
-postfixToInfixSatt = fromMaybe (error "unreachable") $ buildSatt
+postfixToInfixSatt = fromMaybe errorUnreachable $ buildSatt
     a0
     [ (Synthesized (), SynAttrSide a0 0)
     , (Inherited   a1, SattStackEmpty)

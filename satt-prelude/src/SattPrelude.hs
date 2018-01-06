@@ -27,6 +27,7 @@ module SattPrelude
   , uprint
   , bivoid
   , throwErrorM
+  , invert
   , errorVoid
   , errorUnreachable
   , Nat
@@ -94,3 +95,8 @@ absurd = error "absurd"
 
 groomPrint :: Show a => a -> IO ()
 groomPrint = putStrLn . pack . groom
+
+invert :: Ordering -> Ordering
+invert LT = GT
+invert EQ = EQ
+invert GT = LT

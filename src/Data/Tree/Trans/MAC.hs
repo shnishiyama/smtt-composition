@@ -204,8 +204,8 @@ pattern RedFix
 pattern RedFix s = Fix (ReductionStateF s)
 {-# COMPLETE RedFix #-}
 
-instance (MttConstraint s ta la tb lb) => RankedTree (Fix (ReductionStateF s ta la tb lb)) where
-  type LabelType (Fix (ReductionStateF s ta la tb lb)) = ReductionStateF s ta la tb lb ()
+instance (MttConstraint s ta la tb lb) => RankedTree (ReductionState s ta la tb lb) where
+  type LabelType (ReductionState s ta la tb lb) = ReductionStateF s ta la tb lb ()
 
   treeLabel (Fix x) = void x
   treeChilds (Fix x) = fromList $ toList x
@@ -253,7 +253,8 @@ buildMttReduction f is trans = go is . toZipper
 runMttReduction :: forall s ta la tb lb. (MttConstraint s ta la tb lb)
   => MacroTreeTransducer s ta la tb lb
   -> ReductionState s ta la tb lb -> ReductionState s ta la tb lb
-runMttReduction trans istate = toTopTree $ buildMttReduction const (rtZipper istate) trans istate
+runMttReduction trans istate = toTopTree
+  $ buildMttReduction const (rtZipper istate) trans istate
 
 runMttReductionWithHistory :: forall s ta la tb lb. (MttConstraint s ta la tb lb)
   => MacroTreeTransducer s ta la tb lb
@@ -262,7 +263,8 @@ runMttReductionWithHistory trans istate
   = buildMttReduction @RTZipper (\tz -> (. (toTopTree tz:))) id trans istate []
 
 toInitialReductionState :: MttConstraint s ta la tb lb
-  => MacroTreeTransducer s ta la tb lb -> ta -> ReductionState s ta la tb lb
+  => MacroTreeTransducer s ta la tb lb
+  -> ta -> ReductionState s ta la tb lb
 toInitialReductionState trans t = go $ mttInitialExpr trans
   where
     go (Fix x) = RedFix $ case x of
@@ -281,10 +283,7 @@ fromReductionState _ = Nothing
 prettyShowReductionState :: (Show s, Show ta, Show lb) => ReductionState s ta la tb lb -> String
 prettyShowReductionState redState = go redState ""
   where
-    go (RedFix x) = prettyShowRhsF
-      S.shows
-      go go
-      x
+    go (RedFix x) = prettyShowRhsF S.shows go go x
 
 
 -- A tree transduction for mtts

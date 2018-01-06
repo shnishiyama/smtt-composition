@@ -34,7 +34,7 @@ type SampleTdtt = TdttTransducer
 -- D(F,E(F))
 --
 sampleTdtt :: SampleTdtt
-sampleTdtt = fromMaybe (error "unreachable") $ buildTdtt
+sampleTdtt = fromMaybe errorUnreachable $ buildTdtt
     (tdttState f0 0)
     [ (f0, a, TdttLabelSide d [tdttState f1 0, tdttState f0 1])
     , (f0, b, TdttLabelSide e [tdttState f0 0])

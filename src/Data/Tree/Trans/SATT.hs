@@ -416,31 +416,31 @@ zoomInIdxPathInfo :: (RankedTreeZipper tz, RtConstraint t l)
   => RankNumber -> SattPathInfo tz t l -> Maybe (SattPathInfo tz t l)
 zoomInIdxPathInfo = ATT.zoomInIdxPathInfo
 
+type ReductionStateValF syn inh ta la tb lb tz
+  = RightHandSideValF syn inh tb lb (SattPathInfo tz ta la)
+
+type ReductionStateStkF syn inh ta la tb lb tz
+  = RightHandSideStkF syn inh tb lb (SattPathInfo tz ta la)
+
 type ReductionState syn inh ta la tb lb tz = BiStackExprFix
-  (RightHandSideValF syn inh tb lb (SattPathInfo tz ta la))
-  (RightHandSideStkF syn inh tb lb (SattPathInfo tz ta la))
+  (ReductionStateValF syn inh ta la tb lb tz)
+  (ReductionStateStkF syn inh ta la tb lb tz)
 
 pattern RedFixVal
   :: BiStackExprFixVal
-    (RightHandSideValF syn inh tb lb (SattPathInfo tz ta la))
-    (RightHandSideStkF syn inh tb lb (SattPathInfo tz ta la))
+    (ReductionStateValF syn inh ta la tb lb tz)
+    (ReductionStateStkF syn inh ta la tb lb tz)
   -> ReductionState syn inh ta la tb lb tz
 pattern RedFixVal s = BiFixVal s
 
 pattern RedFixStk
   :: BiStackExprFixStk
-    (RightHandSideValF syn inh tb lb (SattPathInfo tz ta la))
-    (RightHandSideStkF syn inh tb lb (SattPathInfo tz ta la))
+    (ReductionStateValF syn inh ta la tb lb tz)
+    (ReductionStateStkF syn inh ta la tb lb tz)
   -> ReductionState syn inh ta la tb lb tz
 pattern RedFixStk s = BiFixStk s
 
 {-# COMPLETE RedFixVal, RedFixStk #-}
-
-type ReductionStateValF syn inh ta la tb lb tz val stk
-  = RightHandSideValF syn inh tb lb (SattPathInfo tz ta la) val stk
-
-type ReductionStateStkF syn inh ta la tb lb tz val stk
-  = RightHandSideStkF syn inh tb lb (SattPathInfo tz ta la) val stk
 
 instance (SattConstraint syn inh ta la tb lb) => RankedTree (ReductionState syn inh ta la tb lb tz) where
   type LabelType (ReductionState syn inh ta la tb lb tz) = StackExprEither
@@ -457,15 +457,15 @@ instance (SattConstraint syn inh ta la tb lb) => RankedTree (ReductionState syn 
   treeLabelRank _ (StackedExpr x) = bilength x
 
   mkTreeUnchecked e cs = case e of
-      ValuedExpr ve -> case ve of
-        SattLabelSideF l _ -> BiFixVal $ SattLabelSideF l $ fromValuedExpr <$> cs
-        SattStackBottomF   -> BiFixVal SattStackBottomF
-        SattStackHeadF{}   -> BiFixVal $ SattStackHeadF (fromStackedExpr $ cs `indexEx` 0)
-      StackedExpr se -> case se of
-        SattAttrSideF a p -> BiFixStk $ SattAttrSideF a p
-        SattStackEmptyF   -> BiFixStk SattStackEmptyF
-        SattStackTailF{}  -> BiFixStk $ SattStackTailF (fromStackedExpr $ cs `indexEx` 0)
-        SattStackConsF{}  -> BiFixStk $ SattStackConsF
+      ValuedExpr ve -> RedFixVal $ case ve of
+        SattLabelSideF l _ -> SattLabelSideF l $ fromValuedExpr <$> cs
+        SattStackBottomF   -> SattStackBottomF
+        SattStackHeadF{}   -> SattStackHeadF (fromStackedExpr $ cs `indexEx` 0)
+      StackedExpr se -> RedFixStk $ case se of
+        SattAttrSideF a p -> SattAttrSideF a p
+        SattStackEmptyF   -> SattStackEmptyF
+        SattStackTailF{}  -> SattStackTailF (fromStackedExpr $ cs `indexEx` 0)
+        SattStackConsF{}  -> SattStackConsF
           (fromValuedExpr $ cs `indexEx` 0)
           (fromStackedExpr $ cs `indexEx` 1)
     where

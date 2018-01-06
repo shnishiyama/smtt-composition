@@ -129,7 +129,7 @@ instance TdttConstraint s ta la tb lb => TreeTransducer (TopDownTreeTransducer s
 
 toAttributedTreeTransducer :: TdttConstraint s ta la tb lb
   => TopDownTreeTransducer s ta la tb lb -> ATT.AttributedTreeTransducer s Void ta la tb lb
-toAttributedTreeTransducer (TopDownTreeTransducer trans) = fromMaybe (error "unreachable") $ ATT.buildAtt
+toAttributedTreeTransducer (TopDownTreeTransducer trans) = fromMaybe errorUnreachable $ ATT.buildAtt
     (coerce $ headEx $ MAC.mttStates trans)
     [ (ATT.Synthesized (), replaceRHS $ MAC.mttInitialExpr trans)
     ]

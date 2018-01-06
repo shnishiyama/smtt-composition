@@ -1,3 +1,5 @@
+{-# LANGUAGE NoStrict        #-}
+{-# LANGUAGE OverloadedLists #-}
 {-# LANGUAGE TemplateHaskell #-}
 
 module Data.Tree.Trans.SMAC
@@ -18,15 +20,32 @@ module Data.Tree.Trans.SMAC
   , pattern SmttStackCons
   , prettyShowRhs
 
+    -- standard form
+  , toStandardForm
+
+    -- reduction system
+  , ReductionState
+  , buildSmttReduction
+  , runSmttReduction
+  , runSmttReductionWithHistory
+  , toInitialReductionState
+  , fromReductionState
+  , prettyShowReductionState
+
+    -- internal
+  , ReductionStateValF (..)
+  , ReductionStateStkF (..)
   ) where
 
-import SattPrelude
+import           SattPrelude
 
-import qualified Text.Show as S
-import Data.Tree.RankedTree
-import Data.Tree.Trans.Stack
-import Data.Bifunctor.FixLR
-import Data.Tree.RankedTree.Label
+import           Data.Bifunctor.FixLR
+import           Data.Tree.RankedTree
+import           Data.Tree.RankedTree.Label
+import           Data.Tree.RankedTree.Zipper
+import           Data.Tree.Trans.Class
+import           Data.Tree.Trans.Stack
+import qualified Text.Show                   as S
 
 
 data BaseRightHandSideValF s t l u c valrhs stkrhs
@@ -267,3 +286,368 @@ buildSmtt ie rules = do
         else throwErrorM "Mismatch the rank of an output label for childs"
       SmttStackBottomF -> pure xs
       SmttStackHeadF s -> scanRHSStk p r xs s
+
+smttTranslateRule :: SmttConstraint s ta la tb lb
+  => StackMacroTreeTransducer s ta la tb lb
+  -> (s, la) -> RightHandSide s tb lb
+smttTranslateRule trans p = fromMaybe SmttStackEmpty
+  . lookup p $ smttTransRules trans
+
+
+-- reduction system
+
+newtype ReductionStateValF s ta la tb lb valstate stkstate = ReductionStateValF
+  { unwrapReductionStateValF :: RightHandSideValF s tb lb ta stkstate valstate stkstate
+  } deriving (Eq, Ord, Show, Generic)
+
+instance (Eq lb) => Eq2 (ReductionStateValF s ta la tb lb) where
+  liftEq2 f g (ReductionStateValF x) (ReductionStateValF y) = case (x, y) of
+    (SmttLabelSideF l1 cs1, SmttLabelSideF l2 cs2) -> l1 == l2 && liftEq f cs1 cs2
+    (SmttStackBottomF, SmttStackBottomF) -> True
+    (SmttStackHeadF s1, SmttStackHeadF s2) -> g s1 s2
+    _ -> False
+
+instance (Ord lb) => Ord2 (ReductionStateValF s ta la tb lb) where
+  liftCompare2 f g (ReductionStateValF x) (ReductionStateValF y) = case (x, y) of
+    (SmttLabelSideF l1 cs1, SmttLabelSideF l2 cs2) -> l1 `compare` l2 <> liftCompare f cs1 cs2
+    (SmttLabelSideF{}, _) -> LT
+    (_, SmttLabelSideF{}) -> GT
+    (SmttStackBottomF, SmttStackBottomF) -> EQ
+    (SmttStackBottomF{}, _) -> LT
+    (_, SmttStackBottomF{}) -> GT
+    (SmttStackHeadF s1, SmttStackHeadF s2) -> g s1 s2
+
+instance (Show lb) => Show2 (ReductionStateValF s ta la tb lb) where
+  liftShowsPrec2 f1 f2 g1 _ d (ReductionStateValF x) = S.showParen (d > appPrec) $ case x of
+      SmttLabelSideF l cs -> S.showString "SmttLabelSideF "
+        . S.showsPrec (appPrec + 1) l
+        . S.showString " "
+        . liftShowsPrec f1 f2 (appPrec + 1) cs
+      SmttStackBottomF -> S.showString "SmttStackBottomF"
+      SmttStackHeadF s -> S.showString "SmttStackHeadF "
+        . g1 (appPrec + 1) s
+    where
+      appPrec = 10
+
+instance Bifunctor (ReductionStateValF s ta la tb lb) where
+  bimap f g (ReductionStateValF x) = ReductionStateValF $ case x of
+    SmttLabelSideF l cs -> SmttLabelSideF l $ f <$> cs
+    SmttStackBottomF    -> SmttStackBottomF
+    SmttStackHeadF s    -> SmttStackHeadF $ g s
+
+instance Bifoldable (ReductionStateValF s ta la tb lb) where
+  bifoldr f g x (ReductionStateValF y) = case y of
+    SmttLabelSideF _ cs -> foldr f x cs
+    SmttStackBottomF    -> x
+    SmttStackHeadF s    -> g s x
+
+  bifoldMap f g (ReductionStateValF y) = case y of
+    SmttLabelSideF _ cs -> foldMap f cs
+    SmttStackBottomF    -> mempty
+    SmttStackHeadF s    -> g s
+
+newtype ReductionStateStkF s ta la tb lb valstate stkstate = ReductionStateStkF
+  { unwrapReductionStateStkF :: RightHandSideStkF s tb lb ta stkstate valstate stkstate
+  } deriving (Eq, Ord, Show, Generic)
+
+instance (Eq s, Eq ta) => Eq2 (ReductionStateStkF s ta la tb lb) where
+  liftEq2 f g (ReductionStateStkF x) (ReductionStateStkF y) = case (x, y) of
+    (SmttContextF c1, SmttContextF c2) -> g c1 c2
+    (SmttStateF s1 t1 cs1, SmttStateF s2 t2 cs2) ->
+      s1 == s2 && t1 == t2 && liftEq g cs1 cs2
+    (SmttStackEmptyF, SmttStackEmptyF) -> True
+    (SmttStackTailF s1, SmttStackTailF s2) -> g s1 s2
+    (SmttStackConsF v1 s1, SmttStackConsF v2 s2) -> f v1 v2 && g s1 s2
+    _ -> False
+
+instance (Ord s, Ord ta) => Ord2 (ReductionStateStkF s ta la tb lb) where
+  liftCompare2 f g (ReductionStateStkF x) (ReductionStateStkF y) = case (x, y) of
+    (SmttContextF c1, SmttContextF c2) -> g c1 c2
+    (SmttContextF{}, _) -> LT
+    (_, SmttContextF{}) -> GT
+    (SmttStateF s1 t1 cs1, SmttStateF s2 t2 cs2) ->
+      s1 `compare` s2 <> t1 `compare` t2 <> liftCompare g cs1 cs2
+    (SmttStateF{}, _) -> LT
+    (_, SmttStateF{}) -> GT
+    (SmttStackEmptyF, SmttStackEmptyF) -> EQ
+    (SmttStackEmptyF{}, _) -> LT
+    (_, SmttStackEmptyF{}) -> GT
+    (SmttStackTailF s1, SmttStackTailF s2) -> g s1 s2
+    (SmttStackTailF{}, _) -> LT
+    (_, SmttStackTailF{}) -> GT
+    (SmttStackConsF v1 s1, SmttStackConsF v2 s2) -> f v1 v2 <> g s1 s2
+
+instance (Show s, Show ta) => Show2 (ReductionStateStkF s ta la tb lb) where
+  liftShowsPrec2 f1 _ g1 g2 d (ReductionStateStkF x) = S.showParen (d > appPrec) $ case x of
+      SmttContextF c -> S.showString "SmttContextF "
+        . g1 (appPrec + 1) c
+      SmttStateF s t cs -> S.showString "SmttStateF "
+        . S.showsPrec (appPrec + 1) s
+        . S.showString " "
+        . S.showsPrec (appPrec + 1) t
+        . S.showString " "
+        . liftShowsPrec g1 g2 (appPrec + 1) cs
+      SmttStackEmptyF -> S.showString "SmttStackEmptyF"
+      SmttStackTailF s -> S.showString "SmttStackTailF "
+        . g1 (appPrec + 1) s
+      SmttStackConsF v s -> S.showString "SmttStackConsF "
+        . f1 (appPrec + 1) v
+        . S.showString " "
+        . g1 (appPrec + 1) s
+    where
+      appPrec = 10
+
+instance Bifunctor (ReductionStateStkF s ta la tb lb) where
+  bimap f g (ReductionStateStkF x) = ReductionStateStkF $ case x of
+    SmttContextF c     -> SmttContextF $ g c
+    SmttStateF s t cs  -> SmttStateF s t $ g <$> cs
+    SmttStackEmptyF    -> SmttStackEmptyF
+    SmttStackTailF s   -> SmttStackTailF $ g s
+    SmttStackConsF v s -> SmttStackConsF (f v) (g s)
+
+instance Bifoldable (ReductionStateStkF s ta la tb lb) where
+  bifoldr f g x (ReductionStateStkF y) = case y of
+    SmttContextF c     -> g c x
+    SmttStateF _ _ cs  -> foldr g x cs
+    SmttStackEmptyF    -> x
+    SmttStackTailF s   -> g s x
+    SmttStackConsF v s -> f v $ g s x
+
+  bifoldMap f g (ReductionStateStkF y) = case y of
+    SmttContextF c     -> g c
+    SmttStateF _ _ cs  -> foldMap g cs
+    SmttStackEmptyF    -> mempty
+    SmttStackTailF s   -> g s
+    SmttStackConsF v s -> f v `mappend` g s
+
+type ReductionState s ta la tb lb = BiStackExprFix
+  (ReductionStateValF s ta la tb lb)
+  (ReductionStateStkF s ta la tb lb)
+
+type ReductionStateVal s ta la tb lb = FixVal
+  (ReductionStateValF s ta la tb lb)
+  (ReductionStateStkF s ta la tb lb)
+
+type ReductionStateStk s ta la tb lb = FixStk
+  (ReductionStateValF s ta la tb lb)
+  (ReductionStateStkF s ta la tb lb)
+
+pattern FixRedVal
+  :: RightHandSideValF s tb lb ta
+    (ReductionStateStk s ta la tb lb)
+    (ReductionStateVal s ta la tb lb)
+    (ReductionStateStk s ta la tb lb)
+  -> ReductionStateVal s ta la tb lb
+pattern FixRedVal v = FixVal (ReductionStateValF v)
+
+{-# COMPLETE FixRedVal #-}
+
+pattern FixRedStk
+  :: RightHandSideStkF s tb lb ta
+    (ReductionStateStk s ta la tb lb)
+    (ReductionStateVal s ta la tb lb)
+    (ReductionStateStk s ta la tb lb)
+  -> ReductionStateStk s ta la tb lb
+pattern FixRedStk s = FixStk (ReductionStateStkF s)
+
+{-# COMPLETE FixRedStk #-}
+
+pattern RedFixVal
+  :: RightHandSideValF s tb lb ta
+    (ReductionStateStk s ta la tb lb)
+    (ReductionStateVal s ta la tb lb)
+    (ReductionStateStk s ta la tb lb)
+  -> ReductionState s ta la tb lb
+pattern RedFixVal v = BiFixVal (ReductionStateValF v)
+
+pattern RedFixStk
+  :: RightHandSideStkF s tb lb ta
+    (ReductionStateStk s ta la tb lb)
+    (ReductionStateVal s ta la tb lb)
+    (ReductionStateStk s ta la tb lb)
+  -> ReductionState s ta la tb lb
+pattern RedFixStk s = BiFixStk (ReductionStateStkF s)
+
+{-# COMPLETE RedFixVal, RedFixStk #-}
+
+instance (SmttConstraint s ta la tb lb) => RankedTree (ReductionState s ta la tb lb) where
+  type LabelType (ReductionState s ta la tb lb) = StackExprEither
+    (ReductionStateValF s ta la tb lb () ())
+    (ReductionStateStkF s ta la tb lb () ())
+
+  treeLabel (BiFixVal x) = ValuedExpr  $ bivoid x
+  treeLabel (BiFixStk x) = StackedExpr $ bivoid x
+
+  treeChilds (BiFixVal x) = fromList $ biList $ bimap ValuedExpr StackedExpr x
+  treeChilds (BiFixStk x) = fromList $ biList $ bimap ValuedExpr StackedExpr x
+
+  treeLabelRank _ (ValuedExpr  x) = bilength x
+  treeLabelRank _ (StackedExpr x) = bilength x
+
+  mkTreeUnchecked e cs = case e of
+      ValuedExpr (ReductionStateValF ve) -> RedFixVal $ case ve of
+        SmttLabelSideF l _ -> SmttLabelSideF l $ fromValuedExpr <$> cs
+        SmttStackBottomF   -> SmttStackBottomF
+        SmttStackHeadF{}   -> SmttStackHeadF (fromStackedExpr $ cs `indexEx` 0)
+      StackedExpr (ReductionStateStkF se) -> RedFixStk $ case se of
+        SmttContextF{} -> SmttContextF (fromStackedExpr $ cs `indexEx` 0)
+        SmttStateF s u _ -> SmttStateF s u $ fromStackedExpr <$> cs
+        SmttStackEmptyF   -> SmttStackEmptyF
+        SmttStackTailF{}  -> SmttStackTailF (fromStackedExpr $ cs `indexEx` 0)
+        SmttStackConsF{}  -> SmttStackConsF
+          (fromValuedExpr $ cs `indexEx` 0)
+          (fromStackedExpr $ cs `indexEx` 1)
+    where
+      fromValuedExpr (ValuedExpr x) = x
+      fromValuedExpr _              = error "expected a valued expression"
+
+      fromStackedExpr (StackedExpr x) = x
+      fromStackedExpr _               = error "expected a stacked expression"
+
+buildSmttReduction :: forall tz b s ta la tb lb. (SmttConstraint s ta la tb lb, RankedTreeZipper tz)
+  => (RtApply tz (ReductionState s ta la tb lb) -> b -> b) -> b
+  -> StackMacroTreeTransducer s ta la tb lb
+  -> ReductionState s ta la tb lb
+  -> b
+buildSmttReduction f is trans = go is . toZipper
+  where
+    rule = smttTranslateRule trans
+
+    checkReducible (RedFixVal x) = case x of
+      SmttLabelSideF{}   -> False
+      SmttStackBottomF{} -> False
+      SmttStackHeadF{}   -> False
+    checkReducible (RedFixStk x) = case x of
+      SmttContextF{}    -> error "SmttContext should be reduce in replacements"
+      SmttStateF{}      -> True
+      SmttStackEmptyF{} -> False
+      SmttStackTailF{}  -> False
+      SmttStackConsF{}  -> True
+
+    go x sz = case zoomNextRightOutZipper (checkReducible . toTree) sz of
+      Just sz' -> let
+          !nsz = reductState sz'
+          !nx  = f nsz x
+        in go nx nsz
+      Nothing -> x
+
+    reductState sz = case toTree sz of
+      RedFixStk x -> case x of
+        SmttStateF s t cs  -> setTreeZipper (reductStateSide s t cs) sz
+        SmttStackConsF h t -> deconsStackCons h t sz
+        _                  -> error "This state is irreducible"
+      RedFixVal _ -> error "This state is irreducible"
+
+    reductStateSide s t cs = replaceRHS (treeChilds t) cs
+      $ rule (s, treeLabel t)
+
+    deconsStackCons h t sz = case zoomOutRtZipper sz of
+      Nothing  -> errorUnreachable
+      Just nsz -> case toTree nsz of
+        RedFixVal x -> case x of
+          SmttStackHeadF{} -> setTreeZipper (ValuedExpr h) nsz
+          _                -> errorUnreachable
+        RedFixStk x -> case x of
+          SmttStackTailF{} -> setTreeZipper (StackedExpr t) nsz
+          _                -> errorUnreachable
+
+    replaceRHS us ys = StackedExpr . replaceRHSStk us ys
+
+    replaceRHSVal us ys (FixVal x) = FixRedVal $ case x of
+      SmttLabelSideF l cs -> SmttLabelSideF l $ replaceRHSVal us ys <$> cs
+      SmttStackBottomF    -> SmttStackBottomF
+      SmttStackHeadF s    -> SmttStackHeadF $ replaceRHSStk us ys s
+
+    replaceRHSStk us ys (FixStk x) = case x of
+      SmttContextF yi      -> ys `indexEx` yi
+      SmttStateF s ui cs   -> FixRedStk $ SmttStateF s (us `indexEx` ui) $ replaceRHSStk us ys <$> cs
+      SmttStackEmptyF      -> FixRedStk $ SmttStackEmptyF
+      SmttStackTailF s     -> FixRedStk $ SmttStackTailF $ replaceRHSStk us ys s
+      SmttStackConsF v s   -> FixRedStk $ SmttStackConsF
+        (replaceRHSVal us ys v)
+        (replaceRHSStk us ys s)
+
+runSmttReduction :: forall s ta la tb lb.
+  ( SmttConstraint s ta la tb lb
+  )
+  => StackMacroTreeTransducer s ta la tb lb
+  -> ReductionState s ta la tb lb
+  -> ReductionState s ta la tb lb
+runSmttReduction trans istate = toTopTree
+  $ buildSmttReduction const (rtZipper istate) trans istate
+
+runSmttReductionWithHistory :: forall s ta la tb lb.
+  ( SmttConstraint s ta la tb lb
+  )
+  => StackMacroTreeTransducer s ta la tb lb
+  -> ReductionState s ta la tb lb
+  -> [ReductionState s ta la tb lb]
+runSmttReductionWithHistory trans istate
+  = buildSmttReduction @RTZipper (\tz -> (. (toTopTree tz:))) id trans istate []
+
+toInitialReductionState :: SmttConstraint s ta la tb lb
+  => StackMacroTreeTransducer s ta la tb lb
+  -> ta -> ReductionState s ta la tb lb
+toInitialReductionState trans t = ValuedExpr . goVal $ FixVal $ SmttStackHeadF $ smttInitialExpr trans
+  where
+    goVal (FixVal x) = FixRedVal $ case x of
+      SmttLabelSideF l cs -> SmttLabelSideF l $ goVal <$> cs
+      SmttStackBottomF    -> SmttStackBottomF
+      SmttStackHeadF s    -> SmttStackHeadF $ goStk s
+
+    goStk (FixStk x) = FixRedStk $ case x of
+      SmttStateF f _ cs  -> SmttStateF f t $ goStk <$> cs
+      SmttContextF{}     -> error "This tree transducer is illegal."
+      SmttStackEmptyF    -> SmttStackEmptyF
+      SmttStackTailF s   -> SmttStackTailF $ goStk s
+      SmttStackConsF v s -> SmttStackConsF (goVal v) (goStk s)
+
+fromReductionState :: SmttConstraint s ta la tb lb
+  => ReductionState s ta la tb lb -> Maybe tb
+fromReductionState x = case x of
+    ValuedExpr  x' -> fromReductionStateVal x'
+    StackedExpr x' -> fromReductionStateStk x'
+  where
+    fromReductionStateVal (FixRedVal x') = case x' of
+      SmttLabelSideF l cs -> do
+        cs' <- mapM fromReductionStateVal cs
+        pure $ mkTreeUnchecked l cs'
+      SmttStackBottomF    -> pure $ mkTreeUnchecked bottomLabel []
+      _ -> Nothing
+
+    fromReductionStateStk (FixRedStk x') = case x' of
+      _ -> Nothing
+
+prettyShowReductionState :: (Show s, Show ta, Show lb)
+  => ReductionState s ta la tb lb -> String
+prettyShowReductionState state = go state ""
+  where
+    go (ValuedExpr  x) = goVal x
+    go (StackedExpr x) = goStk x
+
+    goVal (FixRedVal x) = prettyShowRhsValF S.shows goStk goVal goStk x
+    goStk (FixRedStk x) = prettyShowRhsStkF S.shows goStk goVal goStk x
+
+
+-- A tree transduction for smtts
+instance SmttConstraint s ta la tb lb => TreeTransducer (StackMacroTreeTransducer s ta la tb lb) ta tb where
+  treeTrans trans
+    =   toInitialReductionState trans
+    >>> runSmttReduction trans
+    >>> fromReductionState
+    >>> maybe (throwErrorM "This tree transducer is illegal.") pure
+
+
+-- standard form
+
+toStandardForm :: SmttConstraint s ta la tb lb
+  => StackMacroTreeTransducer s ta la tb lb
+  -> StackMacroTreeTransducer s ta la tb lb
+toStandardForm trans = trans
+    { smttInitialExpr = initialExpr
+    , smttTransRules  = rules
+    }
+  where
+    initialExpr = evalStackStkExpr $ smttInitialExpr trans
+
+    rules = evalStackStkExpr <$> smttTransRules trans

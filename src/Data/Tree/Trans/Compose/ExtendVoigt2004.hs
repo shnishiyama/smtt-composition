@@ -47,4 +47,4 @@ fromMttwsuToAtt trans = do
   checkWeaklySingleUse trans
   let (trans1, trans2) = decomposeMtt trans
   let trans1' = TOP.toAttributedTreeTransducer trans1
-  pure $ fromMaybe (error "unreachable") $ composeAtts trans1' trans2
+  pure $ fromMaybe errorUnreachable $ composeAtts trans1' trans2
