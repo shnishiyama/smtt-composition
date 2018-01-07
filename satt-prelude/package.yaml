@@ -1,0 +1,132 @@
+name:        satt-prelude
+version:     '0.1.0.0'
+synopsis:    Prelude
+description: Prelude for satt-composition
+category:    Prelude
+author:      Mizunashi Mana
+maintainer:  mizunashi-mana@noreply.git
+copyright:   2017 Mizunashi Mana
+license:     MIT
+homepage:    https://gitlab.com/mizunashi-mana/satt-composition#readme
+git:         https://gitlab.com/mizunashi-mana/satt-composition
+
+_base-dependencies: &base-dependencies
+  base: '>=4.7 && <5'
+  classy-prelude:
+
+build-type: Custom
+custom-setup:
+  dependencies:
+    <<: *base-dependencies
+    Cabal: '>= 2.0'
+    cabal-doctest:
+
+ghc-options:
+  # base options
+  - -Wall
+
+  # for performance
+  - -funbox-strict-fields
+
+  # for useful
+  - -fprint-explicit-foralls
+
+  # for complex codes
+  - -fmax-pmcheck-iterations=5000000
+  - -dcore-lint
+
+default-extensions:
+  # use classy-prelude
+  - NoImplicitPrelude
+
+  # performance supports
+  - ApplicativeDo
+  - BangPatterns
+  - MagicHash
+  - StrictData
+
+  # useful syntaxes
+  - Arrows
+  - BinaryLiterals
+  - FlexibleContexts
+  - FlexibleInstances
+  - NamedFieldPuns
+  - NegativeLiterals
+  - LambdaCase
+  - PatternSynonyms
+  - RecordWildCards
+  - RecursiveDo
+  - StandaloneDeriving
+  - TupleSections
+  - ViewPatterns
+
+  # useful derivable
+  - GeneralizedNewtypeDeriving
+  - DeriveGeneric
+  - DeriveDataTypeable
+
+  # extensions of type systems
+  - ConstraintKinds
+  - DataKinds
+  - FunctionalDependencies
+  - GADTs
+  - PolyKinds
+  - RankNTypes
+  - RoleAnnotations
+  - ScopedTypeVariables
+  - TypeApplications
+  - TypeFamilies
+  - TypeFamilyDependencies
+  - TypeOperators
+
+library:
+  source-dirs: src
+  exposed-modules:
+  - SattPrelude
+  other-modules: []
+  dependencies:
+    <<: *base-dependencies
+    profunctors:
+    bifunctors:
+    groom:
+    unicode-show:
+    deriving-compat:
+    singletons:
+    recursion-schemes:
+    microlens:
+
+tests:
+  lint:
+    main: Lint.hs
+    source-dirs: test
+    other-modules: []
+    ghc-options:
+    dependencies:
+      <<: *base-dependencies
+      hlint:
+
+  spec-test:
+    main: Spec.hs
+    source-dirs: test/specs
+    ghc-options:
+    - -threaded
+    - -with-rtsopts=-N
+    dependencies:
+      <<: *base-dependencies
+      satt-prelude:
+      hspec:
+      QuickCheck:
+
+  doc-test:
+    main: Doctest.hs
+    source-dirs: test
+    other-modules:
+    - Build_doctests
+    ghc-options:
+    - -threaded
+    - -with-rtsopts=-N
+    dependencies:
+      <<: *base-dependencies
+      doctest:
+      QuickCheck:
+      template-haskell:

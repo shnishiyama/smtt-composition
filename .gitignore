@@ -1,2 +1,6 @@
 # for Stack
 .stack-work/
+*.cabal
+
+# for HIE
+cabal-helper*.build/

@@ -1,7 +1,9 @@
-resolver: lts-8.15
+resolver: lts-10.2
 
 packages:
+- satt-prelude
 - .
+
 extra-deps: []
 
 flags: {}

@@ -1,0 +1,193 @@
+name:        satt-composition
+version:     '0.2.0.0'
+synopsis:    Implementation of SATT Composition
+description: SATT Composition implementation
+category:    Tree
+author:      Mizunashi Mana
+maintainer:  mizunashi-mana@noreply.git
+copyright:   2017 Mizunashi Mana
+license:     MIT
+homepage:    https://gitlab.com/mizunashi-mana/satt-composition#readme
+git:         https://gitlab.com/mizunashi-mana/satt-composition
+
+extra-source-files:
+- README.md
+
+_base-dependencies: &base-dependencies
+  base: '>=4.7 && <5'
+  satt-prelude:
+
+build-type: Custom
+custom-setup:
+  dependencies:
+    <<: *base-dependencies
+    Cabal: '>= 2.0'
+    cabal-doctest:
+
+ghc-options:
+  - -Wall
+  # for GHC 8.2.x bugs... (disable only executable/tests)
+  #- -dcore-lint
+  - -fprint-explicit-foralls
+  - -fmax-pmcheck-iterations=1000000
+  - -funbox-strict-fields
+
+default-extensions:
+  # use satt-prelude
+  - NoImplicitPrelude
+
+  # performance supports
+  - ApplicativeDo
+  - BangPatterns
+  - MagicHash
+  - StrictData
+
+  # useful syntaxes
+  - Arrows
+  - BinaryLiterals
+  - DefaultSignatures
+  - FlexibleContexts
+  - FlexibleInstances
+  - InstanceSigs
+  - LambdaCase
+  - NamedFieldPuns
+  - NegativeLiterals
+  - PatternSynonyms
+  - RecordWildCards
+  - RecursiveDo
+  - StandaloneDeriving
+  - TupleSections
+  - ViewPatterns
+
+  # useful derivable
+  - GeneralizedNewtypeDeriving
+  - DeriveGeneric
+  - DeriveDataTypeable
+  - DeriveFunctor
+  - DeriveFoldable
+
+  # extensions of type systems
+  - ConstraintKinds
+  - DataKinds
+  - FunctionalDependencies
+  - GADTs
+  - PolyKinds
+  - RankNTypes
+  - RoleAnnotations
+  - ScopedTypeVariables
+  - TypeApplications
+  - TypeFamilies
+  - TypeFamilyDependencies
+  - TypeOperators
+
+library:
+  source-dirs: src
+  exposed-modules:
+    # utilities
+    - Data.Bifunctor.FixLR
+
+    # ranked tree
+    - Data.Tree.RankedTree
+    - Data.Tree.RankedTree.Instances
+    - Data.Tree.RankedTree.Label
+    - Data.Tree.RankedTree.Zipper
+
+    # tree transducers
+    - Data.Tree.Trans.Class
+    - Data.Tree.Trans.TOP
+    - Data.Tree.Trans.TOP.Instances
+    - Data.Tree.Trans.MAC
+    - Data.Tree.Trans.MAC.Instances
+    - Data.Tree.Trans.ATT
+    - Data.Tree.Trans.ATT.Instances
+    - Data.Tree.Trans.Stack
+    - Data.Tree.Trans.SATT
+    - Data.Tree.Trans.SATT.Instances
+    - Data.Tree.Trans.SMAC
+    - Data.Tree.Trans.SMAC.Instances
+
+    # compose/decompose tree transducers
+    - Data.Tree.Trans.Compose.Desc
+    - Data.Tree.Trans.Compose.ExtendDesc
+    - Data.Tree.Trans.Compose.TdttAndSmtt
+    - Data.Tree.Trans.Compose.ExtendVoigt2004
+    - Data.Tree.Trans.Decompose.MttToAtt
+    - Data.Tree.Trans.Decompose.SmttToSatt
+  other-modules: []
+  ghc-options:
+  - -dcore-lint
+  dependencies:
+    <<: *base-dependencies
+    unordered-containers:
+    vector:
+    singletons:
+    mtl:
+
+executables:
+  satt-composit:
+    main: Main.hs
+    source-dirs: app
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    ghc-prof-options:
+    - -threaded
+    - -rtsopts
+    - "\"-with-rtsopts=-N -xc\""
+    dependencies:
+      <<: *base-dependencies
+      satt-composition:
+      deepseq:
+
+tests:
+  lint:
+    main: Lint.hs
+    source-dirs: test
+    other-modules: []
+    ghc-options:
+    - -threaded
+    - -with-rtsopts=-N
+    dependencies:
+      <<: *base-dependencies
+      hlint:
+
+  spec-test:
+    main: Spec.hs
+    source-dirs: test/specs
+    ghc-options:
+    - -threaded
+    - -with-rtsopts=-N
+    dependencies:
+      <<: *base-dependencies
+      satt-composition:
+      hspec:
+      QuickCheck:
+
+  doc-test:
+    main: Doctest.hs
+    source-dirs: test
+    other-modules:
+    - Build_doctests
+    ghc-options:
+    - -threaded
+    - -with-rtsopts=-N
+    dependencies:
+      <<: *base-dependencies
+      doctest:
+      QuickCheck:
+      template-haskell:
+
+benchmarks:
+  common:
+    main: Common.hs
+    source-dirs: benchmark
+    ghc-options:
+    - -O2
+    - -threaded
+    - -with-rtsopts=-N
+    dependencies:
+      <<: *base-dependencies
+      satt-composition:
+      criterion:
+      deepseq:

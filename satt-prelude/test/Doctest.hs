@@ -1,6 +1,6 @@
 module Main where
 
-import           SattPrelude
+import           ClassyPrelude
 
 import           Build_doctests (flags, module_sources, pkgs)
 import           Test.DocTest

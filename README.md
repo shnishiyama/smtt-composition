@@ -3,8 +3,8 @@
 ## Installation
 
 ```bash
+stack setup
 stack build
-stack exec -- satt-composit
 ```
 
 ## Tests
@@ -13,13 +13,19 @@ stack exec -- satt-composit
 stack test
 ```
 
+## Benchmarks
+
+```bash
+stack bench
+```
+
 ## TODOs
 
-* rewrite to use vector as list
 * rewrite to be able to apply other constructors to ATT
 * add more examples
 * add more tests
 * add benchmarks
+* remove all `TypeInType` language pragmas
 
 ## Links
 
