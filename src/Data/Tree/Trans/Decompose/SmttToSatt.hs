@@ -76,11 +76,6 @@ checkNonCopying _ = pure ()
 -- >>> b = taggedRankedLabel @"B"
 -- >>> c = taggedRankedLabel @"C"
 -- >>> inputSampleTree = mkTree a [mkTree c [], mkTree b [mkTree c []]]
--- skip:>>> (trans1, trans2) <- decomposeSmttNC sampleSmtt
--- skip:>>> treeTrans trans2 <=< treeTrans trans1 $ inputSampleTree
--- D(F,F)
--- skip:>>> (==) <$> (treeTrans trans2 <=< treeTrans trans1 $ inputSampleTree) <*> treeTrans sampleSmtt inputSampleTree
--- True
 --
 decomposeSmttNC :: forall m s ta la tb lb.
   ( SMAC.SmttConstraint s ta la tb lb
