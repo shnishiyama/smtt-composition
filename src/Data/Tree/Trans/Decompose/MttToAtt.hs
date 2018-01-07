@@ -109,7 +109,7 @@ decomposeMtt trans = fromMaybe errorUnreachable $ (,)
       pure (ie, rules)
 
     ia2 = ()
-    irules2 = (ATT.Synthesized (), ATT.SynAttrSide () 0):[]
+    irules2 = [(ATT.Synthesized (), ATT.SynAttrSide () 0)]
     rules2
       =  [ (ATT.Synthesized (), l, h l) | l <- setToList ls ]
       <> do

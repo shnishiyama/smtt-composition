@@ -112,6 +112,7 @@ library:
     - Data.Tree.Trans.Compose.TdttAndSmtt
     - Data.Tree.Trans.Compose.ExtendVoigt2004
     - Data.Tree.Trans.Decompose.MttToAtt
+    - Data.Tree.Trans.Decompose.SmttToSatt
   other-modules: []
   ghc-options:
   - -dcore-lint

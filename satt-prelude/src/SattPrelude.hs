@@ -14,6 +14,7 @@ module SattPrelude
   , module Lens.Micro
   , module Data.Void
   , absurd
+  , module Data.Monoid
 
     -- useful components
   , Proxy(..)
@@ -26,6 +27,7 @@ module SattPrelude
   , groomPrint
   , uprint
   , bivoid
+  , stimesEndo
   , throwErrorM
   , invert
   , errorVoid
@@ -51,6 +53,8 @@ module SattPrelude
 
 import           ClassyPrelude
 
+import Data.Semigroup
+import Data.Monoid hiding ((<>))
 import           Control.Arrow            (Kleisli (..), (<<<), (>>>))
 import           Data.Bifoldable
 import           Data.Coerce
@@ -100,3 +104,6 @@ invert :: Ordering -> Ordering
 invert LT = GT
 invert EQ = EQ
 invert GT = LT
+
+stimesEndo :: forall a b. Integral b => b -> (a -> a) -> (a -> a)
+stimesEndo = coerce (stimesMonoid :: b -> Endo a -> Endo a)
