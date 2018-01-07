@@ -43,6 +43,10 @@ module Data.Tree.Trans.SATT
   , fromReductionState
   , prettyShowReductionState
 
+    -- conversion
+  , SmttStateFromSatt
+  , toStackMacroTreeTransducer
+
     -- internal
   , sattAttributes
   , sattInitialAttr
@@ -81,6 +85,7 @@ import qualified Data.Tree.Trans.SMAC        as SMAC
 import           Data.Tree.Trans.Class
 import           Data.Tree.Trans.Stack
 import qualified Text.Show                   as S
+import qualified Data.HashSet as HashSet
 
 
 type SattAttrEither = ATT.AttAttrEither
@@ -670,7 +675,57 @@ toStandardForm trans = trans
 
 type SmttStateFromSatt syn = RankedAlphabet syn
 
-toStackMacroTreeTransducer :: SattConstraint syn inh ta la tb lb
+toStackMacroTreeTransducer :: forall syn inh ta la tb lb.
+  ( SattConstraint syn inh ta la tb lb
+  )
   => StackAttributedTreeTransducer syn inh ta la tb lb
   -> SMAC.StackMacroTreeTransducer (SmttStateFromSatt syn) ta la tb lb
-toStackMacroTreeTransducer = undefined
+toStackMacroTreeTransducer trans = fromMaybe errorUnreachable
+    $ SMAC.buildSmtt ie rules
+  where
+    attrs = setToList $ sattAttributes trans
+    (mr, inhAttrs) = second ($ []) $ let
+        conv (Inherited b) (i, xs) = (i + 1, xs . ((b, i):))
+        conv _             (i, xs) = (i, xs)
+      in foldr conv (0, id) attrs
+
+    inhAttrs' = mapFromList @(HashMap inh RankNumber) inhAttrs
+
+    indexInh b = fromMaybe 0 $ lookup b inhAttrs'
+
+    initialRule = sattInitialRule trans
+    rule = sattTranslateRule trans
+
+    lookupInheritedRule Nothing  _ b = initialRule $ Inherited b
+    lookupInheritedRule (Just l) i b = rule (Inherited (b, i)) l
+
+    attrToState = rankedAlphabet (const $ mr + 1)
+
+    ie = convRHSStk (lookupInheritedRule Nothing) HashSet.empty
+      $ initialRule $ Synthesized $ sattInitialAttr trans
+
+    rules = do
+      ((attr, l), rhs) <- mapToList $ sattTransRules trans
+      a <- case attr of
+        Synthesized a -> [a]
+        Inherited{}   -> []
+
+      let rhs' = convRHSStk (lookupInheritedRule $ Just l) HashSet.empty rhs
+      pure (attrToState a, l, rhs')
+
+    convRHSStk look p x = case x of
+      SattStackEmpty    -> SMAC.SmttStackEmpty
+      SattStackTail s   -> SMAC.SmttStackTail (convRHSStk look p s)
+      SattStackCons v s -> SMAC.SmttStackCons (convRHSVal look p v) (convRHSStk look p s)
+      InhAttrSide b     -> SMAC.SmttContext $ indexInh b
+      SynAttrSide a i   -> if member (a, i) p
+        then SMAC.SmttStackEmpty
+        else let
+            p' = insertSet (a, i) p
+            a' = attrToState a
+          in SMAC.SmttState a' i
+            $ fromList [ convRHSStk look p' $ look i b | (b, _) <- inhAttrs ]
+    convRHSVal look p x = case x of
+      SattStackBottom    -> SMAC.SmttStackBottom
+      SattStackHead s    -> SMAC.SmttStackHead (convRHSStk look p s)
+      SattLabelSide l cs -> SMAC.SmttLabelSide l $ convRHSVal look p <$> cs

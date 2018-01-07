@@ -279,7 +279,6 @@ composeSattAndAtt :: forall m syn1 inh1 syn2 inh2 ti1 li1 to1 lo1 ti2 li2 to2 lo
   , ATT.AttConstraint syn2 inh2 ti2 li2 to2 lo2
   , Eq lo2
   , MonadThrow m
-  , Show syn1, Show inh1, Show syn2, Show inh2, Show li1, Show lo2
   )
   => SATT.StackAttributedTreeTransducer syn1 inh1 ti1 li1 to1 lo1
   -> ATT.AttributedTreeTransducer syn2 inh2 ti2 li2 to2 lo2

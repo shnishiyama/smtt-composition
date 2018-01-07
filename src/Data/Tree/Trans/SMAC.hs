@@ -282,10 +282,14 @@ buildSmtt ie rules = do
     scanRHSStk p r xs (FixStk rhs) = case rhs of
       SmttContextF i    -> if i < r
         then pure xs
-        else throwErrorM "Using an over indexed context parameter"
+        else throwErrorM
+          $  "Using an over indexed context parameter"
+          <> " (expected: < " <> show r <> ", actual: " <> show i <> ")"
       SmttStateF s i cs -> if i < p && labelRank s - 1 == length cs
         then foldM (scanRHSStk p r) (s:xs) cs
-        else throwErrorM "Using an over indexed subtree"
+        else throwErrorM
+          $  "Using an over indexed subtree"
+          <> " (expected: < " <> show p <> ", actual: " <> show i <> ")"
       SmttStackEmptyF  -> pure xs
       SmttStackTailF s -> scanRHSStk p r xs s
       SmttStackConsF v s -> do

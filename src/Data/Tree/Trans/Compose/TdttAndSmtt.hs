@@ -69,8 +69,8 @@ toComposeBasedMtt fus trans = fromMaybe errorUnreachable $ MAC.buildMtt
     convRhs rhs = let
         converter (ValuedExpr x) cs = case x of
           SMAC.SmttLabelSideF l cs' -> MAC.MttLabelSide (ValuedExpr $ SMAC.SmttLabelSideF l cs') cs
-          SMAC.SmttStackBottomF -> MAC.MttLabelSide (ValuedExpr $ SMAC.SmttStackBottomF) cs
-          SMAC.SmttStackHeadF s -> MAC.MttLabelSide (ValuedExpr $ SMAC.SmttStackHeadF s) cs
+          SMAC.SmttStackBottomF     -> MAC.MttLabelSide (ValuedExpr $ SMAC.SmttStackBottomF) cs
+          SMAC.SmttStackHeadF s     -> MAC.MttLabelSide (ValuedExpr $ SMAC.SmttStackHeadF s) cs
         converter (StackedExpr x) cs = case x of
           SMAC.SmttStateF s u _   -> MAC.MttState s u cs
           SMAC.SmttContextF c     -> MAC.MttContext c
@@ -83,13 +83,13 @@ toComposeBasedMtt fus trans = fromMaybe errorUnreachable $ MAC.buildMtt
     rules1 = do
       (f, u) <- setToList fus
       g      <- setToList states
-      let r = labelRank g
+      let r = labelRank g - 1
       pure
         ( g
         , TOP.tdttStateF f u
         , MAC.MttLabelSide
           (StackedExpr $ SMAC.SmttStateF (ComposedSmttState f g) u $ replicate r ())
-          $ V.generate r (\i -> MAC.MttLabelSide (StackedExpr $ SMAC.SmttContextF i) [])
+          $ V.generate r MAC.MttContext
         )
 
 
@@ -150,7 +150,7 @@ composeTdttAndSmtt trans1 trans2 = fromMaybe errorUnreachable
 
     rules = do
       g <- setToList $ SMAC.smttStates trans2
-      let r = labelRank g
+      let r = labelRank g - 1
       ((f', l), rhs) <- mapToList $ TOP.tdttTransRules trans1
       let f = coerce f'
       pure

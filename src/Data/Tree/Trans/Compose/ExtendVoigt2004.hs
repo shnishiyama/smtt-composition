@@ -10,6 +10,9 @@ import           Data.Tree.Trans.Compose.Desc       (ComposedAttInhAttr (..),
 import           Data.Tree.Trans.Decompose.MttToAtt (decomposeMtt)
 import qualified Data.Tree.Trans.MAC                as MAC
 import qualified Data.Tree.Trans.TOP                as TOP
+import qualified Data.Tree.Trans.SATT as SATT
+import qualified Data.Tree.Trans.SMAC as SMAC
+import Data.Tree.Trans.Compose.TdttAndSmtt (composeTdttAndSmtt, ComposedSmttState (..))
 
 -- FIXME: give the implementation
 checkWeaklySingleUse :: MonadThrow m => MAC.MacroTreeTransducer s ta la tb lb -> m ()
@@ -48,3 +51,15 @@ fromMttwsuToAtt trans = do
   let (trans1, trans2) = decomposeMtt trans
   let trans1' = TOP.toAttributedTreeTransducer trans1
   pure $ fromMaybe errorUnreachable $ composeAtts trans1' trans2
+
+
+composeTdttAndSatt ::
+  ( TOP.TdttConstraint s ti1 li1 to1 lo1
+  , to1 ~ ti2
+  , SATT.SattConstraint syn inh ti2 li2 to2 lo2
+  )
+  => TOP.TopDownTreeTransducer s ti1 li1 to1 lo1
+  -> SATT.StackAttributedTreeTransducer syn inh ti2 li2 to2 lo2
+  -> SMAC.StackMacroTreeTransducer (ComposedSmttState s (SATT.SmttStateFromSatt syn)) ti1 li1 to2 lo2
+composeTdttAndSatt trans1 trans2 = composeTdttAndSmtt trans1
+  $ SATT.toStackMacroTreeTransducer trans2
