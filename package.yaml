@@ -191,3 +191,15 @@ benchmarks:
       satt-composition:
       criterion:
       deepseq:
+
+  fusion-bench:
+    main: Fusion.hs
+    source-dirs: benchmark/fusion
+    ghc-options:
+    - -O0
+    - -threaded
+    - -with-rtsopts=-N
+    dependencies:
+      <<: *base-dependencies
+      criterion:
+      deepseq:

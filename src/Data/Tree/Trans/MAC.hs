@@ -297,10 +297,12 @@ toInitialReductionState trans t = go $ mttInitialExpr trans
 
 fromReductionState :: MttConstraint s ta la tb lb
   => ReductionState s ta la tb lb -> Maybe tb
-fromReductionState (RedFix (MttLabelSideF l cs)) = do
-  cs' <- mapM fromReductionState cs
-  pure $ mkTreeUnchecked l cs'
-fromReductionState _ = Nothing
+fromReductionState (RedFix x) = case x of
+  MttLabelSideF l cs -> do
+    cs' <- traverse fromReductionState cs
+    pure $ mkTreeUnchecked l cs'
+  MttBottomLabelSideF -> pure $ mkTreeUnchecked bottomLabel []
+  _ -> Nothing
 
 prettyShowReductionState :: (Show s, Show ta, Show lb) => ReductionState s ta la tb lb -> String
 prettyShowReductionState redState = go redState ""

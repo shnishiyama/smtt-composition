@@ -14,11 +14,23 @@ import qualified Data.Tree.Trans.SMAC       as SMAC
 import           Data.Tree.Trans.Stack
 import qualified Data.Tree.Trans.TOP        as TOP
 import qualified Data.Vector                as V
+import qualified Text.Show as S
 
 data ContextParamToken = ContextParamToken
   { contextParamIdx :: RankNumber
   , contextStackIdx :: (Bool, RankNumber)
-  } deriving (Eq, Ord, Show, Generic)
+  } deriving (Eq, Ord, Generic)
+
+instance Show ContextParamToken where
+  showsPrec d (ContextParamToken j (b, i)) = S.showParen (d > appPrec)
+      $ showsHead b
+      $ S.showString "Tail_" . S.shows i . S.showString " "
+      . S.showString "Y_" . S.shows j
+    where
+      showsHead True  f = f
+      showsHead False f = S.showString "Head (" . f . S.showString ")"
+
+      appPrec = 10
 
 instance Hashable ContextParamToken
 

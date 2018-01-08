@@ -62,10 +62,36 @@ fromMttWSUToAtt trans = do
   pure $ fromMaybe errorUnreachable $ composeAtts trans1' trans2
 
 
+-- | composition of a tdtt and a satt
+--
+-- Examples:
+-- >>> import Data.Tree.RankedTree.Label
+-- >>> import Data.Tree.RankedTree.Instances
+-- >>> import Data.Tree.Trans.TOP.Instances
+-- >>> import Data.Tree.Trans.SATT.Instances
+-- >>> import Data.Tree.Trans.Class
+-- >>> a = taggedRankedLabel @"A"
+-- >>> b = taggedRankedLabel @"B"
+-- >>> c = taggedRankedLabel @"C"
+-- >>> inputSampleTree = mkTree a [mkTree c [], mkTree b [mkTree c []]]
+-- >>> traUniverse = setFromList $ taggedRankedAlphabetUniverse Proxy
+-- >>> identInputTrans = identityTransducer @InputSampleTree traUniverse
+-- >>> identSampleSmtt = composeTdttAndSatt identInputTrans sampleSatt
+-- >>> treeTrans identSampleSmtt inputSampleTree
+-- D(F,F)
+-- >>> :{
+-- flip runKleisli inputSampleTree $ proc t -> do
+--   t1 <- Kleisli (treeTrans sampleSatt <=< treeTrans identInputTrans) -< t
+--   t2 <- Kleisli (treeTrans identSampleSmtt) -< t
+--   returnA -< t1 == t2
+-- :}
+-- True
+--
 composeTdttAndSatt ::
   ( TOP.TdttConstraint s ti1 li1 to1 lo1
   , to1 ~ ti2
   , SATT.SattConstraint syn inh ti2 li2 to2 lo2
+  , Show lo2, Show syn, Show s, Show lo1
   )
   => TOP.TopDownTreeTransducer s ti1 li1 to1 lo1
   -> SATT.StackAttributedTreeTransducer syn inh ti2 li2 to2 lo2
@@ -117,6 +143,7 @@ composeSmttNCAndMttWSU ::
   , MAC.MttConstraint s2 ti2 li2 to2 lo2
   , Eq lo2, Hashable lo2
   , MonadThrow m
+  , Show lo2, Show s2, Show s1, Show lo1
   )
   => SMAC.StackMacroTreeTransducer s1 ti1 li1 to1 lo1
   -> MAC.MacroTreeTransducer s2 ti2 li2 to2 lo2

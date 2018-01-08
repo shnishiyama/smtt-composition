@@ -535,7 +535,7 @@ buildSmttReduction f is trans = go is . toZipper
       SmttStackHeadF{}   -> False
     checkReducible (RedFixStk x) = case x of
       SmttStateF{}      -> True
-      SmttStackEmptyF{} -> False
+      SmttStackEmptyF{} -> True
       SmttStackTailF{}  -> False
       SmttStackConsF{}  -> True
       SmttContextF{}    -> error "SmttContext should be reduce in replacements"
@@ -551,11 +551,22 @@ buildSmttReduction f is trans = go is . toZipper
       RedFixStk x -> case x of
         SmttStateF s t cs  -> setTreeZipper (reductStateSide s t cs) sz
         SmttStackConsF h t -> deconsStackCons h t sz
+        SmttStackEmptyF    -> deconsStackEmpty sz
         _                  -> error "This state is irreducible"
       RedFixVal _ -> error "This state is irreducible"
 
     reductStateSide s t cs = replaceRHS (treeChilds t) cs
       $ rule (s, treeLabel t)
+
+    deconsStackEmpty sz = case zoomOutRtZipper sz of
+      Nothing -> errorUnreachable
+      Just nsz -> case toTree nsz of
+        RedFixVal x -> case x of
+          SmttStackHeadF{} -> setTreeZipper (RedFixVal SmttStackBottomF) nsz
+          _                -> errorUnreachable
+        RedFixStk x -> case x of
+          SmttStackTailF{} -> setTreeZipper (RedFixStk SmttStackEmptyF) nsz
+          _                -> errorUnreachable
 
     deconsStackCons h t sz = case zoomOutRtZipper sz of
       Nothing  -> errorUnreachable
@@ -599,7 +610,7 @@ runSmttReductionWithHistory :: forall s ta la tb lb.
   -> ReductionState s ta la tb lb
   -> [ReductionState s ta la tb lb]
 runSmttReductionWithHistory trans istate
-  = buildSmttReduction @RTZipper (\tz -> (. (toTopTree tz:))) id trans istate []
+  = buildSmttReduction @RTZipper (\tz -> (. (toTopTree tz:))) (istate:) trans istate []
 
 toInitialReductionState :: SmttConstraint s ta la tb lb
   => StackMacroTreeTransducer s ta la tb lb

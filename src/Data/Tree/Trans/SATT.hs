@@ -286,7 +286,7 @@ type SattConstraint syn inh ta la tb lb =
 instance (Show syn, Show inh, Show la, Show lb, SattConstraint syn inh ta la tb lb)
     => Show (StackAttributedTreeTransducer syn inh ta la tb lb) where
 
-  show StackAttributedTreeTransducer{..} = "StackAttributedTreeTransducer{"
+  show StackAttributedTreeTransducer{..} = "StackAttributedTreeTransducer {"
       <> " sattAttributes = " <> show (toList sattAttributes) <> ","
       <> " sattInitialAttr = " <> show sattInitialAttr <> ","
       <> " sattTranslateRules = [" <> intercalate ", "

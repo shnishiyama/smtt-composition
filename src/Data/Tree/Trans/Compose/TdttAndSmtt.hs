@@ -119,6 +119,7 @@ composeTdttAndSmtt :: forall s1 s2 ti1 li1 to1 lo1 ti2 li2 to2 lo2.
   ( TOP.TdttConstraint s1 ti1 li1 to1 lo1
   , to1 ~ ti2
   , SMAC.SmttConstraint s2 ti2 li2 to2 lo2
+  , Show lo2, Show s2, Show s1, Show lo1
   )
   => TOP.TopDownTreeTransducer s1 ti1 li1 to1 lo1
   -> SMAC.StackMacroTreeTransducer s2 ti2 li2 to2 lo2
@@ -137,10 +138,34 @@ composeTdttAndSmtt trans1 trans2 = fromMaybe errorUnreachable
 
     composeBasedMtt = toComposeBasedMtt fus trans2
 
+    convRedState bot (MAC.RedFix x) = case x of
+      MAC.MttLabelSideF l cs ->
+        let
+          convRedStateVal = convRedState $ ValuedExpr SMAC.SmttStackBottom
+          convRedStateStk = convRedState $ StackedExpr SMAC.SmttStackEmpty
+        in do
+          cs' <- case l of
+            ValuedExpr l' -> case l' of
+              SMAC.SmttLabelSideF{}   -> traverse convRedStateVal cs
+              SMAC.SmttStackBottomF{} -> pure []
+              SMAC.SmttStackHeadF{}   -> traverse convRedStateStk cs
+            StackedExpr l' -> case l' of
+              SMAC.SmttContextF{}    -> pure []
+              SMAC.SmttStateF{}      -> traverse convRedStateStk cs
+              SMAC.SmttStackEmptyF{} -> pure []
+              SMAC.SmttStackTailF{}  -> traverse convRedStateStk cs
+              SMAC.SmttStackConsF{}  -> do
+                v <- convRedStateVal $ cs `indexEx` 0
+                s <- convRedStateStk $ cs `indexEx` 1
+                pure [v, s]
+          pure $ mkTreeUnchecked l cs'
+      MAC.MttBottomLabelSideF -> pure bot
+      _ -> Nothing
+
     runReductionWithRep istate = let
         state = MAC.runMttReduction composeBasedMtt istate
         rhs = fromMaybe errorUnreachable
-          $ MAC.fromReductionState state
+          $ convRedState (StackedExpr SMAC.SmttStackEmpty) state
       in evalStackStkExpr $ case rhs of
         StackedExpr rhs' -> rhs'
         ValuedExpr  rhs' -> SMAC.SmttStackCons rhs' SMAC.SmttStackEmpty

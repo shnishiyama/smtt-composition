@@ -120,7 +120,8 @@ prettyShowRhsF :: (Show l, RtConstraint t l)
   -> S.ShowS
 prettyShowRhsF attrShow rhsShow x = case x of
   AttAttrSideF a p    -> attrShow (a, p)
-  AttLabelSideF l cs  -> S.shows l . S.showString "(" . foldl' (.) id (intersperse (S.showString ", ") $ rhsShow <$> cs) . S.showString ")"
+  AttLabelSideF l cs  -> S.shows l . S.showString "("
+    . foldl' (.) id (intersperse (S.showString ", ") $ rhsShow <$> cs) . S.showString ")"
   AttBottomLabelSideF -> S.showString "_|_"
 
 
@@ -191,7 +192,7 @@ type AttConstraint syn inh ta la tb lb =
 instance (Show syn, Show inh, Show la, Show lb, AttConstraint syn inh ta la tb lb)
     => Show (AttributedTreeTransducer syn inh ta la tb lb) where
 
-  show AttributedTreeTransducer{..} = "AttributedTreeTransducer{"
+  show AttributedTreeTransducer{..} = "AttributedTreeTransducer {"
       <> " attAttributes = " <> show (toList attAttributes) <> ","
       <> " attInitialAttr = " <> show attInitialAttr <> ","
       <> " attTranslateRules = [" <> intercalate ", "
