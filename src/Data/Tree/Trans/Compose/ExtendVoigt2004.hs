@@ -126,13 +126,13 @@ type ComposedSmttState s1 s2 = SMAC.ComposedSmttState s1
 --   ]]
 -- :}
 --
--- >>> trans <- composeSmttNCAndMttWSU postfixToInfixSmtt infixToPostfixMtt
+-- >>> trans <- composeSmttNCAndMttWSU postfixToInfixSmtt twoCounterMtt
 -- >>> treeTrans trans inputPostfixTree
--- two(one(two(plus(multi(end)))))
+-- Succ (Succ Zero)
 -- >>> :{
 -- flip runKleisli inputPostfixTree $ proc t -> do
 --   t1 <- Kleisli (treeTrans trans) -< t
---   t2 <- Kleisli (treeTrans infixToPostfixMtt <=< treeTrans postfixToInfixSmtt) -< t
+--   t2 <- Kleisli (treeTrans twoCounterMtt <=< treeTrans postfixToInfixSmtt) -< t
 --   returnA -< t1 == t2
 -- :}
 -- True

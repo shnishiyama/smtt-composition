@@ -90,3 +90,48 @@ infixToPostfixMtt = fromMaybe errorUnreachable $ buildMtt
     pPlus  = taggedRankedLabel @"plus"
     pMulti = taggedRankedLabel @"multi"
     pEnd   = taggedRankedLabel @"end"
+
+
+type MiniInfixToPostfixMtt = MttTransducer
+  ItoPStateAlphabet
+  MiniInfixOpTree MiniPostfixOpTree
+
+miniInfixToPostfixMtt :: MiniInfixToPostfixMtt
+miniInfixToPostfixMtt = fromMaybe errorUnreachable $ buildMtt
+    (MttState f0 0 [MttLabelSide pEnd []])
+    [ (f0, iOne, MttLabelSide pOne [MttContext 0])
+    , (f0, iPlus, MttState f0 0 [MttState f0 1 [MttLabelSide pPlus [MttContext 0]]])
+    ]
+  where
+    f0 = taggedRankedLabel @"f0"
+
+    iOne   = taggedRankedLabel @"one"
+    iPlus  = taggedRankedLabel @"plus"
+
+    pOne   = taggedRankedLabel @"one"
+    pPlus  = taggedRankedLabel @"plus"
+    pEnd   = taggedRankedLabel @"end"
+
+
+type TwoCounterStateAlphabet = TaggedRankedAlphabet
+  '[ '("f0", 2)]
+
+type TwoCounterMtt = MttTransducer
+  TwoCounterStateAlphabet
+  InfixOpTree NatNum
+
+twoCounterMtt :: TwoCounterMtt
+twoCounterMtt = fromMaybe errorUnreachable $ buildMtt
+    (MttState f0 0 [MttLabelSide False []])
+    [ (f0, iOne, MttContext 0)
+    , (f0, iTwo, MttLabelSide True [MttContext 0])
+    , (f0, iPlus, MttState f0 0 [MttState f0 1 [MttContext 0]])
+    , (f0, iMulti, MttState f0 0 [MttState f0 1 [MttContext 0]])
+    ]
+  where
+    f0 = taggedRankedLabel @"f0"
+
+    iOne   = taggedRankedLabel @"one"
+    iTwo   = taggedRankedLabel @"two"
+    iPlus  = taggedRankedLabel @"plus"
+    iMulti = taggedRankedLabel @"multi"

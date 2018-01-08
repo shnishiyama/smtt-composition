@@ -46,6 +46,7 @@ module Data.Tree.Trans.SATT
     -- conversion
   , SmttStateFromSatt
   , toStackMacroTreeTransducer
+  , toStackAttributedTreeTransducer
 
     -- internal
   , sattAttributes
@@ -740,3 +741,25 @@ toStackMacroTreeTransducer trans = fromMaybe errorUnreachable
       SattStackBottom    -> SMAC.SmttStackBottom
       SattStackHead s    -> SMAC.SmttStackHead (convRHSStk look p s)
       SattLabelSide l cs -> SMAC.SmttLabelSide l $ convRHSVal look p <$> cs
+
+
+toStackAttributedTreeTransducer ::
+  ( ATT.AttConstraint syn inh ta la tb lb
+  )
+  => ATT.AttributedTreeTransducer syn inh ta la tb lb
+  -> StackAttributedTreeTransducer syn inh ta la tb lb
+toStackAttributedTreeTransducer trans = fromMaybe errorUnreachable
+    $ buildSatt (ATT.attInitialAttr trans)
+    [ (a, convInitialRhs rhs) | (a, rhs) <- mapToList $ ATT.attInitialRules trans ]
+    [ (a, l, convRuleRhs rhs) | ((a, l), rhs) <- mapToList $ ATT.attTransRules trans ]
+  where
+    convInitialRhs = convRhs $ second errorVoid
+
+    convRuleRhs = convRhs id
+
+    convRhs f x = SattStackCons (convRhs' f x) SattStackEmpty
+
+    convRhs' f x = case x of
+      ATT.AttAttrSide a      -> SattStackHead $ SattAttrSide $ f a
+      ATT.AttLabelSide l cs  -> SattLabelSide l $ convRhs' f <$> cs
+      ATT.AttBottomLabelSide -> SattStackBottom

@@ -118,3 +118,32 @@ postfixToInfixSmtt = fromMaybe errorUnreachable $ buildSmtt
     pPlus  = taggedRankedLabel @"plus"
     pMulti = taggedRankedLabel @"multi"
     pEnd   = taggedRankedLabel @"end"
+
+
+type MiniPostfixToInfixSmtt = SmttTransducer
+  PtoIStateAlphabet
+  MiniPostfixOpTree MiniInfixOpTree
+
+miniPostfixToInfixSmtt :: MiniPostfixToInfixSmtt
+miniPostfixToInfixSmtt = fromMaybe errorUnreachable $ buildSmtt
+    (SmttState f0 0 [SmttStackEmpty])
+    [ (f0, pOne, SmttState f0 0 [SmttStackCons (SmttLabelSide iOne []) (SmttContext 0)])
+    , (f0, pPlus, SmttState f0 0
+      [ SmttStackCons
+        (SmttLabelSide iPlus
+          [ SmttStackHead $ SmttStackTail $ SmttContext 0
+          , SmttStackHead $ SmttContext 0
+          ])
+        (SmttStackTail $ SmttStackTail $ SmttContext 0)
+      ])
+    , (f0, pEnd, SmttContext 0)
+    ]
+  where
+    f0 = taggedRankedLabel @"f0"
+
+    iOne   = taggedRankedLabel @"one"
+    iPlus  = taggedRankedLabel @"plus"
+
+    pOne   = taggedRankedLabel @"one"
+    pPlus  = taggedRankedLabel @"plus"
+    pEnd   = taggedRankedLabel @"end"

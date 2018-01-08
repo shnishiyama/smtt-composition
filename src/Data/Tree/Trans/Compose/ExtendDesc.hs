@@ -61,19 +61,27 @@ toComposeBasedAtt attrds1 trans = fromMaybe errorUnreachable $ ATT.buildAtt
   where
     treeLabelRankTi2 = treeLabelRank (Proxy @ti2)
 
-    initialRules = second (convRhs $ second errorVoid)
+    initialRules = second
+      (\rhs -> ATT.AttLabelSide (StackedExpr $ SATT.SattStackConsF () ())
+        [ convRhs
+          (\a -> ATT.AttLabelSide
+            (ValuedExpr $ SATT.SattStackHeadF ())
+            [ATT.AttAttrSide $ second errorVoid a]
+          ) rhs
+        , ATT.AttLabelSide (StackedExpr SATT.SattStackEmptyF) []
+        ])
       <$> mapToList (ATT.attInitialRules trans)
 
     rules0 =
       [ ( a
         , ValuedExpr $ SATT.SattLabelSideF l $ replicate r ()
-        , convRhs id rhs
+        , convRhs ATT.AttAttrSide rhs
         )
       | ((a, l), rhs) <- mapToList $ ATT.attTransRules trans
       , let r = treeLabelRankTi2 l
       ]
 
-    convRhs f (ATT.AttAttrSide a)     = ATT.AttAttrSide $ f a
+    convRhs f (ATT.AttAttrSide a)     = f a
     convRhs f (ATT.AttLabelSide l cs) = ATT.AttLabelSide
       (ValuedExpr $ SATT.SattLabelSideF l $ void cs)
       $ convRhs f <$> cs
@@ -243,6 +251,7 @@ checkSingleUse _ = pure ()
 -- >>> import qualified Data.Tree.Trans.ATT.Instances as ATT
 -- >>> import qualified Data.Tree.Trans.TOP.Instances as TOP
 -- >>> import qualified Data.Tree.Trans.TOP as TOP
+-- >>> import qualified Data.Tree.Trans.SATT as SATT
 -- >>> import Data.Tree.Trans.Class
 -- >>> a = taggedRankedLabel @"A"
 -- >>> b = taggedRankedLabel @"B"
@@ -250,14 +259,21 @@ checkSingleUse _ = pure ()
 -- >>> inputSampleTree = mkTree a [mkTree c [], mkTree b [mkTree c []]]
 -- >>> traUniverse = setFromList $ taggedRankedAlphabetUniverse Proxy
 -- >>> :{
--- identityTransducer :: (RankedTree ta, Eq (LabelType ta), Hashable (LabelType ta))
+-- identityAtt :: (RankedTree ta, Eq (LabelType ta), Hashable (LabelType ta))
 --   => HashSet (LabelType ta) -> ATT.AttTransducer () Void ta ta
--- identityTransducer = TOP.toAttributedTreeTransducer . TOP.identityTransducer
+-- identityAtt = TOP.toAttributedTreeTransducer . TOP.identityTransducer
+-- identitySatt :: (RankedTree ta, Eq (LabelType ta), Hashable (LabelType ta))
+--   => HashSet (LabelType ta) -> SATT.SattTransducer () Void ta ta
+-- identitySatt = SATT.toStackAttributedTreeTransducer . identityAtt
 -- :}
 --
--- >>> identOutputTrans = identityTransducer @OutputSampleTree traUniverse
+-- >>> identOutputTrans = identityAtt @OutputSampleTree traUniverse
 -- >>> sampleIdentTrans <- composeSattAndAtt sampleSatt identOutputTrans
 -- >>> treeTrans sampleIdentTrans inputSampleTree
+-- D(F,F)
+-- >>> identInputTrans = identitySatt @InputSampleTree traUniverse
+-- >>> identSampleTrans <- composeSattAndAtt identInputTrans ATT.sampleAtt
+-- >>> treeTrans identSampleTrans inputSampleTree
 -- D(F,F)
 -- >>> pOne   = taggedRankedLabel @"one"
 -- >>> pTwo   = taggedRankedLabel @"two"
@@ -280,6 +296,7 @@ composeSattAndAtt :: forall m syn1 inh1 syn2 inh2 ti1 li1 to1 lo1 ti2 li2 to2 lo
   , ATT.AttConstraint syn2 inh2 ti2 li2 to2 lo2
   , Eq lo2
   , MonadThrow m
+  , Show syn2, Show inh1, Show inh2, Show syn1, Show lo2, Show lo1, Show li1
   )
   => SATT.StackAttributedTreeTransducer syn1 inh1 ti1 li1 to1 lo1
   -> ATT.AttributedTreeTransducer syn2 inh2 ti2 li2 to2 lo2
@@ -397,11 +414,27 @@ composeSattAndAtt trans1NoST trans2 = do
         birhs' = replaceRedState f (BiFixStackedExpr SATT.SattStackEmpty) state
       in case birhs' of
         StackedExpr rhs' -> rhs'
-        ValuedExpr  rhs' -> SATT.SattStackCons rhs' SATT.SattStackEmpty
+        ValuedExpr  _    -> error "expected a stack expression"
 
     replaceRedState f bot (ATT.RedFix x) = case x of
-      ATT.AttLabelSideF l cs  -> mkTreeUnchecked l
-        $ replaceRedState f (BiFixValuedExpr SATT.SattStackBottom) <$> cs
+      ATT.AttLabelSideF l cs  ->
+        let
+          replaceRedStateVal = replaceRedState f $ BiFixValuedExpr SATT.SattStackBottom
+          replaceRedStateStk = replaceRedState f $ BiFixStackedExpr SATT.SattStackEmpty
+          cs' = case l of
+            ValuedExpr l' -> case l' of
+              SATT.SattLabelSideF{}   -> replaceRedStateVal <$> cs
+              SATT.SattStackBottomF{} -> []
+              SATT.SattStackHeadF{}   -> replaceRedStateStk <$> cs
+            StackedExpr l' -> case l' of
+              SATT.SattAttrSideF{}    -> []
+              SATT.SattStackEmptyF{}  -> []
+              SATT.SattStackTailF{}   -> replaceRedStateStk <$> cs
+              SATT.SattStackConsF{}   ->
+                [ replaceRedStateVal $ cs `indexEx` 0
+                , replaceRedStateStk $ cs `indexEx` 1
+                ]
+        in mkTreeUnchecked l cs'
       ATT.AttBottomLabelSideF -> bot
       ATT.AttAttrSideF (ATT.Inherited b) p | p ^. ATT._attPathList . to null ->
         BiFixStackedExpr $ SATT.SattAttrSide $ f b

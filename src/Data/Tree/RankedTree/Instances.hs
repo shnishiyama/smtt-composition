@@ -34,6 +34,29 @@ instance RankedTree (BinTree a) where
   mkTreeUnchecked Nothing  _  = BinLeaf
 
 
+data NatNum
+  = Zero
+  | Succ NatNum
+  deriving (Eq, Ord, Show, Generic)
+
+instance Hashable NatNum
+
+instance RankedTree NatNum where
+  type LabelType NatNum = Bool
+
+  treeLabel (Succ _) = True
+  treeLabel Zero     = False
+
+  treeChilds (Succ n) = [n]
+  treeChilds Zero     = []
+
+  treeLabelRank _ True  = 1
+  treeLabelRank _ False = 0
+
+  mkTreeUnchecked True  cs = Succ $ cs `indexEx` 0
+  mkTreeUnchecked False _  = Zero
+
+
 type InputSampleAlphabet = TaggedRankedAlphabet
   ['("A", 2), '("B", 1), '("C", 0)]
 
@@ -54,3 +77,14 @@ type PostfixOpAlphabet = TaggedRankedAlphabet
   ['("one", 1), '("two", 1), '("plus", 1), '("multi", 1), '("end", 0)]
 
 type PostfixOpTree = RankedLabelledTree PostfixOpAlphabet
+
+
+type MiniInfixOpAlphabet = TaggedRankedAlphabet
+  ['("one", 0), '("plus", 2)]
+
+type MiniInfixOpTree = RankedLabelledTree MiniInfixOpAlphabet
+
+type MiniPostfixOpAlphabet = TaggedRankedAlphabet
+  ['("one", 1), '("plus", 1), '("end", 0)]
+
+type MiniPostfixOpTree = RankedLabelledTree MiniPostfixOpAlphabet
