@@ -53,7 +53,7 @@ module SattPrelude
 
 import           ClassyPrelude
 
-import           Control.Arrow            (Kleisli (..), (<<<), (>>>))
+import           Control.Arrow            (Kleisli (..), (<<<), (>>>), returnA)
 import           Data.Bifoldable
 import           Data.Coerce
 import           Data.Either              (isLeft, isRight)

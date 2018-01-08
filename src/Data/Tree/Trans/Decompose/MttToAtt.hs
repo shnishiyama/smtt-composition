@@ -57,7 +57,12 @@ instance RtConstraint tb lb => RankedTree (Fix (SubstitutionTreeF tb lb)) where
 -- >>> (trans1, trans2) = decomposeMtt sampleMtt
 -- >>> treeTrans trans2 <=< treeTrans trans1 $ inputSampleTree
 -- D(F,F)
--- >>> (==) <$> (treeTrans trans2 <=< treeTrans trans1 $ inputSampleTree) <*> treeTrans sampleMtt inputSampleTree
+-- >>> :{
+-- flip runKleisli inputSampleTree $ proc t -> do
+--   t1 <- Kleisli (treeTrans trans2 <=< treeTrans trans1) -< t
+--   t2 <- Kleisli (treeTrans sampleMtt) -< t
+--   returnA -< t1 == t2
+-- :}
 -- True
 --
 decomposeMtt :: forall s ta la tb lb.

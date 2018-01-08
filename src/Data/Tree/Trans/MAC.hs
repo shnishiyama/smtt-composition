@@ -282,7 +282,7 @@ runMttReductionWithHistory :: forall s ta la tb lb. (MttConstraint s ta la tb lb
   => MacroTreeTransducer s ta la tb lb
   -> ReductionState s ta la tb lb -> [ReductionState s ta la tb lb]
 runMttReductionWithHistory trans istate
-  = buildMttReduction @RTZipper (\tz -> (. (toTopTree tz:))) id trans istate []
+  = buildMttReduction @RTZipper (\tz -> (. (toTopTree tz:))) (istate:) trans istate []
 
 toInitialReductionState :: MttConstraint s ta la tb lb
   => MacroTreeTransducer s ta la tb lb

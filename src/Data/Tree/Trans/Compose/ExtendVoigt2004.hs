@@ -40,7 +40,12 @@ type AttFromMttWSU s ta la tb lb = ATT.AttributedTreeTransducer
 -- >>> trans <- fromMttWSUToAtt sampleMtt
 -- >>> treeTrans trans inputSampleTree
 -- D(F,F)
--- >>> (==) <$> (treeTrans trans $ inputSampleTree) <*> treeTrans sampleMtt inputSampleTree
+-- >>> :{
+-- flip runKleisli inputSampleTree $ proc t -> do
+--   t1 <- Kleisli (treeTrans trans) -< t
+--   t2 <- Kleisli (treeTrans sampleMtt) -< t
+--   returnA -< t1 == t2
+-- :}
 -- True
 --
 fromMttWSUToAtt ::
@@ -77,6 +82,35 @@ type ComposedSmttState s1 s2 = SMAC.ComposedSmttState s1
     )
   )
 
+-- | composition of a nc-smtt and wsu-mtt
+--
+-- Examples:
+-- >>> import Data.Tree.RankedTree.Label
+-- >>> import Data.Tree.Trans.MAC.Instances
+-- >>> import Data.Tree.Trans.SMAC.Instances
+-- >>> import Data.Tree.Trans.Class
+-- >>> pOne   = taggedRankedLabel @"one"
+-- >>> pTwo   = taggedRankedLabel @"two"
+-- >>> pPlus  = taggedRankedLabel @"plus"
+-- >>> pMulti = taggedRankedLabel @"multi"
+-- >>> pEnd   = taggedRankedLabel @"end"
+-- >>> :{
+-- inputPostfixTree = mkTree pTwo [mkTree pOne [mkTree pTwo
+--   [mkTree pPlus [mkTree pMulti [mkTree pEnd []]]]
+--   ]]
+-- :}
+--
+-- >>> trans <- composeSmttNCAndMttWSU postfixToInfixSmtt infixToPostfixMtt
+-- >>> treeTrans trans inputPostfixTree
+-- two(one(two(plus(multi(end)))))
+-- >>> :{
+-- flip runKleisli inputPostfixTree $ proc t -> do
+--   t1 <- Kleisli (treeTrans trans) -< t
+--   t2 <- Kleisli (treeTrans infixToPostfixMtt <=< treeTrans postfixToInfixSmtt) -< t
+--   returnA -< t1 == t2
+-- :}
+-- True
+--
 composeSmttNCAndMttWSU ::
   ( SMAC.SmttConstraint s1 ti1 li1 to1 lo1
   , to1 ~ ti2

@@ -9,7 +9,6 @@ import           Control.Monad.State
 import qualified Data.HashMap.Strict        as HashMap
 import qualified Data.HashSet               as HashSet
 import           Data.Tree.RankedTree
-import           Data.Tree.RankedTree.Label
 import qualified Data.Tree.Trans.SATT       as SATT
 import qualified Data.Tree.Trans.SMAC       as SMAC
 import           Data.Tree.Trans.Stack
@@ -72,10 +71,27 @@ checkNonCopying _ = pure ()
 -- >>> import Data.Tree.RankedTree.Label
 -- >>> import Data.Tree.Trans.SMAC.Instances
 -- >>> import Data.Tree.Trans.Class
--- >>> a = taggedRankedLabel @"A"
--- >>> b = taggedRankedLabel @"B"
--- >>> c = taggedRankedLabel @"C"
--- >>> inputSampleTree = mkTree a [mkTree c [], mkTree b [mkTree c []]]
+-- >>> pOne   = taggedRankedLabel @"one"
+-- >>> pTwo   = taggedRankedLabel @"two"
+-- >>> pPlus  = taggedRankedLabel @"plus"
+-- >>> pMulti = taggedRankedLabel @"multi"
+-- >>> pEnd   = taggedRankedLabel @"end"
+-- >>> :{
+-- inputPostfixTree = mkTree pTwo [mkTree pOne [mkTree pTwo
+--   [mkTree pPlus [mkTree pMulti [mkTree pEnd []]]]
+--   ]]
+-- :}
+--
+-- >>> (trans1, trans2) <- decomposeSmttNC postfixToInfixSmtt
+-- >>> treeTrans trans2 <=< treeTrans trans1 $ inputPostfixTree
+-- multi(two,plus(one,two))
+-- >>> :{
+-- flip runKleisli inputPostfixTree $ proc t -> do
+--   t1 <- Kleisli (treeTrans trans2 <=< treeTrans trans1) -< t
+--   t2 <- Kleisli (treeTrans postfixToInfixSmtt) -< t
+--   returnA -< t1 == t2
+-- :}
+-- True
 --
 decomposeSmttNC :: forall m s ta la tb lb.
   ( SMAC.SmttConstraint s ta la tb lb
@@ -162,9 +178,7 @@ decomposeSmttNC transNoST = do
       in go <$> idx
 
     collectRhs rhs = case rhs of
-      TOP.TdttState s u      -> do
-        updateMaxRank $ labelRank s
-        pure $ TOP.tdttState s u
+      TOP.TdttState s u      -> pure $ TOP.tdttState s u
       TOP.TdttLabelSide l cs ->
         let
           l' = case l of
@@ -174,7 +188,7 @@ decomposeSmttNC transNoST = do
             ContextParamF c         -> ContextParamF c
         in do
           insertSubstLabel l'
-          updateMaxRank $ length cs
+          updateMaxRank $ length cs - 1
           TOP.TdttLabelSide l' <$> traverse collectRhs cs
       TOP.TdttBottomLabelSide -> pure TOP.TdttBottomLabelSide
 
@@ -203,19 +217,19 @@ decomposeSmttNC transNoST = do
 
         pure
           ( SATT.Inherited (j, i), l
-          , if i == 0 && j < p
-            then SATT.SynAttrSide () $ j + 1
+          , if i == 0
+            then if j < p then SATT.SynAttrSide () $ j + 1 else SATT.SattStackEmpty
             else buildSattInheritedRules
-              (SATT.InhAttrSide j) 0 (fromMaybe [] $ lookup j $ idx `indexEx` i)
+              (SATT.InhAttrSide j) 0 $ fromMaybe [] $ lookup j $ idx `indexEx` (i - 1)
           )
 
     buildSattInheritedRules _  _ []
       = SATT.SattStackEmpty
     buildSattInheritedRules yj n [(True, i)]
-      = stimesEndo (n - i) (SATT.SattStackCons SATT.SattStackBottom)
+      = stimesEndo (i - n) (SATT.SattStackCons SATT.SattStackBottom)
       $ stimesEndo i SATT.SattStackTail yj
     buildSattInheritedRules yj n ((False, i):xs)
-      = stimesEndo (n - i) (SATT.SattStackCons SATT.SattStackBottom)
+      = stimesEndo (i - n) (SATT.SattStackCons SATT.SattStackBottom)
       $ SATT.SattStackCons (SATT.SattStackHead $ stimesEndo i SATT.SattStackTail $ yj)
       $ buildSattInheritedRules yj (i + 1) xs
     buildSattInheritedRules _ _ _ = error "not sorted context"
@@ -235,9 +249,9 @@ decomposeSmttNC transNoST = do
       StackTailF{}  -> SATT.SattStackTail (SATT.InhAttrSide 0)
       StackConsF{}  -> SATT.SattStackCons
         (SATT.SattStackHead (SATT.InhAttrSide 0))
-        (SATT.SattStackTail (SATT.InhAttrSide 1))
+        (SATT.InhAttrSide 1)
     h (ContextParamF c) = case c of
-      ContextParamToken i (False, j) -> SATT.SattStackCons
+      ContextParamToken j (False, i) -> SATT.SattStackCons
         ( SATT.SattStackHead
         $ stimesEndo i SATT.SattStackTail
         $ SATT.InhAttrSide j

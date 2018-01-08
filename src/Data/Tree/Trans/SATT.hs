@@ -516,7 +516,7 @@ buildSattReduction f is trans mt = go is' initialZipper
     checkReducible (RedFixStk x) = case x of
       SattAttrSideF Inherited{} SattPathInfo{ sattPathList = [] } -> False
       SattAttrSideF{}                                             -> True
-      SattStackEmptyF{}                                           -> False
+      SattStackEmptyF{}                                           -> True
       SattStackTailF{}                                            -> False
       SattStackConsF{}                                            -> True
 
@@ -530,6 +530,7 @@ buildSattReduction f is trans mt = go is' initialZipper
     reductState sz = case toTree sz of
       RedFixStk x -> case x of
         SattAttrSideF a p  -> setTreeZipper (reductAttrSide a p) sz
+        SattStackEmptyF    -> deconsStackEmpty sz
         SattStackConsF h t -> deconsStackCons h t sz
         _                  -> error "This state is irreducible"
       RedFixVal _ -> error "This state is irreducible"
@@ -541,6 +542,16 @@ buildSattReduction f is trans mt = go is' initialZipper
       Nothing -> replaceRHS (SattPathInfo pl z  True)  $ initialRule (Inherited a)
       Just z' -> replaceRHS (SattPathInfo pl z' False) $ rule (Inherited (a, i)) (toTreeLabel z')
     reductAttrSide Inherited{} SattPathInfo{} = error "This state is irreducible"
+
+    deconsStackEmpty sz = case zoomOutRtZipper sz of
+      Nothing -> errorUnreachable
+      Just nsz -> case toTree nsz of
+        RedFixVal x -> case x of
+          SattStackHeadF{} -> setTreeZipper (RedFixVal SattStackBottomF) nsz
+          _                -> errorUnreachable
+        RedFixStk x -> case x of
+          SattStackTailF{} -> setTreeZipper (RedFixStk SattStackEmptyF) nsz
+          _                -> errorUnreachable
 
     deconsStackCons h t sz = case zoomOutRtZipper sz of
       Nothing  -> errorUnreachable
