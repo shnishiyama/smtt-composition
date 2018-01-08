@@ -152,6 +152,7 @@ checkSingleUse _ = pure ()
 --
 -- Examples:
 -- >>> import Data.Tree.RankedTree.Label
+-- >>> import Data.Tree.RankedTree.Instances
 -- >>> import Data.Tree.Trans.ATT.Instances
 -- >>> import qualified Data.Tree.Trans.TOP.Instances as TOP
 -- >>> import qualified Data.Tree.Trans.TOP as TOP
@@ -167,8 +168,8 @@ checkSingleUse _ = pure ()
 -- identityTransducer = TOP.toAttributedTreeTransducer . TOP.identityTransducer
 -- :}
 --
--- >>> identInputTrans = identityTransducer @(RankedLabelledTree InputSampleAlphabet) traUniverse
--- >>> identOutputTrans = identityTransducer @(RankedLabelledTree OutputSampleAlphabet) traUniverse
+-- >>> identInputTrans = identityTransducer @InputSampleTree traUniverse
+-- >>> identOutputTrans = identityTransducer @OutputSampleTree traUniverse
 -- >>> sampleIdentTrans <- composeAtts sampleAtt identOutputTrans
 -- >>> treeTrans sampleIdentTrans inputSampleTree
 -- D(F,F)

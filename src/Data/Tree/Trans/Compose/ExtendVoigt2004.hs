@@ -3,19 +3,20 @@ module Data.Tree.Trans.Compose.ExtendVoigt2004 where
 import           SattPrelude
 
 import           Data.Tree.RankedTree
-import qualified Data.Tree.Trans.ATT                as ATT
-import           Data.Tree.Trans.Compose.Desc       (ComposedAttInhAttr,
-                                                     ComposedAttSynAttr,
-                                                     composeAtts)
-import           Data.Tree.Trans.Decompose.MttToAtt (decomposeMtt)
-import qualified Data.Tree.Trans.MAC                as MAC
-import qualified Data.Tree.Trans.TOP                as TOP
-import qualified Data.Tree.Trans.SATT as SATT
-import qualified Data.Tree.Trans.SMAC as SMAC
-import Data.Tree.Trans.Compose.TdttAndSmtt (composeTdttAndSmtt)
-import qualified Data.Tree.Trans.Compose.TdttAndSmtt as SMAC
-import Data.Tree.Trans.Decompose.SmttToSatt (decomposeSmttNC)
-import Data.Tree.Trans.Compose.ExtendDesc (composeSattAndAtt, ComposedSattSynAttr)
+import qualified Data.Tree.Trans.ATT                  as ATT
+import           Data.Tree.Trans.Compose.Desc         (ComposedAttInhAttr,
+                                                       ComposedAttSynAttr,
+                                                       composeAtts)
+import           Data.Tree.Trans.Compose.ExtendDesc   (ComposedSattSynAttr,
+                                                       composeSattAndAtt)
+import           Data.Tree.Trans.Compose.TdttAndSmtt  (composeTdttAndSmtt)
+import qualified Data.Tree.Trans.Compose.TdttAndSmtt  as SMAC
+import           Data.Tree.Trans.Decompose.MttToAtt   (decomposeMtt)
+import           Data.Tree.Trans.Decompose.SmttToSatt (decomposeSmttNC)
+import qualified Data.Tree.Trans.MAC                  as MAC
+import qualified Data.Tree.Trans.SATT                 as SATT
+import qualified Data.Tree.Trans.SMAC                 as SMAC
+import qualified Data.Tree.Trans.TOP                  as TOP
 
 -- FIXME: give the implementation
 checkWeaklySingleUse :: MonadThrow m => MAC.MacroTreeTransducer s ta la tb lb -> m ()

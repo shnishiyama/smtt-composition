@@ -2,17 +2,17 @@
 
 module Data.Tree.Trans.Compose.TdttAndSmtt where
 
-import SattPrelude
+import           SattPrelude
 
-import Control.Monad.State hiding (forM_, state)
-import Data.Tree.RankedTree
-import Data.Tree.RankedTree.Label
-import Data.Tree.Trans.Stack
-import qualified Data.Tree.Trans.SMAC as SMAC
-import qualified Data.Tree.Trans.TOP as TOP
-import qualified Data.Tree.Trans.MAC as MAC
-import qualified Data.Vector as V
-import qualified Data.HashSet as HashSet
+import           Control.Monad.State        hiding (forM_, state)
+import qualified Data.HashSet               as HashSet
+import           Data.Tree.RankedTree
+import           Data.Tree.RankedTree.Label
+import qualified Data.Tree.Trans.MAC        as MAC
+import qualified Data.Tree.Trans.SMAC       as SMAC
+import           Data.Tree.Trans.Stack
+import qualified Data.Tree.Trans.TOP        as TOP
+import qualified Data.Vector                as V
 
 
 data ComposedSmttState s1 s2 = ComposedSmttState s1 s2
@@ -101,6 +101,7 @@ type ComposedSmtt s1 s2 ti to = SMAC.SmttTransducer
 --
 -- Examples:
 -- >>> import Data.Tree.RankedTree.Label
+-- >>> import Data.Tree.RankedTree.Instances
 -- >>> import qualified Data.Tree.Trans.TOP.Instances as TOP
 -- >>> import Data.Tree.Trans.SMAC.Instances
 -- >>> import Data.Tree.Trans.Class
@@ -109,7 +110,7 @@ type ComposedSmtt s1 s2 ti to = SMAC.SmttTransducer
 -- >>> c = taggedRankedLabel @"C"
 -- >>> inputSampleTree = mkTree a [mkTree c [], mkTree b [mkTree c []]]
 -- >>> traUniverse = setFromList $ taggedRankedAlphabetUniverse Proxy
--- >>> identInputTrans = TOP.identityTransducer @(RankedLabelledTree InputSampleAlphabet) traUniverse
+-- >>> identInputTrans = TOP.identityTransducer @InputSampleTree traUniverse
 -- >>> identSampleTrans = composeTdttAndSmtt identInputTrans sampleSmtt
 -- >>> treeTrans identSampleTrans inputSampleTree
 -- D(F,F)

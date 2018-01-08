@@ -7,7 +7,7 @@ import           SattPrelude
 import           Data.Tree.RankedTree
 import           Data.Tree.RankedTree.Label
 import           Data.Tree.Trans.TOP
-import qualified Data.Vector as V
+import qualified Data.Vector                as V
 
 identityTransducer :: forall t l.
   ( RtConstraint t l

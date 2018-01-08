@@ -75,17 +75,17 @@ module Data.Tree.Trans.SATT
 import           SattPrelude
 
 import           Data.Bifunctor.FixLR
+import qualified Data.HashSet                as HashSet
 import           Data.Tree.RankedTree
 import           Data.Tree.RankedTree.Label
 import           Data.Tree.RankedTree.Zipper
 import           Data.Tree.Trans.ATT         (AttAttrEither (..), isInherited,
                                               isSynthesized)
 import qualified Data.Tree.Trans.ATT         as ATT
-import qualified Data.Tree.Trans.SMAC        as SMAC
 import           Data.Tree.Trans.Class
+import qualified Data.Tree.Trans.SMAC        as SMAC
 import           Data.Tree.Trans.Stack
 import qualified Text.Show                   as S
-import qualified Data.HashSet as HashSet
 
 
 type SattAttrEither = ATT.AttAttrEither

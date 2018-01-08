@@ -53,8 +53,6 @@ module SattPrelude
 
 import           ClassyPrelude
 
-import Data.Semigroup
-import Data.Monoid hiding ((<>))
 import           Control.Arrow            (Kleisli (..), (<<<), (>>>))
 import           Data.Bifoldable
 import           Data.Coerce
@@ -63,8 +61,10 @@ import           Data.Functor.Classes
 import           Data.Functor.Foldable    (Corecursive (..), Fix (..),
                                            Recursive (..))
 import           Data.Kind                (Type)
+import           Data.Monoid              hiding ((<>))
 import           Data.Profunctor.Unsafe
 import           Data.Proxy
+import           Data.Semigroup
 import           Data.Singletons.TypeLits
 import           Data.Void                hiding (absurd)
 import           GHC.Generics             (Generic1)
@@ -100,6 +100,11 @@ absurd = error "absurd"
 groomPrint :: Show a => a -> IO ()
 groomPrint = putStrLn . pack . groom
 
+-- | invert ordering
+--
+-- Properties:
+-- prop> \(xs :: [Int]) -> sortBy (\a b -> invert $ a `compare` b) xs == reverse (sort xs)
+--
 invert :: Ordering -> Ordering
 invert LT = GT
 invert EQ = EQ

@@ -4,22 +4,16 @@ module Data.Tree.Trans.SMAC.Instances where
 
 import           SattPrelude
 
+import           Data.Tree.RankedTree.Instances
 import           Data.Tree.RankedTree.Label
 import           Data.Tree.Trans.SMAC
-
-type InputSampleAlphabet = TaggedRankedAlphabet
-  ['("A", 2), '("B", 1), '("C", 0)]
-
-type OutputSampleAlphabet = TaggedRankedAlphabet
-  ['("D", 2), '("E", 1), '("F", 0)]
 
 type SampleStateAlphabet = TaggedRankedAlphabet
   ['("f0", 2), '("f1", 2)]
 
 type SampleSmtt = SmttTransducer
   SampleStateAlphabet
-  (RankedLabelledTree InputSampleAlphabet)
-  (RankedLabelledTree OutputSampleAlphabet)
+  InputSampleTree OutputSampleTree
 
 -- | A sample stack macro tree transducer
 --
@@ -60,3 +54,67 @@ sampleSmtt = fromMaybe errorUnreachable $ buildSmtt
     d = taggedRankedLabel @"D"
     e = taggedRankedLabel @"E"
     f = taggedRankedLabel @"F"
+
+
+type PtoIStateAlphabet = TaggedRankedAlphabet
+  '[ '("f0", 2)]
+
+type PostfixToInfixSmtt = SmttTransducer
+  PtoIStateAlphabet
+  PostfixOpTree InfixOpTree
+
+-- | A stack macro tree transducer to infix tree from postfix tree
+--
+-- Sample:
+-- >>> :set -XOverloadedLists
+-- >>> import Data.Tree.Trans.Class
+-- >>> pOne   = taggedRankedLabel @"one"
+-- >>> pTwo   = taggedRankedLabel @"two"
+-- >>> pPlus  = taggedRankedLabel @"plus"
+-- >>> pMulti = taggedRankedLabel @"multi"
+-- >>> pEnd   = taggedRankedLabel @"end"
+-- >>> :{
+-- inputPostfixTree = mkTree pTwo [mkTree pOne [mkTree pTwo
+--   [mkTree pPlus [mkTree pMulti [mkTree pEnd []]]]
+--   ]]
+-- :}
+--
+-- >>> treeTrans postfixToInfixSmtt inputPostfixTree
+-- multi(two,plus(one,two))
+--
+postfixToInfixSmtt :: PostfixToInfixSmtt
+postfixToInfixSmtt = fromMaybe errorUnreachable $ buildSmtt
+    (SmttState f0 0 [SmttStackEmpty])
+    [ (f0, pOne, SmttState f0 0 [SmttStackCons (SmttLabelSide iOne []) (SmttContext 0)])
+    , (f0, pTwo, SmttState f0 0 [SmttStackCons (SmttLabelSide iTwo []) (SmttContext 0)])
+    , (f0, pPlus, SmttState f0 0
+      [ SmttStackCons
+        (SmttLabelSide iPlus
+          [ SmttStackHead $ SmttStackTail $ SmttContext 0
+          , SmttStackHead $ SmttContext 0
+          ])
+        (SmttStackTail $ SmttStackTail $ SmttContext 0)
+      ])
+    , (f0, pMulti, SmttState f0 0
+      [ SmttStackCons
+        (SmttLabelSide iMulti
+          [ SmttStackHead $ SmttStackTail $ SmttContext 0
+          , SmttStackHead $ SmttContext 0
+          ])
+        (SmttStackTail $ SmttStackTail $ SmttContext 0)
+      ])
+    , (f0, pEnd, SmttContext 0)
+    ]
+  where
+    f0 = taggedRankedLabel @"f0"
+
+    iOne   = taggedRankedLabel @"one"
+    iTwo   = taggedRankedLabel @"two"
+    iPlus  = taggedRankedLabel @"plus"
+    iMulti = taggedRankedLabel @"multi"
+
+    pOne   = taggedRankedLabel @"one"
+    pTwo   = taggedRankedLabel @"two"
+    pPlus  = taggedRankedLabel @"plus"
+    pMulti = taggedRankedLabel @"multi"
+    pEnd   = taggedRankedLabel @"end"

@@ -4,16 +4,9 @@ module Data.Tree.Trans.SATT.Instances where
 
 import           SattPrelude
 
+import           Data.Tree.RankedTree.Instances
 import           Data.Tree.RankedTree.Label
-import           Data.Tree.Trans.ATT.Instances (InfixOpAlphabet,
-                                                PostfixOpAlphabet)
 import           Data.Tree.Trans.SATT
-
-type InputSampleAlphabet = TaggedRankedAlphabet
-  ['("A", 2), '("B", 1), '("C", 0)]
-
-type OutputSampleAlphabet = TaggedRankedAlphabet
-  ['("D", 2), '("E", 1), '("F", 0)]
 
 type SynSampleAttr = TaggedAlphabet
   ["a0", "a1"]
@@ -22,10 +15,8 @@ type InhSampleAttr = TaggedAlphabet
   ["b0", "b1"]
 
 type SampleSatt = SattTransducer
-  SynSampleAttr
-  InhSampleAttr
-  (RankedLabelledTree InputSampleAlphabet)
-  (RankedLabelledTree OutputSampleAlphabet)
+  SynSampleAttr InhSampleAttr
+  InputSampleTree OutputSampleTree
 
 -- | A sample stack attributed tree transducer
 --

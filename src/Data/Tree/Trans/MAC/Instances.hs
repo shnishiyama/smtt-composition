@@ -4,22 +4,16 @@ module Data.Tree.Trans.MAC.Instances where
 
 import           SattPrelude
 
+import           Data.Tree.RankedTree.Instances
 import           Data.Tree.RankedTree.Label
 import           Data.Tree.Trans.MAC
-
-type InputSampleAlphabet = TaggedRankedAlphabet
-  ['("A", 2), '("B", 1), '("C", 0)]
-
-type OutputSampleAlphabet = TaggedRankedAlphabet
-  ['("D", 2), '("E", 1), '("F", 0)]
 
 type SampleStateAlphabet = TaggedRankedAlphabet
   ['("f0", 2), '("f1", 2)]
 
 type SampleMtt = MttTransducer
   SampleStateAlphabet
-  (RankedLabelledTree InputSampleAlphabet)
-  (RankedLabelledTree OutputSampleAlphabet)
+  InputSampleTree OutputSampleTree
 
 -- | A sample macro tree transducer
 --
@@ -53,3 +47,46 @@ sampleMtt = fromMaybe errorUnreachable $ buildMtt
     d = taggedRankedLabel @"D"
     e = taggedRankedLabel @"E"
     f = taggedRankedLabel @"F"
+
+
+type ItoPStateAlphabet = TaggedRankedAlphabet
+  '[ '("f0", 2)]
+
+type InfixToPostfixSmtt = MttTransducer
+  ItoPStateAlphabet
+  InfixOpTree PostfixOpTree
+
+-- | A macro tree transducer to postfix tree from infix tree
+--
+-- Sample:
+-- >>> :set -XOverloadedLists
+-- >>> import Data.Tree.Trans.Class
+-- >>> iOne   = taggedRankedLabel @"one"
+-- >>> iTwo   = taggedRankedLabel @"two"
+-- >>> iPlus  = taggedRankedLabel @"plus"
+-- >>> iMulti = taggedRankedLabel @"multi"
+-- >>> inputInfixTree = mkTree iMulti [mkTree iTwo [], mkTree iPlus [mkTree iOne [], mkTree iTwo []]]
+-- >>> treeTrans infixToPostfixMtt inputInfixTree
+-- two(one(two(plus(multi(end)))))
+--
+infixToPostfixMtt :: InfixToPostfixSmtt
+infixToPostfixMtt = fromMaybe errorUnreachable $ buildMtt
+    (MttState f0 0 [MttLabelSide pEnd []])
+    [ (f0, iOne, MttLabelSide pOne [MttContext 0])
+    , (f0, iTwo, MttLabelSide pTwo [MttContext 0])
+    , (f0, iPlus, MttState f0 0 [MttState f0 1 [MttLabelSide pPlus [MttContext 0]]])
+    , (f0, iMulti, MttState f0 0 [MttState f0 1 [MttLabelSide pMulti [MttContext 0]]])
+    ]
+  where
+    f0 = taggedRankedLabel @"f0"
+
+    iOne   = taggedRankedLabel @"one"
+    iTwo   = taggedRankedLabel @"two"
+    iPlus  = taggedRankedLabel @"plus"
+    iMulti = taggedRankedLabel @"multi"
+
+    pOne   = taggedRankedLabel @"one"
+    pTwo   = taggedRankedLabel @"two"
+    pPlus  = taggedRankedLabel @"plus"
+    pMulti = taggedRankedLabel @"multi"
+    pEnd   = taggedRankedLabel @"end"

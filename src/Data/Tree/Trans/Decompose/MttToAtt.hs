@@ -6,12 +6,12 @@ module Data.Tree.Trans.Decompose.MttToAtt where
 import           SattPrelude
 
 import           Control.Monad.State
+import qualified Data.HashSet         as HashSet
 import           Data.Tree.RankedTree
 import qualified Data.Tree.Trans.ATT  as ATT
 import qualified Data.Tree.Trans.MAC  as MAC
 import qualified Data.Tree.Trans.TOP  as TOP
 import qualified Data.Vector          as V
-import qualified Data.HashSet as HashSet
 
 data SubstitutionTreeF tb lb a
   = OriginalOutputLabelF lb

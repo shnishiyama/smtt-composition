@@ -4,14 +4,9 @@ module Data.Tree.Trans.ATT.Instances where
 
 import           SattPrelude
 
+import           Data.Tree.RankedTree.Instances
 import           Data.Tree.RankedTree.Label
 import           Data.Tree.Trans.ATT
-
-type InputSampleAlphabet = TaggedRankedAlphabet
-  ['("A", 2), '("B", 1), '("C", 0)]
-
-type OutputSampleAlphabet = TaggedRankedAlphabet
-  ['("D", 2), '("E", 1), '("F", 0)]
 
 type SynSampleAttr = TaggedAlphabet
   ["a0", "a1"]
@@ -20,10 +15,8 @@ type InhSampleAttr = TaggedAlphabet
   ["b0", "b1"]
 
 type SampleAtt = AttTransducer
-  SynSampleAttr
-  InhSampleAttr
-  (RankedLabelledTree InputSampleAlphabet)
-  (RankedLabelledTree OutputSampleAlphabet)
+  SynSampleAttr InhSampleAttr
+  InputSampleTree OutputSampleTree
 
 -- | A sample attributed tree transducer
 --
@@ -71,12 +64,6 @@ sampleAtt = fromMaybe errorUnreachable $ buildAtt
     f = taggedRankedLabel @"F"
 
 
-type InfixOpAlphabet = TaggedRankedAlphabet
-  ['("one", 0), '("two", 0), '("plus", 2), '("multi", 2)]
-
-type PostfixOpAlphabet = TaggedRankedAlphabet
-  ['("one", 1), '("two", 1), '("plus", 1), '("multi", 1), '("end", 0)]
-
 type SynItoPAttr = TaggedAlphabet
   '["a0"]
 
@@ -84,10 +71,8 @@ type InhItoPAttr = TaggedAlphabet
   '["a1"]
 
 type InfixToPostfixAtt = AttTransducer
-  SynItoPAttr
-  InhItoPAttr
-  (RankedLabelledTree InfixOpAlphabet)
-  (RankedLabelledTree PostfixOpAlphabet)
+  SynItoPAttr InhItoPAttr
+  InfixOpTree PostfixOpTree
 
 -- | An attributed tree transducer converting infix to postfix
 --

@@ -1,20 +1,20 @@
-{-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE OverloadedLists #-}
+{-# LANGUAGE TemplateHaskell #-}
 
 module Data.Tree.Trans.Decompose.SmttToSatt where
 
 import           SattPrelude
 
-import Control.Monad.State
-import qualified Data.HashSet as HashSet
-import Data.Tree.Trans.Stack
+import           Control.Monad.State
+import qualified Data.HashMap.Strict        as HashMap
+import qualified Data.HashSet               as HashSet
 import           Data.Tree.RankedTree
-import Data.Tree.RankedTree.Label
-import qualified Data.Tree.Trans.SATT  as SATT
-import qualified Data.Tree.Trans.SMAC  as SMAC
-import qualified Data.Tree.Trans.TOP  as TOP
-import qualified Data.Vector          as V
-import qualified Data.HashMap.Strict as HashMap
+import           Data.Tree.RankedTree.Label
+import qualified Data.Tree.Trans.SATT       as SATT
+import qualified Data.Tree.Trans.SMAC       as SMAC
+import           Data.Tree.Trans.Stack
+import qualified Data.Tree.Trans.TOP        as TOP
+import qualified Data.Vector                as V
 
 data ContextParamToken = ContextParamToken
   { contextParamIdx :: RankNumber
@@ -168,10 +168,10 @@ decomposeSmttNC transNoST = do
       TOP.TdttLabelSide l cs ->
         let
           l' = case l of
-            SubstitutionF idx cs'  -> SubstitutionF (buildIndex idx) cs'
+            SubstitutionF idx cs'   -> SubstitutionF (buildIndex idx) cs'
             OriginalOutputLabelF ol -> OriginalOutputLabelF ol
-            StackExprLabelF s      -> StackExprLabelF s
-            ContextParamF c        -> ContextParamF c
+            StackExprLabelF s       -> StackExprLabelF s
+            ContextParamF c         -> ContextParamF c
         in do
           insertSubstLabel l'
           updateMaxRank $ length cs
