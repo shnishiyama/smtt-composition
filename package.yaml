@@ -182,18 +182,18 @@ benchmarks:
   common:
     main: Common.hs
     source-dirs: benchmark
+    other-modules: []
     ghc-options:
     - -O2
     - -threaded
     - -with-rtsopts=-N
     dependencies:
       <<: *base-dependencies
-      satt-composition:
       criterion:
       deepseq:
 
-  fusion-bench:
-    main: Fusion.hs
+  fusion-speed-bench:
+    main: ../CriterionFusionMain.hs
     source-dirs: benchmark/fusion
     ghc-options:
     - -O0
@@ -201,8 +201,23 @@ benchmarks:
     - -with-rtsopts=-N
     dependencies:
       <<: *base-dependencies
-      satt-composition:
       criterion:
+      weigh:
+      deepseq:
+      random:
+      mtl:
+
+  fusion-memory-bench:
+    main: ../WeighFusionMain.hs
+    source-dirs: benchmark/fusion
+    ghc-options:
+    - -O0
+    - -threaded
+    - -with-rtsopts=-N
+    dependencies:
+      <<: *base-dependencies
+      criterion:
+      weigh:
       deepseq:
       random:
       mtl:

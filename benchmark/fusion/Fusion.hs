@@ -1,17 +1,17 @@
-module Main where
+module Fusion where
 
 import           SattPrelude
 
-import           Control.DeepSeq
-import           Criterion.Main
-import Control.Monad.State
-import System.Random
+import           Control.Bench
+import           Control.Monad.State
+import           Criterion
+import           System.Random
 
-import Samples.PostfixOpParser
-import Samples.Instances
+import           Samples.Instances
+import           Samples.PostfixOpParser
 
-testCases :: NFData b => [(String, a)] -> (a -> b) -> [Benchmark]
-testCases cases f = [ bench nm $ nf f x | (nm, x) <- cases ]
+testCases :: NFData b => [(String, a)] -> (a -> b) -> [(Benchmark, NameableWeigh)]
+testCases cases f = [ nmItem nm (nf f x, nameableWeighFunc f x) | (nm, x) <- cases ]
 
 evalRandomState :: Int -> State StdGen a -> a
 evalRandomState i s = evalState s $ mkStdGen i
@@ -39,10 +39,12 @@ itopReverseCases = [ (show n, evalRandomState 0 $ buildTree $ n + 1) | n <- [20,
       rnode <- buildTree $ n - m' - 1
       pure $ nodef lnode rnode
 
-main :: IO ()
-main = defaultMain
-  [ bgroup "itop-reverse"
-    [ bgroup "normal" $ testCases itopReverseCases $ reversePop . itop
-    , bgroup "fusion" $ testCases itopReverseCases itopReversePop
+
+benchSpec :: ([Benchmark], [NameableWeigh])
+benchSpec = unzip
+  [ nmGroup "itop-reverse"
+    [ nmGroup "normal" $ testCases itopReverseCases $ reversePop . itop
+    , nmGroup "fusion" $ testCases itopReverseCases itopReversePop
+    , nmGroup "fusionOrig" $ testCases itopReverseCases itopReversePopOrig
     ]
   ]

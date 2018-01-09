@@ -56,8 +56,8 @@ import           Data.Tree.RankedTree
 import           Data.Tree.RankedTree.Label
 import           Data.Tree.RankedTree.Zipper
 import           Data.Tree.Trans.Class
+import qualified Data.Tree.Trans.MAC         as MAC
 import           Data.Tree.Trans.Stack
-import qualified Data.Tree.Trans.MAC as MAC
 import qualified Text.Show                   as S
 
 

@@ -1,9 +1,12 @@
+{-# OPTIONS_GHC -Wno-unused-matches #-}
+{-# OPTIONS_GHC -Wno-unused-local-binds #-}
+
 module Samples.Instances where
 
-import Prelude
+import           Prelude
 
-import Samples.PostfixOpParser
-import Data.Stack
+import           Data.Stack
+import           Samples.PostfixOpParser
 
 
 reversePop :: PostfixOpTree -> PostfixOpTree

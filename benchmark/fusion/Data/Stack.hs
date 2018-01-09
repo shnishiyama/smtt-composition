@@ -1,6 +1,6 @@
 module Data.Stack where
 
-import SattPrelude
+import           SattPrelude
 
 newtype Stack a = Stack [a]
   deriving (Eq, Ord, Show, Generic)

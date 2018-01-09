@@ -1,8 +1,8 @@
 module Samples.PostfixOpParser where
 
-import SattPrelude
+import           SattPrelude
 
-import Data.Stack
+import           Data.Stack
 
 
 data PostfixOpTree

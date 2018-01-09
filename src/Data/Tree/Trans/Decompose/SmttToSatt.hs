@@ -6,15 +6,15 @@ module Data.Tree.Trans.Decompose.SmttToSatt where
 import           SattPrelude
 
 import           Control.Monad.State
-import qualified Data.HashMap.Strict        as HashMap
-import qualified Data.HashSet               as HashSet
+import qualified Data.HashMap.Strict   as HashMap
+import qualified Data.HashSet          as HashSet
 import           Data.Tree.RankedTree
-import qualified Data.Tree.Trans.SATT       as SATT
-import qualified Data.Tree.Trans.SMAC       as SMAC
+import qualified Data.Tree.Trans.SATT  as SATT
+import qualified Data.Tree.Trans.SMAC  as SMAC
 import           Data.Tree.Trans.Stack
-import qualified Data.Tree.Trans.TOP        as TOP
-import qualified Data.Vector                as V
-import qualified Text.Show as S
+import qualified Data.Tree.Trans.TOP   as TOP
+import qualified Data.Vector           as V
+import qualified Text.Show             as S
 
 data ContextParamToken = ContextParamToken
   { contextParamIdx :: RankNumber
