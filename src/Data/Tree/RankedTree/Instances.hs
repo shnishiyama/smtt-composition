@@ -34,6 +34,28 @@ instance RankedTree (BinTree a) where
   mkTreeUnchecked Nothing  _  = BinLeaf
 
 
+newtype ListTree a = ListTree
+  { unListTree :: [a]
+  } deriving (Eq, Ord, Show, Generic)
+
+instance RankedTree (ListTree a) where
+  type LabelType (ListTree a) = Maybe a
+
+  treeLabel (ListTree l) = case l of
+    []    -> Nothing
+    x:_   -> Just x
+
+  treeChilds (ListTree l) = case l of
+    []     -> []
+    _:xs   -> [ListTree xs]
+
+  treeLabelRank _ Just{}  = 1
+  treeLabelRank _ Nothing = 0
+
+  mkTreeUnchecked (Just x) cs = coerce (x:) $ cs `indexEx` 0
+  mkTreeUnchecked Nothing _   = ListTree []
+
+
 data NatNum
   = Zero
   | Succ NatNum

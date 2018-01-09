@@ -1,6 +1,8 @@
-module PostfixOpParser where
+module Samples.PostfixOpParser where
 
-import Stack
+import SattPrelude
+
+import Data.Stack
 
 
 data PostfixOpTree
@@ -25,7 +27,7 @@ instance NFData InfixOpTree
 
 
 ptoi :: PostfixOpTree -> InfixOpTree
-ptoi t = stackHead (f0 t emptyStack)
+ptoi t = stackHead (f0 t stackEmpty)
   where
     f0 (PostfixMultiNode u0) y0 = f0 u0
       (stackCons
@@ -48,3 +50,12 @@ ptoi t = stackHead (f0 t emptyStack)
     f0 (PostfixTwoNode u0) y0 = f0 u0
       (stackCons InfixTwoNode y0)
     f0 PostfixEndNode      y0 = y0
+
+
+itop :: InfixOpTree -> PostfixOpTree
+itop t = f0 t PostfixEndNode
+  where
+    f0 InfixOneNode           y0 = PostfixOneNode y0
+    f0 InfixTwoNode           y0 = PostfixTwoNode y0
+    f0 (InfixMultiNode u0 u1) y0 = f0 u0 (f0 u1 (PostfixMultiNode y0))
+    f0 (InfixPlusNode u0 u1)  y0 = f0 u0 (f0 u1 (PostfixPlusNode y0))

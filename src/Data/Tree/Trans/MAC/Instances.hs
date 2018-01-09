@@ -118,20 +118,46 @@ type TwoCounterStateAlphabet = TaggedRankedAlphabet
 
 type TwoCounterMtt = MttTransducer
   TwoCounterStateAlphabet
-  InfixOpTree NatNum
+  MiniInfixOpTree NatNum
 
 twoCounterMtt :: TwoCounterMtt
 twoCounterMtt = fromMaybe errorUnreachable $ buildMtt
     (MttState f0 0 [MttLabelSide False []])
     [ (f0, iOne, MttContext 0)
-    , (f0, iTwo, MttLabelSide True [MttContext 0])
+    -- , (f0, iTwo, MttLabelSide True [MttContext 0])
     , (f0, iPlus, MttState f0 0 [MttState f0 1 [MttContext 0]])
-    , (f0, iMulti, MttState f0 0 [MttState f0 1 [MttContext 0]])
+    -- , (f0, iMulti, MttState f0 0 [MttState f0 1 [MttContext 0]])
     ]
   where
     f0 = taggedRankedLabel @"f0"
 
     iOne   = taggedRankedLabel @"one"
-    iTwo   = taggedRankedLabel @"two"
+    -- iTwo   = taggedRankedLabel @"two"
     iPlus  = taggedRankedLabel @"plus"
-    iMulti = taggedRankedLabel @"multi"
+    -- iMulti = taggedRankedLabel @"multi"
+
+
+type ReverseStateAlphabet = TaggedRankedAlphabet
+  '[ '("f0", 2)]
+
+type ReverseMtt = MttTransducer
+  ReverseStateAlphabet
+  PostfixOpTree PostfixOpTree
+
+reverseMtt :: ReverseMtt
+reverseMtt = fromMaybe errorUnreachable $ buildMtt
+    (MttState f0 0 [MttLabelSide pEnd []])
+    [ (f0, pOne, MttState f0 0 [MttLabelSide pOne [MttContext 0]])
+    , (f0, pTwo, MttState f0 0 [MttLabelSide pTwo [MttContext 0]])
+    , (f0, pMulti, MttState f0 0 [MttLabelSide pMulti [MttContext 0]])
+    , (f0, pPlus, MttState f0 0 [MttLabelSide pPlus [MttContext 0]])
+    , (f0, pEnd, MttContext 0)
+    ]
+  where
+    f0 = taggedRankedLabel @"f0"
+
+    pOne   = taggedRankedLabel @"one"
+    pTwo   = taggedRankedLabel @"two"
+    pPlus  = taggedRankedLabel @"plus"
+    pMulti = taggedRankedLabel @"multi"
+    pEnd   = taggedRankedLabel @"end"

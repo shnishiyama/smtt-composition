@@ -22,6 +22,7 @@ module Data.Tree.Trans.SMAC
 
     -- standard form
   , toStandardForm
+  , toStackMacroTreeTransducer
 
     -- reduction system
   , ReductionState
@@ -56,6 +57,7 @@ import           Data.Tree.RankedTree.Label
 import           Data.Tree.RankedTree.Zipper
 import           Data.Tree.Trans.Class
 import           Data.Tree.Trans.Stack
+import qualified Data.Tree.Trans.MAC as MAC
 import qualified Text.Show                   as S
 
 
@@ -678,3 +680,22 @@ toStandardForm trans = trans
     initialExpr = evalStackStkExpr $ smttInitialExpr trans
 
     rules = evalStackStkExpr <$> smttTransRules trans
+
+
+toStackMacroTreeTransducer ::
+  ( MAC.MttConstraint s ta la tb lb
+  )
+  => MAC.MacroTreeTransducer s ta la tb lb
+  -> StackMacroTreeTransducer s ta la tb lb
+toStackMacroTreeTransducer trans = fromMaybe errorUnreachable
+    $ buildSmtt
+      (convRhs $ MAC.mttInitialExpr trans)
+      [ (f, l, convRhs rhs) | ((f, l), rhs) <- mapToList $ MAC.mttTransRules trans ]
+  where
+    convRhs x = case x of
+      MAC.MttContext c       -> SmttContext c
+      MAC.MttState f u cs    -> SmttState f u $ convRhs <$> cs
+      MAC.MttLabelSide l cs  -> SmttStackCons
+        (SmttLabelSide l $ SmttStackHead . convRhs <$> cs)
+        SmttStackEmpty
+      MAC.MttBottomLabelSide -> SmttStackEmpty

@@ -15,7 +15,11 @@ import           Data.Tree.Trans.Stack
 data ComposedSattSynAttr syn1 inh1 syn2 inh2
   = SynSynAttr syn1 syn2
   | InhInhAttr inh1 inh2
-  deriving (Eq, Ord, Show, Generic)
+  deriving (Eq, Ord, Generic)
+
+instance (Show syn1, Show inh1, Show syn2, Show inh2) => Show (ComposedSattSynAttr syn1 inh1 syn2 inh2) where
+  show (a1 `SynSynAttr` a2) = show (a1, a2)
+  show (b1 `InhInhAttr` b2) = show (b1, b2)
 
 instance (Hashable syn1, Hashable inh1, Hashable syn2, Hashable inh2)
   => Hashable (ComposedSattSynAttr syn1 inh1 syn2 inh2)
@@ -23,7 +27,11 @@ instance (Hashable syn1, Hashable inh1, Hashable syn2, Hashable inh2)
 data ComposedSattInhAttr syn1 inh1 syn2 inh2
   = SynInhAttr syn1 inh2
   | InhSynAttr inh1 syn2
-  deriving (Eq, Ord, Show, Generic)
+  deriving (Eq, Ord, Generic)
+
+instance (Show syn1, Show inh1, Show syn2, Show inh2) => Show (ComposedSattInhAttr syn1 inh1 syn2 inh2) where
+  show (a1 `SynInhAttr` b2) = show (a1, b2)
+  show (b1 `InhSynAttr` a2) = show (b1, a2)
 
 instance (Hashable syn1, Hashable inh1, Hashable syn2, Hashable inh2)
   => Hashable (ComposedSattInhAttr syn1 inh1 syn2 inh2)

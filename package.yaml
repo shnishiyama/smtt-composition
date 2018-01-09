@@ -201,5 +201,8 @@ benchmarks:
     - -with-rtsopts=-N
     dependencies:
       <<: *base-dependencies
+      satt-composition:
       criterion:
       deepseq:
+      random:
+      mtl:
