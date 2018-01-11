@@ -43,6 +43,7 @@ import           Data.Tree.RankedTree.Label
 import           Data.Tree.RankedTree.Zipper
 import           Data.Tree.Trans.Class
 import qualified Text.Show                   as S
+import qualified Text.PrettyPrint.Classy as Pretty
 
 
 data RightHandSideF s t l u c rhs
@@ -147,6 +148,23 @@ instance (Show s, Show la, Show lb, MttConstraint s ta la tb lb)
       <> " }"
     where
       showRule (k, rhs) = show k <> " -> " <> prettyShowRhs rhs
+
+instance (Show s, Show la, Show lb, MttConstraint s ta la tb lb)
+    => Pretty.Pretty (MacroTreeTransducer s ta la tb lb) where
+
+  pretty MacroTreeTransducer{..} = Pretty.record "MacroTreeTransducer"
+      [ ("mttStates",      Pretty.list $ Pretty.prettyShowString <$> toList mttStates)
+      , ("mttInitialExpr", Pretty.text $ prettyShowRhs mttInitialExpr)
+      , ( "mttTransRules"
+        , Pretty.list [ showRule k rhs | (k, rhs) <- mapToList mttTransRules ]
+        )
+      ]
+    where
+      showRule k rhs
+        = Pretty.prettyShowString k
+        Pretty.<+> Pretty.text "->"
+        Pretty.<+> Pretty.string (prettyShowRhs rhs)
+
 
 buildMtt :: forall m s ta la tb lb. (MttConstraint s ta la tb lb, MonadThrow m)
   => RightHandSide s tb lb -> [(s, la, RightHandSide s tb lb)]

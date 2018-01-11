@@ -62,6 +62,7 @@ import           Data.Tree.RankedTree
 import           Data.Tree.RankedTree.Zipper
 import           Data.Tree.Trans.Class
 import qualified Text.Show                   as S
+import qualified Text.PrettyPrint.Classy as Pretty
 
 
 -- TODO: Use Either (GHC 8.2.x have a critical bug for pattern synonyms)
@@ -164,7 +165,7 @@ prettyShowRhs rhs = go rhs ""
   where
     go (Fix x) = prettyShowRhsF (\(a, ()) -> attrShow a) go x
 
-    attrShow (Synthesized (a, i)) = S.shows a . S.showString "[" . S.shows i . S.showString ", ...]"
+    attrShow (Synthesized (a, i)) = S.shows a . S.showString "[" . S.shows i . S.showString ",...]"
     attrShow (Inherited a)        = S.shows a . S.showString "[...]"
 
 type AttAttr syn inh = AttAttrEither
@@ -212,7 +213,34 @@ instance (Show syn, Show inh, Show la, Show lb, AttConstraint syn inh ta la tb l
         <> prettyShowRhs rhs
 
       attrShow (Synthesized a)    = show a <> "[...]"
-      attrShow (Inherited (a, i)) = show a <> "[" <> show i <> ", ...]"
+      attrShow (Inherited (a, i)) = show a <> "[" <> show i <> ",...]"
+
+instance (Show syn, Show inh, Show la, Show lb, AttConstraint syn inh ta la tb lb)
+    => Pretty.Pretty (AttributedTreeTransducer syn inh ta la tb lb) where
+
+  pretty AttributedTreeTransducer{..} = Pretty.record "AttributedTreeTransducer"
+      [ ("attAttributes",  Pretty.list $ Pretty.prettyShowString <$> toList attAttributes)
+      , ("attInitialAttr", Pretty.prettyShowString attInitialAttr)
+      , ( "attTranslateRules"
+        , Pretty.list [ showRule a l rhs | (a, l, rhs) <- initialRules <> transRules ]
+        )
+      ]
+    where
+      initialRules = sortWith (\(a, _, _) -> a)
+        [(attrShow $ bimap (const attInitialAttr) (,0) a, "#", rhs) | (a, rhs) <- mapToList attInitialRules]
+
+      transRules = sortWith (\(a, l, _) -> (l, a))
+        [(attrShow a, show l, rhs) | ((a, l), rhs) <- mapToList attTransRules]
+
+      showRule a l rhs
+        = Pretty.text a
+        Pretty.<+> Pretty.text ("-(" <> l <> ")->")
+        Pretty.<+> Pretty.string (prettyShowRhs rhs)
+
+      attrShow attr = case attr of
+        Synthesized a    -> show a <> "[...]"
+        Inherited (a, i) -> show a <> "[" <> show i <> ",...]"
+
 
 coerceRhsInh :: forall syn inh tb lb. RightHandSide syn Void tb lb -> RightHandSide syn inh tb lb
 coerceRhsInh (Fix x) = Fix $ case x of

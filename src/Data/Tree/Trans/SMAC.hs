@@ -59,6 +59,7 @@ import           Data.Tree.Trans.Class
 import qualified Data.Tree.Trans.MAC         as MAC
 import           Data.Tree.Trans.Stack
 import qualified Text.Show                   as S
+import qualified Text.PrettyPrint.Classy as Pretty
 
 
 data BaseRightHandSideValF s t l u c valrhs stkrhs
@@ -255,6 +256,23 @@ instance (Show s, Show la, Show lb, SmttConstraint s ta la tb lb)
       <> " }"
     where
       showRule (k, rhs) = show k <> " -> " <> prettyShowRhs rhs
+
+instance (Show s, Show la, Show lb, SmttConstraint s ta la tb lb)
+    => Pretty.Pretty (StackMacroTreeTransducer s ta la tb lb) where
+
+  pretty StackMacroTreeTransducer{..} = Pretty.record "StackMacroTreeTransducer"
+      [ ("smttStates",      Pretty.list $ Pretty.prettyShowString <$> toList smttStates)
+      , ("smttInitialExpr", Pretty.text $ prettyShowRhs smttInitialExpr)
+      , ( "smttTransRules"
+        , Pretty.list [ showRule k rhs | (k, rhs) <- mapToList smttTransRules ]
+        )
+      ]
+    where
+      showRule k rhs
+        = Pretty.prettyShowString k
+        Pretty.<+> Pretty.text "->"
+        Pretty.<+> Pretty.string (prettyShowRhs rhs)
+
 
 buildSmtt :: forall m s ta la tb lb. (SmttConstraint s ta la tb lb, MonadThrow m)
   => RightHandSide s tb lb -> [(s, la, RightHandSide s tb lb)]

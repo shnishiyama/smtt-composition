@@ -87,6 +87,7 @@ import           Data.Tree.Trans.Class
 import qualified Data.Tree.Trans.SMAC        as SMAC
 import           Data.Tree.Trans.Stack
 import qualified Text.Show                   as S
+import qualified Text.PrettyPrint.Classy as Pretty
 
 
 type SattAttrEither = ATT.AttAttrEither
@@ -259,7 +260,7 @@ prettyShowRhs rhs = goStk rhs ""
 
     attrShow' (a, ()) = attrShow a
 
-    attrShow (Synthesized (a, i)) = S.shows a . S.showString "[" . S.shows i . S.showString ", ...]"
+    attrShow (Synthesized (a, i)) = S.shows a . S.showString "[" . S.shows i . S.showString ",...]"
     attrShow (Inherited a)        = S.shows a . S.showString "[...]"
 
 type SattAttr syn inh = SattAttrEither
@@ -307,7 +308,34 @@ instance (Show syn, Show inh, Show la, Show lb, SattConstraint syn inh ta la tb 
         <> prettyShowRhs rhs
 
       attrShow (Synthesized a)    = show a <> "[...]"
-      attrShow (Inherited (a, i)) = show a <> "[" <> show i <> ", ...]"
+      attrShow (Inherited (a, i)) = show a <> "[" <> show i <> ",...]"
+
+instance (Show syn, Show inh, Show la, Show lb, SattConstraint syn inh ta la tb lb)
+    => Pretty.Pretty (StackAttributedTreeTransducer syn inh ta la tb lb) where
+
+  pretty StackAttributedTreeTransducer{..} = Pretty.record "StackAttributedTreeTransducer"
+      [ ("sattAttributes",  Pretty.list $ Pretty.prettyShowString <$> toList sattAttributes)
+      , ("sattInitialAttr", Pretty.prettyShowString sattInitialAttr)
+      , ( "sattTranslateRules"
+        , Pretty.list [ showRule a l rhs | (a, l, rhs) <- initialRules <> transRules ]
+        )
+      ]
+    where
+      initialRules = sortWith (\(a, _, _) -> a)
+        [(attrShow $ bimap (const sattInitialAttr) (,0) a, "#", rhs) | (a, rhs) <- mapToList sattInitialRules]
+
+      transRules = sortWith (\(a, l, _) -> (l, a))
+        [(attrShow a, show l, rhs) | ((a, l), rhs) <- mapToList sattTransRules]
+
+      showRule a l rhs
+        = Pretty.text a
+        Pretty.<+> Pretty.text ("-(" <> l <> ")->")
+        Pretty.<+> Pretty.string (prettyShowRhs rhs)
+
+      attrShow attr = case attr of
+        Synthesized a    -> show a <> "[...]"
+        Inherited (a, i) -> show a <> "[" <> show i <> ",...]"
+
 
 coerceRhsStkInh :: forall syn inh tb lb. RightHandSideStk syn Void tb lb -> RightHandSideStk syn inh tb lb
 coerceRhsStkInh (FixStk x) = FixStk $ case x of
