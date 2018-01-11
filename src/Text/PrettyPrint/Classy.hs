@@ -1,6 +1,10 @@
 module Text.PrettyPrint.Classy
   ( module Text.PrettyPrint.ANSI.Leijen
 
+    -- renames
+  , emptyDoc
+  , (<$^>)
+
     -- for show wrapper
   , ShowDoc (..)
   , prettyShowString
@@ -9,8 +13,16 @@ module Text.PrettyPrint.Classy
   , record
   ) where
 
-import Prelude hiding ((<$>))
-import Text.PrettyPrint.ANSI.Leijen
+import Prelude
+import Text.PrettyPrint.ANSI.Leijen hiding ((<$>), empty)
+import qualified Text.PrettyPrint.ANSI.Leijen as PrettyPrint
+
+
+emptyDoc :: Doc
+emptyDoc = PrettyPrint.empty
+
+(<$^>) :: Doc -> Doc -> Doc
+(<$^>) = (PrettyPrint.<$>)
 
 
 newtype ShowDoc a = ShowDoc a

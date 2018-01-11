@@ -313,8 +313,8 @@ composeSattAndAtt trans1NoST trans2 = do
     checkSingleUse trans1
     pure $ fromMaybe errorUnreachable $ SATT.buildSatt
       (iattr1 `SynSynAttr` iattr2)
-      (foldl' (\xs irule1 -> goIrule irule1 <> xs) [] irules1)
-      (foldl' (\xs rule1  -> goRule  rule1  <> xs) [] rules1)
+      (goIrule irules1)
+      (join $ toList $ HashMap.mapWithKey goRule rules1)
   where
     trans1 = SATT.toStandardForm trans1NoST
 
@@ -323,7 +323,8 @@ composeSattAndAtt trans1NoST trans2 = do
 
     (idx, attrds) = indexSattRule @RTZipper trans1
     irules1 = mapToList $ SATT.sattInitialRules trans1
-    rules1  = mapToList $ SATT.sattTransRules trans1
+    rules1  = HashMap.fromListWith (<>)
+      [(l, (a, rhs):[]) | ((a, l), rhs) <- mapToList $ SATT.sattTransRules trans1 ]
 
     composeBasedAtt = toComposeBasedAtt attrds trans2
 
@@ -353,7 +354,7 @@ composeSattAndAtt trans1NoST trans2 = do
       in mapToList $ fmap zipRules'
         $ HashMap.fromListWith (<>) [(a, r:[]) | (a, r) <- rules]
 
-    buildRules' replacerB2 replacerA2 isInitial a l rhs = zipRules $
+    buildRules' replacerB2 replacerA2 isInitial a l rhs =
       [ ( replacerA2 a2
         , runReductionWithRep replacerB2 $ ATT.toInitialAttrState (ATT.Synthesized a2) pathInfo
         )
@@ -404,16 +405,22 @@ composeSattAndAtt trans1NoST trans2 = do
       SATT.SattStackBottom    -> SATT.SattStackBottom
       SATT.SattStackHead s    -> SATT.SattStackHead (toInitialRhsStk s)
 
-    goIrule (attr1, rhs) = let
+    goIrule irules =
+      let
         formatRule (SATT.Synthesized _,    r) = (SATT.Synthesized (), toInitialRhsStk r)
         formatRule (SATT.Inherited (a, _), r) = (SATT.Inherited a,    toInitialRhsStk r)
-      in formatRule <$> case attr1 of
-        SATT.Synthesized () -> buildRules (SATT.Synthesized iattr1) Nothing rhs
-        SATT.Inherited   b1 -> buildRules (SATT.Inherited (b1, 0))  Nothing rhs
 
-    goRule ((attr1, l), rhs) = let
+        convAttr (SATT.Synthesized ()) = SATT.Synthesized iattr1
+        convAttr (SATT.Inherited   b1) = SATT.Inherited (b1, 0)
+      in fmap formatRule $ zipRules $ do
+        (attr1, rhs) <- irules
+        buildRules (convAttr attr1) Nothing rhs
+
+    goRule l rules = let
         formatRule (a, r) = (a, l, r)
-      in formatRule <$> buildRules attr1 (Just l) rhs
+      in fmap formatRule $ zipRules $ do
+        (attr1, rhs) <- rules
+        buildRules attr1 (Just l) rhs
 
     ruleIndex a l = fromMaybe [] $ lookup (a, l) idx
 

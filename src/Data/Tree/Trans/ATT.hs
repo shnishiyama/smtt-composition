@@ -227,7 +227,9 @@ instance (Show syn, Show inh, Show la, Show lb, AttConstraint syn inh ta la tb l
       ]
     where
       initialRules = sortWith (\(a, _, _) -> a)
-        [(attrShow $ bimap (const attInitialAttr) (,0) a, "#", rhs) | (a, rhs) <- mapToList attInitialRules]
+        [ (attrShow $ bimap (const attInitialAttr) (,0 :: RankNumber) a, "#", rhs)
+        | (a, rhs) <- mapToList attInitialRules
+        ]
 
       transRules = sortWith (\(a, l, _) -> (l, a))
         [(attrShow a, show l, rhs) | ((a, l), rhs) <- mapToList attTransRules]
