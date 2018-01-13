@@ -9,6 +9,7 @@ import           SattPrelude
 import           Data.Tree.RankedTree
 import           Data.Tree.RankedTree.Instances
 import           Data.Tree.RankedTree.Label
+import           Data.Tree.RankedTree.Zipper
 import qualified Data.Tree.Trans.ATT                     as ATT
 import           Data.Tree.Trans.ATT.Instances           as ATT
 import           Data.Tree.Trans.Class
@@ -25,35 +26,14 @@ import           Data.Tree.Trans.TOP.Instances           as TOP
 
 main :: IO ()
 main = do
-    let traUniverse = setFromList $ taggedRankedAlphabetUniverse Proxy
-    let identInputTrans = identitySatt @InputSampleTree traUniverse
-    identSampleTrans <- composeSattAndAtt identInputTrans ATT.sampleAtt
-    print <=< treeTrans identSampleTrans $ inputSampleTree
+    (preTdtt, trans1Satt) <- decomposeSmttNC miniPostfixToInfixSmtt
+    trans2Att <- fromMttWSUToAtt twoCounterMtt
+    postSatt <- composeSattAndAtt trans1Satt trans2Att
+    let postSmtt = SATT.toStackMacroTreeTransducer postSatt
+    t <- treeTrans preTdtt inputPostfixTree
 
-    trans <- composeSmttNCAndMttWSU postfixToInfixSmtt infixToPostfixMtt
-    print trans
-
-    putStrLn "------ reduction steps ------"
-    let reds = SMAC.runSmttReductionWithHistory trans . SMAC.toInitialReductionState trans $ inputPostfixTree
-    forM_ reds groomPrint
-
-    putStrLn "------ non satt-composition ------"
-    (preTdtt, trans1Satt) <- decomposeSmttNC postfixToInfixSmtt
-    trans2Att <- fromMttWSUToAtt infixToPostfixMtt
-    t1 <- treeTrans trans2Att <=< treeTrans trans1Satt <=< treeTrans preTdtt $ inputPostfixTree
-    print t1
-
-    putStrLn "------ with satt-composition ------"
-    t2 <- treeTrans trans inputPostfixTree
-    print t2
+    groomPrint $ fmap SATT.prettyShowReductionState $ SATT.runSattReductionWithHistory postSatt $ SATT.toInitialReductionState @RTZipper postSatt t
+    putStrLn "------"
+    groomPrint $ fmap SMAC.prettyShowReductionState $ SMAC.runSmttReductionWithHistory postSmtt $ SMAC.toInitialReductionState postSmtt t
   where
-    a = taggedRankedLabel @"A"; b = taggedRankedLabel @"B"; c = taggedRankedLabel @"C"; inputSampleTree = mkTree a [mkTree c [], mkTree b [mkTree c []]]
-    pOne = taggedRankedLabel @"one";pTwo = taggedRankedLabel @"two";pPlus = taggedRankedLabel @"plus";pMulti = taggedRankedLabel @"multi";pEnd = taggedRankedLabel @"end";inputPostfixTree = mkTree pTwo [mkTree pOne [ mkTree pTwo [mkTree pPlus [mkTree pMulti [mkTree pEnd []]]]]]
-
-    identitySatt :: (RankedTree ta, Eq (LabelType ta), Hashable (LabelType ta))
-      => HashSet (LabelType ta) -> SATT.SattTransducer () Void ta ta
-    identitySatt = SATT.toStackAttributedTreeTransducer . identityAtt
-
-    identityAtt :: (RankedTree ta, Eq (LabelType ta), Hashable (LabelType ta))
-      => HashSet (LabelType ta) -> ATT.AttTransducer () Void ta ta
-    identityAtt = TOP.toAttributedTreeTransducer . TOP.identityTransducer
+    pOne = taggedRankedLabel @"one"; pPlus = taggedRankedLabel @"plus"; pEnd = taggedRankedLabel @"end"; inputPostfixTree = mkTree pOne [mkTree pOne [mkTree pPlus [mkTree pEnd []]]]

@@ -46,10 +46,12 @@ default-extensions:
   - Arrows
   - BinaryLiterals
   - DefaultSignatures
+  - DerivingStrategies
   - FlexibleContexts
   - FlexibleInstances
   - InstanceSigs
   - LambdaCase
+  - MultiWayIf
   - NamedFieldPuns
   - NegativeLiterals
   - PatternSynonyms
@@ -65,6 +67,7 @@ default-extensions:
   - DeriveDataTypeable
   - DeriveFunctor
   - DeriveFoldable
+  - DeriveAnyClass
 
   # extensions of type systems
   - ConstraintKinds

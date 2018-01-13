@@ -53,9 +53,7 @@ import           Data.Bifunctor.FixLR
 data StackExprValF val stk
   = StackBottomF
   | StackHeadF stk
-  deriving (Eq, Ord, Show, Generic)
-
-instance (Hashable stk) => Hashable (StackExprValF val stk)
+  deriving (Eq, Ord, Show, Generic, Hashable)
 
 deriveBifunctor ''StackExprValF
 deriveBifoldable ''StackExprValF
@@ -67,9 +65,7 @@ data StackExprStkF val stk
   = StackEmptyF
   | StackTailF stk
   | StackConsF val stk
-  deriving (Eq, Ord, Show, Generic)
-
-instance (Hashable val, Hashable stk) => Hashable (StackExprStkF val stk)
+  deriving (Eq, Ord, Show, Generic, Hashable)
 
 deriveBifunctor ''StackExprStkF
 deriveBifoldable ''StackExprStkF

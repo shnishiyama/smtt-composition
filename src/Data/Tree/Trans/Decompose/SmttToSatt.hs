@@ -19,7 +19,7 @@ import qualified Text.Show             as S
 data ContextParamToken = ContextParamToken
   { contextParamIdx :: RankNumber
   , contextStackIdx :: (Bool, RankNumber)
-  } deriving (Eq, Ord, Generic)
+  } deriving (Eq, Ord, Generic, Hashable)
 
 instance Show ContextParamToken where
   showsPrec d (ContextParamToken j (b, i)) = S.showParen (d > appPrec)
@@ -32,8 +32,6 @@ instance Show ContextParamToken where
 
       appPrec = 10
 
-instance Hashable ContextParamToken
-
 type SubstitutionLabelIndex
   = Vector (HashMap RankNumber [(Bool, RankNumber)])
 
@@ -42,9 +40,7 @@ data SubstitutionTreeF tb lb idx a
   | StackExprLabelF StackExprLabel
   | ContextParamF ContextParamToken
   | SubstitutionF idx (NodeVec a)
-  deriving (Eq, Show, Generic, Generic1, Functor, Foldable)
-
-instance (Hashable lb, Hashable idx, Hashable a) => Hashable (SubstitutionTreeF tb lb idx a)
+  deriving (Eq, Show, Generic, Generic1, Functor, Foldable, Hashable)
 
 deriveEq1 ''SubstitutionTreeF
 deriveShow1 ''SubstitutionTreeF
@@ -232,19 +228,27 @@ decomposeSmttNC transNoST = do
           , if i == 0
             then if j < p then SATT.SynAttrSide () $ j + 1 else SATT.SattStackEmpty
             else buildSattInheritedRules
-              (SATT.InhAttrSide j) 0 $ fromMaybe [] $ lookup j $ idx `indexEx` (i - 1)
+              (SATT.InhAttrSide j) $ fromMaybe [] $ lookup j $ idx `indexEx` (i - 1)
           )
 
-    buildSattInheritedRules _  _ []
+    buildSattInheritedRules yj xs =
+      let
+        convConsList ((False, i):l) = case convConsList l of
+          [(True, i')] | i + 1 == i' -> [(True, i)]
+          l'                         -> (False, i):l'
+        convConsList l              = l
+      in buildSattInheritedRules' yj 0 $ convConsList xs
+
+    buildSattInheritedRules' _  _ []
       = SATT.SattStackEmpty
-    buildSattInheritedRules yj n [(True, i)]
+    buildSattInheritedRules' yj n [(True, i)]
       = stimesEndo (i - n) (SATT.SattStackCons SATT.SattStackBottom)
       $ stimesEndo i SATT.SattStackTail yj
-    buildSattInheritedRules yj n ((False, i):xs)
+    buildSattInheritedRules' yj n ((False, i):xs)
       = stimesEndo (i - n) (SATT.SattStackCons SATT.SattStackBottom)
       $ SATT.SattStackCons (SATT.SattStackHead $ stimesEndo i SATT.SattStackTail $ yj)
-      $ buildSattInheritedRules yj (i + 1) xs
-    buildSattInheritedRules _ _ _ = error "not sorted context"
+      $ buildSattInheritedRules' yj (i + 1) xs
+    buildSattInheritedRules' _ _ _ = error "not sorted context"
 
     h (OriginalOutputLabelF l) = SATT.SattStackCons
       ( SATT.SattLabelSide l

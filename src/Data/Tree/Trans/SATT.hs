@@ -98,10 +98,7 @@ type SattAttrDepend syn inh = SattAttrEither
 
 data BaseRightHandSideValF syn inh t l pi valrhs stkrhs
   = BaseSattLabelSideF l (NodeVec valrhs)
-  deriving (Eq, Ord, Show, Generic)
-
-instance (Hashable syn, Hashable inh, Hashable l, Hashable pi, Hashable valrhs, Hashable stkrhs)
-  => Hashable (BaseRightHandSideValF syn inh t l pi valrhs stkrhs)
+  deriving (Eq, Ord, Show, Generic, Hashable)
 
 deriveEq2 ''BaseRightHandSideValF
 deriveOrd2 ''BaseRightHandSideValF
@@ -124,10 +121,7 @@ pattern SattStackHeadF s = BiInR (StackHeadF s)
 
 data BaseRightHandSideStkF syn inh t l pi valrhs stkrhs
   = BaseSattAttrSideF (SattAttrDepend syn inh) pi
-  deriving (Eq, Ord, Show, Generic)
-
-instance (Hashable syn, Hashable inh, Hashable l, Hashable pi, Hashable valrhs, Hashable stkrhs)
-  => Hashable (BaseRightHandSideStkF syn inh t l pi valrhs stkrhs)
+  deriving (Eq, Ord, Show, Generic, Hashable)
 
 deriveEq2 ''BaseRightHandSideStkF
 deriveOrd2 ''BaseRightHandSideStkF

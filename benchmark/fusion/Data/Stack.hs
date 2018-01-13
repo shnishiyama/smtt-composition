@@ -4,8 +4,7 @@ import           SattPrelude
 
 newtype Stack a = Stack [a]
   deriving (Eq, Ord, Show, Generic)
-
-instance NFData a => NFData (Stack a)
+  deriving newtype NFData
 
 stackHead :: Stack a -> a
 stackHead (Stack x) = case x of

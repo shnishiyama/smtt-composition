@@ -43,9 +43,7 @@ infixr 6 :+|+:
 data (p1 :+|+: p2) a b
   = BiInL (p1 a b)
   | BiInR (p2 a b)
-  deriving (Eq, Ord, Show, Generic)
-
-instance (Hashable (p1 a b), Hashable (p2 a b)) => Hashable ((p1 :+|+: p2) a b)
+  deriving (Eq, Ord, Show, Generic, Hashable)
 
 instance (Eq2 p1, Eq2 p2) => Eq2 (p1 :+|+: p2) where
   liftEq2 f g (BiInL a) (BiInL b) = liftEq2 f g a b

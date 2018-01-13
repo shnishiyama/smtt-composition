@@ -64,10 +64,7 @@ import qualified Text.PrettyPrint.Classy as Pretty
 
 data BaseRightHandSideValF s t l u c valrhs stkrhs
   = BaseSmttLabelSideF l (NodeVec valrhs)
-  deriving (Eq, Ord, Show, Generic)
-
-instance (Hashable s, Hashable l, Hashable valrhs, Hashable stkrhs)
-  => Hashable (BaseRightHandSideValF s t l u c valrhs stkrhs)
+  deriving (Eq, Ord, Show, Generic, Hashable)
 
 deriveEq2 ''BaseRightHandSideValF
 deriveOrd2 ''BaseRightHandSideValF
@@ -91,10 +88,7 @@ pattern SmttStackHeadF s = BiInR (StackHeadF s)
 data BaseRightHandSideStkF s t l u c valrhs stkrhs
   = BaseSmttContextF c
   | BaseSmttStateF s u (NodeVec stkrhs)
-  deriving (Eq, Ord, Show, Generic)
-
-instance (Hashable s, Hashable u, Hashable c, Hashable valrhs, Hashable stkrhs)
-  => Hashable (BaseRightHandSideStkF s t l u c valrhs stkrhs)
+  deriving (Eq, Ord, Show, Generic, Hashable)
 
 deriveEq2 ''BaseRightHandSideStkF
 deriveOrd2 ''BaseRightHandSideStkF
@@ -264,12 +258,15 @@ instance (Show s, Show la, Show lb, SmttConstraint s ta la tb lb)
       [ ("smttStates",      Pretty.list $ Pretty.prettyShowString <$> toList smttStates)
       , ("smttInitialExpr", Pretty.text $ prettyShowRhs smttInitialExpr)
       , ( "smttTransRules"
-        , Pretty.list [ showRule k rhs | (k, rhs) <- mapToList smttTransRules ]
+        , Pretty.list [ showRule f l rhs | (f, l, rhs) <- rules ]
         )
       ]
     where
-      showRule k rhs
-        = Pretty.prettyShowString k
+      rules = sortWith (\(f, l, _) -> (l, f))
+        [ (show f, show l, rhs) | ((f, l), rhs) <- mapToList smttTransRules ]
+
+      showRule f l rhs
+        = Pretty.text f Pretty.<+> Pretty.text ("(" <> l <> ")")
         Pretty.<+> Pretty.text "->"
         Pretty.<+> Pretty.string (prettyShowRhs rhs)
 

@@ -51,7 +51,7 @@ data RightHandSideF s t l u c rhs
   | MttStateF s u (NodeVec rhs)
   | MttLabelSideF l (NodeVec rhs)
   | MttBottomLabelSideF
-  deriving (Eq, Ord, Show, Generic, Generic1, Functor, Foldable)
+  deriving (Eq, Ord, Show, Generic, Generic1, Functor, Foldable, Hashable)
 
 deriveEq1 ''RightHandSideF
 deriveEq2 ''RightHandSideF
@@ -61,9 +61,6 @@ deriveShow1 ''RightHandSideF
 deriveShow2 ''RightHandSideF
 deriveBifunctor ''RightHandSideF
 deriveBifoldable ''RightHandSideF
-
-instance (Hashable s, Hashable l, Hashable u, Hashable c, Hashable rhs)
-  => Hashable (RightHandSideF s t l u c rhs)
 
 type instance Element (RightHandSideF s t l u c rhs) = rhs
 
@@ -156,12 +153,15 @@ instance (Show s, Show la, Show lb, MttConstraint s ta la tb lb)
       [ ("mttStates",      Pretty.list $ Pretty.prettyShowString <$> toList mttStates)
       , ("mttInitialExpr", Pretty.text $ prettyShowRhs mttInitialExpr)
       , ( "mttTransRules"
-        , Pretty.list [ showRule k rhs | (k, rhs) <- mapToList mttTransRules ]
+        , Pretty.list [ showRule f l rhs | (f, l, rhs) <- rules ]
         )
       ]
     where
-      showRule k rhs
-        = Pretty.prettyShowString k
+      rules = sortWith (\(f, l, _) -> (l, f))
+        [ (show f, show l, rhs) | ((f, l), rhs) <- mapToList mttTransRules ]
+
+      showRule f l rhs
+        = Pretty.text f Pretty.<+> Pretty.text ("(" <> l <> ")")
         Pretty.<+> Pretty.text "->"
         Pretty.<+> Pretty.string (prettyShowRhs rhs)
 

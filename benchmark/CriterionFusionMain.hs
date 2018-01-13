@@ -1,9 +1,9 @@
 module Main where
 
-import SattPrelude
+import           SattPrelude
 
-import Criterion.Main
-import Fusion (benchSpec)
+import           Criterion.Main
+import           Fusion         (benchSpec)
 
 
 main :: IO ()

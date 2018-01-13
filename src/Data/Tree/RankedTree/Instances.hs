@@ -10,9 +10,7 @@ import           Data.Tree.RankedTree.Label
 data BinTree a
   = BinNode a (BinTree a) (BinTree a)
   | BinLeaf
-  deriving (Eq, Ord, Show, Functor, Foldable, Generic)
-
-instance Hashable a => Hashable (BinTree a)
+  deriving (Eq, Ord, Show, Functor, Foldable, Generic, Hashable)
 
 type instance Element (BinTree a) = a
 
@@ -36,7 +34,9 @@ instance RankedTree (BinTree a) where
 
 newtype ListTree a = ListTree
   { unListTree :: [a]
-  } deriving (Eq, Ord, Show, Generic)
+  }
+  deriving (Eq, Ord, Show, Generic)
+  deriving newtype Hashable
 
 instance RankedTree (ListTree a) where
   type LabelType (ListTree a) = Maybe a
@@ -59,9 +59,7 @@ instance RankedTree (ListTree a) where
 data NatNum
   = Zero
   | Succ NatNum
-  deriving (Eq, Ord, Show, Generic)
-
-instance Hashable NatNum
+  deriving (Eq, Ord, Show, Generic, Hashable)
 
 instance RankedTree NatNum where
   type LabelType NatNum = Bool

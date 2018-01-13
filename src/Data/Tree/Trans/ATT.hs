@@ -69,15 +69,13 @@ import qualified Text.PrettyPrint.Classy as Pretty
 data AttAttrEither syn inh
   = Synthesized syn
   | Inherited inh
-  deriving (Eq, Ord, Show, Generic)
+  deriving (Eq, Ord, Show, Generic, Hashable)
 
 deriveEq2 ''AttAttrEither
 deriveOrd2 ''AttAttrEither
 deriveShow2 ''AttAttrEither
 deriveBifunctor ''AttAttrEither
 deriveBifoldable ''AttAttrEither
-
-instance (Hashable syn, Hashable inh) => Hashable (AttAttrEither syn inh)
 
 isSynthesized :: AttAttrEither syn inh -> Bool
 isSynthesized Synthesized{} = True
@@ -96,10 +94,7 @@ data RightHandSideF syn inh t l pi rhs
   = AttAttrSideF (AttAttrDepend syn inh) pi
   | AttLabelSideF l (NodeVec rhs)
   | AttBottomLabelSideF
-  deriving (Eq, Ord, Show, Generic, Generic1, Functor, Foldable)
-
-instance (Hashable syn, Hashable inh, Hashable l, Hashable pi, Hashable rhs)
-  => Hashable (RightHandSideF syn inh t l pi rhs)
+  deriving (Eq, Ord, Show, Generic, Generic1, Functor, Foldable, Hashable)
 
 type instance Element (RightHandSideF syn inh t l pi rhs) = rhs
 
@@ -438,7 +433,9 @@ instance RankedTreeZipper tz => RankedTreeZipper (AttPathInfo tz) where
 
 newtype ReductionStateF syn inh ta la tb lb tz state = ReductionStateF
   { unwrapReductionStateF :: RightHandSideF syn inh tb lb (AttPathInfo tz ta la) state
-  } deriving (Eq, Ord, Show, Eq1, Ord1, Show1, Generic, Generic1, Functor, Foldable)
+  }
+  deriving (Eq, Ord, Show, Generic, Generic1, Functor, Foldable)
+  deriving newtype (Eq1, Ord1, Show1)
 
 type instance Element (ReductionStateF syn inh ta la tb lb tz state) = state
 

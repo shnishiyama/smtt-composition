@@ -78,9 +78,9 @@ type RtApply tz t = tz t (LabelType t)
 
 newtype WrappedRankedTree t l = RankedTreeWrapper
   { unwrapRankedTree :: t
-  } deriving (Generic)
-
-instance (RtConstraint t l, Hashable t) => Hashable (WrappedRankedTree t l)
+  }
+  deriving (Generic)
+  deriving newtype Hashable
 
 instance (RtConstraint t l, Eq l) => Eq (WrappedRankedTree t l) where
   t1 == t2 = treeLabel t1 == treeLabel t2 && treeChilds t1 == treeChilds t2

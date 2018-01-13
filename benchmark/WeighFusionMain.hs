@@ -1,10 +1,10 @@
 module Main where
 
-import SattPrelude
+import           SattPrelude
 
-import Weigh
-import Fusion (benchSpec)
-import Control.Bench
+import           Control.Bench
+import           Fusion        (benchSpec)
+import           Weigh
 
 
 main :: IO ()

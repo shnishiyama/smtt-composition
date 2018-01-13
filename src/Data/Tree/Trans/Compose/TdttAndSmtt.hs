@@ -16,9 +16,7 @@ import qualified Data.Vector                as V
 
 
 data ComposedSmttState s1 s2 = ComposedSmttState s1 s2
-  deriving (Eq, Ord, Show, Generic)
-
-instance (Hashable s1, Hashable s2) => Hashable (ComposedSmttState s1 s2)
+  deriving (Eq, Ord, Show, Generic, Hashable)
 
 instance RankedLabel s2 => RankedLabel (ComposedSmttState s1 s2) where
   labelRank (ComposedSmttState _ s2) = labelRank s2

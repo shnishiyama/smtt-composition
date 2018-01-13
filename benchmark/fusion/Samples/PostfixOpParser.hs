@@ -11,9 +11,7 @@ data PostfixOpTree
   | PostfixOneNode   PostfixOpTree
   | PostfixTwoNode   PostfixOpTree
   | PostfixEndNode
-  deriving (Eq, Ord, Show, Generic)
-
-instance NFData PostfixOpTree
+  deriving (Eq, Ord, Show, Generic, NFData)
 
 
 data InfixOpTree
@@ -21,9 +19,7 @@ data InfixOpTree
   | InfixPlusNode  InfixOpTree InfixOpTree
   | InfixOneNode
   | InfixTwoNode
-  deriving (Eq, Ord, Show, Generic)
-
-instance NFData InfixOpTree
+  deriving (Eq, Ord, Show, Generic, NFData)
 
 
 ptoi :: PostfixOpTree -> InfixOpTree

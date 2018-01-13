@@ -51,12 +51,12 @@ class RankedLabel l where
 
 newtype RankedTreeLabel t l = RankedTreeLabelWrapper
   { unwrapRankedTreeLabel :: l
-  } deriving (Eq, Ord, Enum, Bounded, Generic)
+  }
+  deriving (Eq, Ord, Enum, Bounded, Generic)
+  deriving newtype Hashable
 
 instance Show l => Show (RankedTreeLabel t l) where
   show (RankedTreeLabelWrapper l) = show l
-
-instance Hashable l => Hashable (RankedTreeLabel t l)
 
 instance RtConstraint t l => RankedLabel (RankedTreeLabel t l) where
   labelRank (RankedTreeLabelWrapper l) = treeLabelRank (Proxy @t) l
@@ -64,12 +64,12 @@ instance RtConstraint t l => RankedLabel (RankedTreeLabel t l) where
 
 newtype ConstRankedLabel (n :: Nat) a = ConstRankedLabelWrapper
   { unwrapConstRankedLabel :: a
-  } deriving (Eq, Ord, Enum, Bounded, Generic)
+  }
+  deriving (Eq, Ord, Enum, Bounded, Generic)
+  deriving newtype Hashable
 
 instance Show a => Show (ConstRankedLabel n a) where
   show (ConstRankedLabelWrapper l) = show l
-
-instance Hashable a => Hashable (ConstRankedLabel n a)
 
 instance KnownNat n => RankedLabel (ConstRankedLabel n a) where
   labelRank _ = fromInteger $ natVal (Proxy @n)
@@ -80,7 +80,7 @@ instance KnownNat n => RankedLabel (ConstRankedLabel n a) where
 data RankedAlphabet a = RankedAlphabetWrapper
   { alphabetLabel :: a
   , alphabetRank  :: RankNumber
-  } deriving (Generic)
+  } deriving (Generic, Hashable)
 
 pattern RankedAlphabet :: a -> RankedAlphabet a
 pattern RankedAlphabet x <- RankedAlphabetWrapper x _
@@ -94,8 +94,6 @@ instance Eq a => Eq (RankedAlphabet a) where
 
 instance Ord a => Ord (RankedAlphabet a) where
   RankedAlphabet x `compare` RankedAlphabet y = x `compare` y
-
-instance Hashable a => Hashable (RankedAlphabet a)
 
 instance Show a => Show (RankedAlphabet a) where
   show (RankedAlphabet x) = show x
@@ -113,7 +111,9 @@ type MemberTaggedAlphabet symbol tag =
 
 newtype TaggedAlphabet (tag :: [Symbol]) = TaggedAlphabetWrapper
   { untaggedAlphabet :: String
-  } deriving (Eq, Ord, Generic)
+  }
+  deriving (Eq, Ord, Generic)
+  deriving newtype Hashable
 
 class KnownTypTag (tag :: k) where
   type TypTagValue tag :: *
@@ -192,8 +192,6 @@ instance (KnownSymbol x0, Bounded (TaggedAlphabet (x1 ': xs))) => Bounded (Tagge
   minBound = TaggedAlphabetWrapper $ symbolVal (Proxy @x0)
   maxBound = coerceTailTaggedAlphabet (maxBound :: TaggedAlphabet (x1 ': xs))
 
-instance Hashable (TaggedAlphabet tag)
-
 instance Show (TaggedAlphabet tag) where
   show = untaggedAlphabet
 
@@ -229,7 +227,9 @@ type FromTaggedRankedAlphabet tag = Typ.Nub (MapFst tag)
 
 newtype TaggedRankedAlphabet (tag :: [(Symbol, Nat)]) = TaggedRankedAlphabetWrapper
   { _untaggedRankedAlphabet :: RankedAlphabet (TaggedAlphabet (FromTaggedRankedAlphabet tag))
-  } deriving (Eq, Ord, Generic)
+  }
+  deriving (Eq, Ord, Generic)
+  deriving newtype Hashable
 
 taggedRankedAlphabetUniverse :: forall tag.
   ( UntaggedTypList (FromTaggedRankedAlphabet tag) String
@@ -246,8 +246,6 @@ taggedRankedAlphabetUniverse _ = coerce
 
 instance Show (TaggedRankedAlphabet tag) where
   show (TaggedRankedAlphabetWrapper x) = show x
-
-instance Hashable (TaggedRankedAlphabet tag)
 
 instance RankedLabel (TaggedRankedAlphabet tag) where
   labelRank = coerce $ labelRank @(RankedAlphabet (TaggedAlphabet (FromTaggedRankedAlphabet tag)))

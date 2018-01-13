@@ -17,13 +17,11 @@ data SubstitutionTreeF tb lb a
   = OriginalOutputLabelF lb
   | ContextParamF RankNumber
   | SubstitutionF (NodeVec a)
-  deriving (Eq, Ord, Show, Generic, Generic1, Functor, Foldable)
+  deriving (Eq, Ord, Show, Generic, Generic1, Functor, Foldable, Hashable)
 
 deriveEq1 ''SubstitutionTreeF
 deriveOrd1 ''SubstitutionTreeF
 deriveShow1 ''SubstitutionTreeF
-
-instance (Hashable lb, Hashable a) => Hashable (SubstitutionTreeF tb lb a)
 
 type instance Element (SubstitutionTreeF tb lb a) = a
 

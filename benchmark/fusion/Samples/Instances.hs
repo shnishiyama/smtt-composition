@@ -1,5 +1,6 @@
 {-# OPTIONS_GHC -Wno-unused-matches #-}
 {-# OPTIONS_GHC -Wno-unused-local-binds #-}
+{-# ANN module "HLint: ignore" #-}
 
 module Samples.Instances where
 
@@ -26,12 +27,20 @@ itopReversePop = initial
 
     f0_s_f0_s InfixOneNode y1 y2 = y2
     f0_s_f0_s InfixTwoNode y1 y2 = y2
-    f0_s_f0_s (InfixPlusNode  u0 u1) y1 y2 = f0_s_f0_s u0 y1
-      (f0_s_f0_s u1
-        (f0_0_f0_0 u0 y1 undefined) y2)
-    f0_s_f0_s (InfixMultiNode u0 u1) y1 y2 = f0_s_f0_s u0 y1
-      (f0_s_f0_s u1
-        (f0_0_f0_0 u0 y1 undefined) y2)
+    f0_s_f0_s (InfixPlusNode  u0 u1) y1 y2 = f0_s_f0_s u0 u0_y0 u0_y1
+      where
+        u0_y0 = y1
+        u0_y1 = f0_s_f0_s u1 u1_y0 u1_y1
+
+        u1_y0 = f0_0_f0_0 u0 u0_y1 u0_y1
+        u1_y1 = y2
+    f0_s_f0_s (InfixMultiNode u0 u1) y1 y2 = f0_s_f0_s u0 u0_y0 u0_y1
+      where
+        u0_y0 = y1
+        u0_y1 = f0_s_f0_s u1 u1_y0 u1_y1
+
+        u1_y0 = f0_0_f0_0 u0 u0_y1 u0_y1
+        u1_y1 = y2
 
     f0_0_f0_0 (InfixMultiNode u0 u1) y1 y2 = PostfixMultiNode
       (f0_0_f0_0 u1
