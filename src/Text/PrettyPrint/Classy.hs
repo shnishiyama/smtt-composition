@@ -11,10 +11,15 @@ module Text.PrettyPrint.Classy
 
     -- combinators
   , record
+
+    -- utilities
+  , putDocLn
+  , hPutDocLn
   ) where
 
-import Prelude
-import Text.PrettyPrint.ANSI.Leijen hiding ((<$>), empty)
+import           Prelude
+import           System.IO
+import           Text.PrettyPrint.ANSI.Leijen hiding (empty, (<$>))
 import qualified Text.PrettyPrint.ANSI.Leijen as PrettyPrint
 
 
@@ -39,3 +44,14 @@ record name fields = text name
     <+> fieldDoc [text fieldName <+> text "=" <+> fieldBody | (fieldName, fieldBody) <- fields ]
   where
     fieldDoc = encloseSep lbrace rbrace comma
+
+
+putDocLn :: Doc -> IO ()
+putDocLn d = do
+  putDoc d
+  putStrLn ""
+
+hPutDocLn :: Handle -> Doc -> IO ()
+hPutDocLn h d = do
+  hPutDoc h d
+  hPutStrLn h ""

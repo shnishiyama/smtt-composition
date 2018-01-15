@@ -23,6 +23,7 @@ import qualified Data.Tree.Trans.SMAC                    as SMAC
 import           Data.Tree.Trans.SMAC.Instances
 import qualified Data.Tree.Trans.TOP                     as TOP
 import           Data.Tree.Trans.TOP.Instances           as TOP
+import           Text.PrettyPrint.Classy
 
 main :: IO ()
 main = do
@@ -31,7 +32,7 @@ main = do
     inputPostfixTree <- treeTrans infixToPostfixMtt inputInfixTree
 
     trans <- composeSmttNCAndMttWSU postfixToInfixSmtt twoCounterMtt
-    print trans
+    putDocLn $ pretty trans
 
     print <=< treeTrans trans $ inputPostfixTree
     print <=< treeTrans twoCounterMtt <=< treeTrans postfixToInfixSmtt $ inputPostfixTree
