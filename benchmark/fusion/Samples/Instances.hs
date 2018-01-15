@@ -1,6 +1,5 @@
 {-# OPTIONS_GHC -Wno-unused-matches #-}
 {-# OPTIONS_GHC -Wno-unused-local-binds #-}
-{-# ANN module "HLint: ignore" #-}
 
 module Samples.Instances where
 
@@ -8,6 +7,8 @@ import           Prelude
 
 import           Data.Stack
 import           Samples.PostfixOpParser
+
+{-# ANN module "HLint: ignore" #-}
 
 
 reversePop :: PostfixOpTree -> PostfixOpTree

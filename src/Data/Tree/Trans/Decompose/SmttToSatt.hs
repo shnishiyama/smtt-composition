@@ -141,7 +141,8 @@ decomposeSmttNC transNoST = do
         , TOP.TdttLabelSide (StackExprLabelF $ StackedExpr StackEmptyF) []
         )
       SMAC.SmttStackTail{}   -> traverseRHSTail True 0 s
-      SMAC.SmttStackCons v' s' -> let
+      SMAC.SmttStackCons v' s' ->
+        let
           (tokensV, v'') = traverseRHSVal v'
           (tokensS, s'') = traverseRHSStk s'
         in substitutionIdx [tokensV, tokensS]
@@ -149,7 +150,8 @@ decomposeSmttNC transNoST = do
           [v'', s'']
 
     traverseRHSVal v = case v of
-      SMAC.SmttLabelSide l cs -> let
+      SMAC.SmttLabelSide l cs ->
+        let
           (tokens, cs') = unzip $ traverseRHSVal <$> cs
         in substitutionIdx tokens
           (TOP.TdttLabelSide (OriginalOutputLabelF l) [])

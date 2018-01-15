@@ -4,3 +4,4 @@
 import           "hint" HLint.HLint
 
 ignore "Parse error"
+ignore "Redundant do"

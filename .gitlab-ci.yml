@@ -1,0 +1,26 @@
+image: fpco/stack-build:lts-10.3
+
+cache:
+  key: "$CI_BUILD_NAME"
+  paths:
+    - .stack-work/
+    - .stack-root/
+
+stages:
+  - build
+  - test
+
+variables:
+  STACK_ROOT: "${CI_PROJECT_DIR}/.stack-root"
+
+build:
+  stage: build
+  only:
+  - master
+  script:
+  - make
+
+test:
+  stage: test
+  script:
+  - make test

@@ -46,7 +46,8 @@ default-extensions:
   - Arrows
   - BinaryLiterals
   - DefaultSignatures
-  - DerivingStrategies
+  # for Cabal 2.0.x
+  #- DerivingStrategies
   - FlexibleContexts
   - FlexibleInstances
   - InstanceSigs

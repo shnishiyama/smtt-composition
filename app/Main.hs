@@ -26,14 +26,32 @@ import           Data.Tree.Trans.TOP.Instances           as TOP
 
 main :: IO ()
 main = do
-    (preTdtt, trans1Satt) <- decomposeSmttNC miniPostfixToInfixSmtt
-    trans2Att <- fromMttWSUToAtt twoCounterMtt
-    postSatt <- composeSattAndAtt trans1Satt trans2Att
-    let postSmtt = SATT.toStackMacroTreeTransducer postSatt
-    t <- treeTrans preTdtt inputPostfixTree
+    let inputInfixTree = buildTree (51 :: Int)
+    print inputInfixTree
+    inputPostfixTree <- treeTrans infixToPostfixMtt inputInfixTree
 
-    groomPrint $ fmap SATT.prettyShowReductionState $ SATT.runSattReductionWithHistory postSatt $ SATT.toInitialReductionState @RTZipper postSatt t
-    putStrLn "------"
-    groomPrint $ fmap SMAC.prettyShowReductionState $ SMAC.runSmttReductionWithHistory postSmtt $ SMAC.toInitialReductionState postSmtt t
+    trans <- composeSmttNCAndMttWSU postfixToInfixSmtt twoCounterMtt
+    print trans
+
+    print <=< treeTrans trans $ inputPostfixTree
+    print <=< treeTrans twoCounterMtt <=< treeTrans postfixToInfixSmtt $ inputPostfixTree
   where
-    pOne = taggedRankedLabel @"one"; pPlus = taggedRankedLabel @"plus"; pEnd = taggedRankedLabel @"end"; inputPostfixTree = mkTree pOne [mkTree pOne [mkTree pPlus [mkTree pEnd []]]]
+    iOne = taggedRankedLabel @"one"
+    iTwo = taggedRankedLabel @"two"
+    iPlus = taggedRankedLabel @"plus"
+    iMulti = taggedRankedLabel @"multi"
+
+    buildTree n
+      | n <= 0 || n `mod` 2 == 0 = error "negative or even number"
+      | otherwise                = buildTree' True $ n `div` 2
+
+    buildTree' True  0 = mkTree iOne []
+    buildTree' False 0 = mkTree iTwo []
+    buildTree' True  n = mkTree iPlus
+      [ buildTree' False $ n `div` 3
+      , buildTree' True $ n - (n `div` 3) - 1
+      ]
+    buildTree' False n = mkTree iMulti
+      [ buildTree' True  $ n `div` 2
+      , buildTree' False $ n - (n `div` 2) - 1
+      ]

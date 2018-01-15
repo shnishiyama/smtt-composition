@@ -1,3 +1,5 @@
+{-# LANGUAGE DerivingStrategies #-}
+
 module Data.Tree.RankedTree
   ( -- common
     RankedTree (..)

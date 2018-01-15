@@ -75,8 +75,9 @@ module Data.Tree.Trans.SATT
 
 import           SattPrelude
 
+import           Control.Monad.State         (execState, modify')
 import           Data.Bifunctor.FixLR
-import qualified Data.HashSet                as HashSet
+import qualified Data.HashMap.Strict         as HashMap
 import           Data.Tree.RankedTree
 import           Data.Tree.RankedTree.Label
 import           Data.Tree.RankedTree.Zipper
@@ -86,8 +87,8 @@ import qualified Data.Tree.Trans.ATT         as ATT
 import           Data.Tree.Trans.Class
 import qualified Data.Tree.Trans.SMAC        as SMAC
 import           Data.Tree.Trans.Stack
+import qualified Text.PrettyPrint.Classy     as Pretty
 import qualified Text.Show                   as S
-import qualified Text.PrettyPrint.Classy as Pretty
 
 
 type SattAttrEither = ATT.AttAttrEither
@@ -716,14 +717,21 @@ toStackMacroTreeTransducer :: forall syn inh ta la tb lb.
   )
   => StackAttributedTreeTransducer syn inh ta la tb lb
   -> SMAC.StackMacroTreeTransducer (SmttStateFromSatt syn) ta la tb lb
-toStackMacroTreeTransducer trans = fromMaybe errorUnreachable
+toStackMacroTreeTransducer transNoST = fromMaybe errorUnreachable
     $ SMAC.buildSmtt ie rules
   where
+    trans = toStandardForm transNoST
+
     attrs = setToList $ sattAttributes trans
-    (mr, inhAttrs) = second ($ []) $ let
+    (mr, inhAttrs) = second ($ []) $
+      let
         conv (Inherited b) (i, xs) = (i + 1, xs . ((b, i):))
         conv _             (i, xs) = (i, xs)
       in foldr conv (0, id) attrs
+
+    mi = flip execState (0 :: Int) $ do
+      traverse_ traverseIdxRhsStk $ sattInitialRules trans
+      traverse_ traverseIdxRhsStk $ sattTransRules trans
 
     inhAttrs' = mapFromList @(HashMap inh RankNumber) inhAttrs
 
@@ -737,7 +745,7 @@ toStackMacroTreeTransducer trans = fromMaybe errorUnreachable
 
     attrToState = rankedAlphabet (const $ mr + 1)
 
-    ie = convRHSStk (lookupInheritedRule Nothing) HashSet.empty
+    ie = convRHSStk (lookupInheritedRule Nothing) HashMap.empty
       $ initialRule $ Synthesized $ sattInitialAttr trans
 
     rules = do
@@ -746,18 +754,37 @@ toStackMacroTreeTransducer trans = fromMaybe errorUnreachable
         Synthesized a -> [a]
         Inherited{}   -> []
 
-      let rhs' = convRHSStk (lookupInheritedRule $ Just l) HashSet.empty rhs
+      let rhs' = convRHSStk (lookupInheritedRule $ Just l) HashMap.empty rhs
       pure (attrToState a, l, rhs')
+
+    traverseIdxRhsStk x = case x of
+      SattAttrSide{}    -> traverseRhsTail 0 x
+      SattStackEmpty    -> pure ()
+      SattStackTail{}   -> traverseRhsTail 0 x
+      SattStackCons v s -> do
+        traverseIdxRhsVal v
+        traverseIdxRhsStk s
+
+    traverseIdxRhsVal x = case x of
+      SattLabelSide _ cs -> traverse_ traverseIdxRhsVal cs
+      SattStackHead s    -> traverseRhsTail 0 s
+      SattStackBottom    -> pure ()
+
+    traverseRhsTail i x = case x of
+      SattStackTail s -> traverseRhsTail (i + 1) s
+      SattAttrSide{}  -> modify' $ max i
+      _               -> traverseIdxRhsStk x
 
     convRHSStk look p x = case x of
       SattStackEmpty    -> SMAC.SmttStackEmpty
       SattStackTail s   -> SMAC.SmttStackTail (convRHSStk look p s)
       SattStackCons v s -> SMAC.SmttStackCons (convRHSVal look p v) (convRHSStk look p s)
       InhAttrSide b     -> SMAC.SmttContext $ indexInh b
-      SynAttrSide a i   -> if member (a, i) p
-        then SMAC.SmttStackEmpty
-        else let
-            p' = insertSet (a, i) p
+      SynAttrSide a i   -> case lookup (a, i) p of
+        Just j | j > mi -> SMAC.SmttStackEmpty
+        j               ->
+          let
+            p' = insertMap (a, i) (fromMaybe 0 j + 1) p
             a' = attrToState a
           in SMAC.SmttState a' i
             $ fromList [ convRHSStk look p' $ look i b | (b, _) <- inhAttrs ]

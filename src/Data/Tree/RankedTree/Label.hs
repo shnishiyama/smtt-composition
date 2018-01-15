@@ -1,4 +1,5 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
+{-# LANGUAGE DerivingStrategies #-}
 
 module Data.Tree.RankedTree.Label
   (

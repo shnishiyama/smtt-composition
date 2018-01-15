@@ -118,23 +118,23 @@ type TwoCounterStateAlphabet = TaggedRankedAlphabet
 
 type TwoCounterMtt = MttTransducer
   TwoCounterStateAlphabet
-  MiniInfixOpTree NatNum
+  InfixOpTree NatNum
 
 twoCounterMtt :: TwoCounterMtt
 twoCounterMtt = fromMaybe errorUnreachable $ buildMtt
     (MttState f0 0 [MttLabelSide False []])
     [ (f0, iOne, MttContext 0)
-    -- , (f0, iTwo, MttLabelSide True [MttContext 0])
+    , (f0, iTwo, MttLabelSide True [MttContext 0])
     , (f0, iPlus, MttState f0 0 [MttState f0 1 [MttContext 0]])
-    -- , (f0, iMulti, MttState f0 0 [MttState f0 1 [MttContext 0]])
+    , (f0, iMulti, MttState f0 0 [MttState f0 1 [MttContext 0]])
     ]
   where
     f0 = taggedRankedLabel @"f0"
 
     iOne   = taggedRankedLabel @"one"
-    -- iTwo   = taggedRankedLabel @"two"
+    iTwo   = taggedRankedLabel @"two"
     iPlus  = taggedRankedLabel @"plus"
-    -- iMulti = taggedRankedLabel @"multi"
+    iMulti = taggedRankedLabel @"multi"
 
 
 type ReverseStateAlphabet = TaggedRankedAlphabet
