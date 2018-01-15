@@ -17,7 +17,7 @@ import           Data.Tree.Trans.SMAC.Instances
 spec :: Spec
 spec = do
   describe "composeSmttNCAndMttWSU" $ do
-    it "should be equal to original semantics" $ do
+    it "should be equal to original semantics for ptoi/counter" $ do
       let inputInfixTree = buildTree (51 :: Int)
       inputPostfixTree <- treeTrans infixToPostfixMtt inputInfixTree
 
@@ -27,6 +27,18 @@ spec = do
       t2 <- treeTrans twoCounterMtt <=< treeTrans postfixToInfixSmtt $ inputPostfixTree
 
       t1 `shouldBe` t2
+
+    it "should be equal to original semantics for ptoi/itop" $ do
+      let inputInfixTree = buildTree (51 :: Int)
+      inputPostfixTree <- treeTrans infixToPostfixMtt inputInfixTree
+
+      trans <- composeSmttNCAndMttWSU postfixToInfixSmtt infixToPostfixMtt
+
+      t1 <- treeTrans trans inputPostfixTree
+      t2 <- treeTrans infixToPostfixMtt <=< treeTrans postfixToInfixSmtt $ inputPostfixTree
+
+      t1 `shouldBe` t2
+      t1 `shouldBe` inputPostfixTree
 
 
 buildTree :: Int -> InfixOpTree

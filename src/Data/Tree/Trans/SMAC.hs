@@ -277,10 +277,12 @@ buildSmtt :: forall m s ta la tb lb. (SmttConstraint s ta la tb lb, MonadThrow m
 buildSmtt ie rules = do
     states' <- scanRHSStk 1 0 [] ie
     (states'', rules') <- go rules states' []
+    let statesSet = setFromList states''
     pure StackMacroTreeTransducer
-      { smttStates      = setFromList states''
+      { smttStates      = statesSet
       , smttInitialExpr = ie
-      , smttTransRules  = mapFromList rules'
+      , smttTransRules  = mapFromList
+        $ filter (\((f, _), _) -> member f statesSet) rules'
       }
   where
     treeLabelRankIn = treeLabelRank $ Proxy @ta

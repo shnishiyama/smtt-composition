@@ -172,10 +172,12 @@ buildMtt :: forall m s ta la tb lb. (MttConstraint s ta la tb lb, MonadThrow m)
 buildMtt ie rules = do
     states' <- scanRHS 1 0 [] ie
     (states'', rules') <- go rules states' []
+    let statesSet = setFromList states''
     pure MacroTreeTransducer
-      { mttStates      = setFromList states''
+      { mttStates      = statesSet
       , mttInitialExpr = ie
-      , mttTransRules  = mapFromList rules'
+      , mttTransRules  = mapFromList
+        $ filter (\((f, _), _) -> member f statesSet) rules'
       }
   where
     treeLabelRankIn = treeLabelRank $ Proxy @ta

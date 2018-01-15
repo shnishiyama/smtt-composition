@@ -23,28 +23,44 @@ nextRandomState = do
   put g'
   pure i
 
-itopReverseCases :: [(String, InfixOpTree)]
-itopReverseCases = [ (show n, evalRandomState 0 $ buildTree $ n + 1) | n <- [20, 50, 100] ]
+buildInfixOpTree :: Int -> State StdGen InfixOpTree
+buildInfixOpTree n
+  | n < 1 || n `mod` 2 == 0 = error "negative or even number"
+  | otherwise = go $ n `div` 2
   where
-    buildTree 1 = do
+    go 0 = do
       i <- nextRandomState
       pure $ [ InfixOneNode, InfixTwoNode ] `indexEx` (i `mod` 2)
-    buildTree n = do
+    go m = do
       i <- nextRandomState
       let nodef = [ InfixMultiNode, InfixPlusNode ] `indexEx` (i `mod` 2)
-      let n2 = n `div` 2
-      m <- nextRandomState
-      let m' = 2 * (m `mod` n2) + 1
-      lnode <- buildTree m'
-      rnode <- buildTree $ n - m' - 1
+      j <- (`mod` m) <$> nextRandomState
+      lnode <- go j
+      rnode <- go $ m - j - 1
       pure $ nodef lnode rnode
 
+infixOpTreeCases :: [(String, InfixOpTree)]
+infixOpTreeCases =
+  [ (show n, evalRandomState 0 $ buildInfixOpTree $ 2 * n + 1)
+  | n <- [10, 25, 50]
+  ]
+
+postfixOpTreeCases :: [(String, PostfixOpTree)]
+postfixOpTreeCases =
+  [ (show n, itop $ evalRandomState 0 $ buildInfixOpTree $ 2 * n + 1)
+  | n <- [10, 25, 50]
+  ]
 
 benchSpec :: ([Benchmark], [NameableWeigh])
 benchSpec = unzip
   [ nmGroup "itop-reverse"
-    [ nmGroup "normal" $ testCases itopReverseCases $ reversePop . itop
-    , nmGroup "fusion" $ testCases itopReverseCases itopReversePop
-    , nmGroup "fusionOrig" $ testCases itopReverseCases itopReversePopOrig
+    [ nmGroup "normal" $ testCases infixOpTreeCases $ itop >>> reversePop
+    , nmGroup "fusion" $ testCases infixOpTreeCases itopReversePop
+    , nmGroup "fusionOrig" $ testCases infixOpTreeCases itopReversePopOrig
+    ]
+  , nmGroup "ptoi-twoCounter"
+    [ nmGroup "normal" $ testCases postfixOpTreeCases $ ptoi >>> twoCounter
+    , nmGroup "fusion" $ testCases postfixOpTreeCases ptoiTwoCounter
+    , nmGroup "fusionOrig" $ testCases postfixOpTreeCases ptoiTwoCounterOrig
     ]
   ]
