@@ -31,11 +31,11 @@ main = do
     print inputInfixTree
     inputPostfixTree <- treeTrans infixToPostfixMtt inputInfixTree
 
-    trans <- composeSmttNCAndMttWSU postfixToInfixSmtt twoCounterMtt
+    trans <- composeSmttNCAndMttWSU postfixToInfixSmtt infixToPostfixMtt
     putDocLn $ pretty trans
 
     print <=< treeTrans trans $ inputPostfixTree
-    print <=< treeTrans twoCounterMtt <=< treeTrans postfixToInfixSmtt $ inputPostfixTree
+    print <=< treeTrans infixToPostfixMtt <=< treeTrans postfixToInfixSmtt $ inputPostfixTree
   where
     iOne = taggedRankedLabel @"one"
     iTwo = taggedRankedLabel @"two"

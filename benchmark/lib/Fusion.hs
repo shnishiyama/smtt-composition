@@ -39,16 +39,19 @@ buildInfixOpTree n
       rnode <- go $ m - j - 1
       pure $ nodef lnode rnode
 
+buildPostfixOpTree :: Int -> State StdGen PostfixOpTree
+buildPostfixOpTree n = itop <$> buildInfixOpTree n
+
 infixOpTreeCases :: [(String, InfixOpTree)]
 infixOpTreeCases =
   [ (show n, evalRandomState 0 $ buildInfixOpTree $ 2 * n + 1)
-  | n <- [10, 25, 50]
+  | n <- [100, 250, 500, 1500]
   ]
 
 postfixOpTreeCases :: [(String, PostfixOpTree)]
 postfixOpTreeCases =
-  [ (show n, itop $ evalRandomState 0 $ buildInfixOpTree $ 2 * n + 1)
-  | n <- [10, 25, 50]
+  [ (show n, evalRandomState 0 $ buildPostfixOpTree $ 2 * n + 1)
+  | n <- [200, 500, 1000, 3000]
   ]
 
 benchSpec :: ([Benchmark], [NameableWeigh])
@@ -62,5 +65,10 @@ benchSpec = unzip
     [ nmGroup "normal" $ testCases postfixOpTreeCases $ ptoi >>> twoCounter
     , nmGroup "fusion" $ testCases postfixOpTreeCases ptoiTwoCounter
     , nmGroup "fusionOrig" $ testCases postfixOpTreeCases ptoiTwoCounterOrig
+    ]
+  , nmGroup "ptoi-itop"
+    [ nmGroup "normal" $ testCases postfixOpTreeCases $ ptoi >>> itop
+    , nmGroup "fusion" $ testCases postfixOpTreeCases ptoiItop
+    , nmGroup "fusionOrig" $ testCases postfixOpTreeCases ptoiItopOrig
     ]
   ]

@@ -9,20 +9,27 @@ newtype Stack a = Stack [a]
   deriving newtype NFData
 
 stackHead :: Stack a -> a
-stackHead (Stack x) = case x of
-  []  -> error "stack empty"
-  h:_ -> h
+stackHead (Stack [])    = stackBottom
+stackHead (Stack (h:_)) = h
+{-# INLINE stackHead #-}
 
 stackTail :: Stack a -> Stack a
-stackTail (Stack x) = Stack $ case x of
-  []  -> []
-  _:t -> t
+stackTail s@(Stack [])  = s
+stackTail (Stack (_:t)) = Stack t
+{-# INLINE stackTail #-}
 
 stackCons :: a -> Stack a -> Stack a
 stackCons v (Stack x) = Stack $ v:x
+{-# INLINE stackCons #-}
+
+stackUncons :: Stack a -> (a, Stack a)
+stackUncons s@(Stack [])  = (stackBottom, s)
+stackUncons (Stack (h:t)) = (h, Stack t)
+{-# INLINE stackUncons #-}
 
 stackEmpty :: Stack a
 stackEmpty = Stack []
+{-# INLINE stackEmpty #-}
 
 stackBottom :: a
 stackBottom = error "stack bottom"

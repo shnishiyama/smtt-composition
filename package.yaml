@@ -13,14 +13,14 @@ git:         https://gitlab.com/mizunashi-mana/satt-composition
 extra-source-files:
 - README.md
 
-_base-dependencies: &base-dependencies
+_base-depends: &base-depends
   base: '>=4.7 && <5'
   satt-prelude:
 
 build-type: Custom
 custom-setup:
   dependencies:
-    <<: *base-dependencies
+    <<: *base-depends
     Cabal: '>= 2.0'
     cabal-doctest:
 
@@ -122,7 +122,7 @@ library:
   ghc-options:
   - -dcore-lint
   dependencies:
-    <<: *base-dependencies
+    <<: *base-depends
     unordered-containers:
     vector:
     singletons:
@@ -142,7 +142,7 @@ executables:
     - -rtsopts
     - "\"-with-rtsopts=-N -xc\""
     dependencies:
-      <<: *base-dependencies
+      <<: *base-depends
       satt-composition:
       deepseq:
 
@@ -155,7 +155,7 @@ tests:
     - -threaded
     - -with-rtsopts=-N
     dependencies:
-      <<: *base-dependencies
+      <<: *base-depends
       hlint:
 
   spec-test:
@@ -165,7 +165,7 @@ tests:
     - -threaded
     - -with-rtsopts=-N
     dependencies:
-      <<: *base-dependencies
+      <<: *base-depends
       satt-composition:
       hspec:
       QuickCheck:
@@ -179,51 +179,46 @@ tests:
     - -threaded
     - -with-rtsopts=-N
     dependencies:
-      <<: *base-dependencies
+      <<: *base-depends
       doctest:
       QuickCheck:
       template-haskell:
 
+_bench-base-depends: &bench-base-depends
+  <<: *base-depends
+  criterion:
+  weigh:
+  deepseq:
+  random:
+  mtl:
+
 benchmarks:
   common:
-    main: Common.hs
-    source-dirs: benchmark
-    other-modules: []
+    main: ../Common.hs
+    source-dirs: benchmark/lib
     ghc-options:
     - -O2
     - -threaded
     - -with-rtsopts=-N
     dependencies:
-      <<: *base-dependencies
-      criterion:
-      deepseq:
+      <<: *bench-base-depends
 
   fusion-speed-bench:
     main: ../CriterionFusionMain.hs
-    source-dirs: benchmark/fusion
+    source-dirs: benchmark/lib
     ghc-options:
     - -O0
     - -threaded
     - -with-rtsopts=-N
     dependencies:
-      <<: *base-dependencies
-      criterion:
-      weigh:
-      deepseq:
-      random:
-      mtl:
+      <<: *bench-base-depends
 
   fusion-memory-bench:
     main: ../WeighFusionMain.hs
-    source-dirs: benchmark/fusion
+    source-dirs: benchmark/lib
     ghc-options:
     - -O0
     - -threaded
     - -with-rtsopts=-N
     dependencies:
-      <<: *base-dependencies
-      criterion:
-      weigh:
-      deepseq:
-      random:
-      mtl:
+      <<: *bench-base-depends
