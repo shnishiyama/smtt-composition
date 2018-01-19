@@ -147,3 +147,59 @@ miniPostfixToInfixSmtt = fromMaybe errorUnreachable $ buildSmtt
     pOne   = taggedRankedLabel @"one"
     pPlus  = taggedRankedLabel @"plus"
     pEnd   = taggedRankedLabel @"end"
+
+
+type ExpStateAlphabet = TaggedRankedAlphabet
+  '[ '("f0", 3)]
+
+type SampleExpSmtt = SmttTransducer
+  ExpStateAlphabet
+  NatNum InfixOpTree
+
+-- | A stack macro tree transducer on exponential
+--
+-- Sample:
+-- >>> :set -XOverloadedLists
+-- >>> import Data.Tree.Trans.Class
+-- >>> :{
+-- inputNumTree = mkTree True [mkTree True [mkTree False []]]
+-- :}
+--
+-- >>> treeTrans sampleExpSmtt inputNumTree
+-- plus(plus(two,plus(plus(two,two),two)),plus(plus(two,two),two))
+--
+sampleExpSmtt :: SampleExpSmtt
+sampleExpSmtt = fromMaybe errorUnreachable $ buildSmtt
+    (SmttState f0 0
+      [ SmttStackCons (SmttLabelSide iOne [])
+        (SmttStackCons (SmttLabelSide iTwo []) SmttStackEmpty)
+      , SmttStackEmpty
+      ])
+    [ (f0, True
+      , SmttState f0 0
+        [ SmttStackCons
+          (SmttStackHead (SmttContext 0))
+          (SmttStackCons (SmttStackHead (SmttStackTail (SmttContext 0))) SmttStackEmpty)
+        , SmttState f0 0
+          [ SmttStackCons (SmttLabelSide iTwo [])
+            (SmttStackCons (SmttLabelSide iOne []) (SmttStackTail (SmttStackTail (SmttContext 0))))
+          , SmttStackCons (SmttLabelSide iOne []) (SmttContext 1)
+          ]
+        ]
+      )
+    , (f0, False
+      , SmttStackCons
+        (SmttLabelSide iPlus
+          [ SmttStackHead $ SmttContext 1
+          , SmttStackHead $ SmttStackTail $ SmttContext 0
+          ]
+        )
+        (SmttStackTail (SmttContext 1))
+      )
+    ]
+  where
+    f0 = taggedRankedLabel @"f0"
+
+    iOne   = taggedRankedLabel @"one"
+    iTwo   = taggedRankedLabel @"two"
+    iPlus  = taggedRankedLabel @"plus"

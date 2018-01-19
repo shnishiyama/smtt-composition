@@ -330,7 +330,7 @@ composeSattAndAtt trans1NoST trans2 = do
 
     zipRules rules = let
         unconsS = either
-          (\s -> if s == stackEmpty then Nothing else error $ "Head/Tail is not allowed")
+          (const Nothing)
           Just
           . unconsStackStkExpr
 

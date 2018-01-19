@@ -126,13 +126,30 @@ type ComposedSmttState s1 s2 = SMAC.ComposedSmttState s1
 --   ]]
 -- :}
 --
--- >>> trans <- composeSmttNCAndMttWSU postfixToInfixSmtt twoCounterMtt
--- >>> treeTrans trans inputPostfixTree
+-- >>> ptoiCounterTrans <- composeSmttNCAndMttWSU postfixToInfixSmtt twoCounterMtt
+-- >>> treeTrans ptoiCounterTrans inputPostfixTree
 -- Succ (Succ Zero)
 -- >>> :{
 -- flip runKleisli inputPostfixTree $ proc t -> do
---   t1 <- Kleisli (treeTrans trans) -< t
---   t2 <- Kleisli (treeTrans twoCounterMtt <=< treeTrans postfixToInfixSmtt) -< t
+--   t1 <- Kleisli (treeTrans ptoiCounterTrans) -< t
+--   t2 <- Kleisli (treeTrans postfixToInfixSmtt >=> treeTrans twoCounterMtt) -< t
+--   returnA -< t1 == t2
+-- :}
+-- True
+--
+-- >>> :{
+-- inputNumTree = mkTree True [mkTree True [mkTree True
+--   [mkTree True [mkTree False []]]
+--   ]]
+-- :}
+--
+-- >>> expItopTrans <- composeSmttNCAndMttWSU sampleExpSmtt infixToPostfixMtt
+-- >>> treeTrans expItopTrans inputNumTree
+--
+-- >>> :{
+-- flip runKleisli inputNumTree $ proc t -> do
+--   t1 <- Kleisli (treeTrans expItopTrans) -< t
+--   t2 <- Kleisli (treeTrans sampleExpSmtt >=> treeTrans infixToPostfixMtt) -< t
 --   returnA -< t1 == t2
 -- :}
 -- True
@@ -149,7 +166,8 @@ composeSmttNCAndMttWSU ::
   -> MAC.MacroTreeTransducer s2 ti2 li2 to2 lo2
   -> m (SMAC.StackMacroTreeTransducer (ComposedSmttState s1 s2) ti1 li1 to2 lo2)
 composeSmttNCAndMttWSU trans1 trans2 = do
-  (preTdtt, trans1Satt) <- decomposeSmttNC trans1
-  trans2Att <- fromMttWSUToAtt trans2
-  postSatt <- composeSattAndAtt trans1Satt trans2Att
-  pure $ composeTdttAndSatt preTdtt postSatt
+    (preTdtt, trans1Satt) <- decomposeSmttNC trans1
+    trans2Att <- fromMttWSUToAtt trans2
+    postSatt <- composeSattAndAtt trans1Satt trans2Att
+    let composedTrans = composeTdttAndSatt preTdtt postSatt
+    pure $ SMAC.toFormattedSmtt composedTrans

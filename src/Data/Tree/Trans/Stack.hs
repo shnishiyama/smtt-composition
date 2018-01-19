@@ -29,6 +29,10 @@ module Data.Tree.Trans.Stack
   , evalStackStkExpr
   , unconsStackStkExpr
 
+    -- format functions
+  , formatStackValExpr
+  , formatStackStkExpr
+
     -- stack expr either
   , StackExprEither
   , pattern ValuedExpr
@@ -143,21 +147,17 @@ stackCons v s = injectStk $ StackConsF v s
 -- | evaluate value expression
 --
 -- Examples:
--- >>> import qualified Text.Show as S
--- >>> data Proxy2 val stk = Proxy2
+-- >>> :set -XTemplateHaskell
 -- >>> :{
--- instance Show2 Proxy2 where
---   liftShowsPrec2 _ _ _ _ d Proxy2 = S.showParen (d > 10) $ S.showString "Proxy2"
--- :}
---
--- >>> instance Bifunctor Proxy2 where bimap _ _ Proxy2 = Proxy2
--- >>> :{
+-- data Proxy2 val stk = Proxy2
+-- deriveShow2 ''Proxy2
+-- deriveBifunctor ''Proxy2
 -- stkProxy2 :: BiStackExprFixStk (Proxy2 :+|+: StackExprValF) (Proxy2 :+|+: StackExprStkF)
 -- stkProxy2 = BiInL Proxy2
 -- :}
 --
 -- >>> evalStackValExpr $ stackHead $ stackTail $ FixStk stkProxy2
--- FixL (BiInR (StackHeadF (FixR (BiInR (StackTailF (FixR (BiInL (Proxy2))))))))
+-- FixL (BiInR (StackHeadF (FixR (BiInR (StackTailF (FixR (BiInL Proxy2)))))))
 --
 evalStackValExpr :: StackConstraint valf stkf => FixVal valf stkf -> FixVal valf stkf
 evalStackValExpr v = case v of
@@ -190,21 +190,17 @@ unconsStackStkExpr s = case s of
 -- | evaluate stack expression
 --
 -- Examples:
--- >>> import qualified Text.Show as S
--- >>> data Proxy2 val stk = Proxy2
+-- >>> :set -XTemplateHaskell
 -- >>> :{
--- instance Show2 Proxy2 where
---   liftShowsPrec2 _ _ _ _ d Proxy2 = S.showParen (d > 10) $ S.showString "Proxy2"
--- :}
---
--- >>> instance Bifunctor Proxy2 where bimap _ _ Proxy2 = Proxy2
--- >>> :{
+-- data Proxy2 val stk = Proxy2
+-- deriveShow2 ''Proxy2
+-- deriveBifunctor ''Proxy2
 -- stkProxy2 :: BiStackExprFixStk (Proxy2 :+|+: StackExprValF) (Proxy2 :+|+: StackExprStkF)
 -- stkProxy2 = BiInL Proxy2
 -- :}
 --
 -- >>> evalStackStkExpr $ stackTail $ stackTail $ stackCons stackBottom $ FixStk stkProxy2
--- FixR (BiInR (StackTailF (FixR (BiInL (Proxy2)))))
+-- FixR (BiInR (StackTailF (FixR (BiInL Proxy2))))
 --
 evalStackStkExpr :: StackConstraint valf stkf => FixStk valf stkf -> FixStk valf stkf
 evalStackStkExpr s = case s of
@@ -214,6 +210,69 @@ evalStackStkExpr s = case s of
     Right (_, t') -> evalStackStkExpr t'
   StackCons h t -> stackCons (evalStackValExpr h) (evalStackStkExpr t)
   FixStk s'     -> FixStk $ bimap evalStackValExpr evalStackStkExpr s'
+
+
+-- | format value expression
+--
+-- Examples:
+-- >>> :set -XTemplateHaskell
+-- >>> :{
+-- data Proxy2 val stk = Proxy2
+-- deriveEq2 ''Proxy2
+-- deriveShow2 ''Proxy2
+-- deriveBifunctor ''Proxy2
+-- stkProxy2 :: BiStackExprFixStk (Proxy2 :+|+: StackExprValF) (Proxy2 :+|+: StackExprStkF)
+-- stkProxy2 = BiInL Proxy2
+-- :}
+--
+-- >>> formatStackValExpr $ stackHead (stackCons (stackHead (stackTail $ FixStk stkProxy2)) (stackTail (stackTail $ FixStk stkProxy2)))
+-- FixL (BiInR (StackHeadF (FixR (BiInR (StackTailF (FixR (BiInL Proxy2)))))))
+--
+formatStackValExpr :: (StackConstraint valf stkf, Eq2 valf, Eq2 stkf)
+  => FixVal valf stkf -> FixVal valf stkf
+formatStackValExpr = formatStackValExpr' . evalStackValExpr
+
+formatStackValExpr' :: (StackConstraint valf stkf, Eq2 valf, Eq2 stkf)
+  => FixVal valf stkf -> FixVal valf stkf
+formatStackValExpr' x = case x of
+  StackBottom -> x
+  StackHead s -> stackHead $ formatStackStkExpr' s
+  FixVal v    -> FixVal $ bimap formatStackValExpr' formatStackStkExpr' v
+
+-- | format value expression
+--
+-- Examples:
+-- >>> :set -XTemplateHaskell
+-- >>> :{
+-- data Proxy2 val stk = Proxy2
+-- deriveEq2 ''Proxy2
+-- deriveShow2 ''Proxy2
+-- deriveBifunctor ''Proxy2
+-- stkProxy2 :: BiStackExprFixStk (Proxy2 :+|+: StackExprValF) (Proxy2 :+|+: StackExprStkF)
+-- stkProxy2 = BiInL Proxy2
+-- :}
+--
+-- >>> formatStackStkExpr $ stackCons (stackHead (stackTail $ FixStk stkProxy2)) (stackTail (stackTail $ FixStk stkProxy2))
+-- FixR (BiInR (StackTailF (FixR (BiInL Proxy2))))
+--
+formatStackStkExpr :: (StackConstraint valf stkf, Eq2 valf, Eq2 stkf)
+  => FixStk valf stkf -> FixStk valf stkf
+formatStackStkExpr = formatStackStkExpr' . evalStackStkExpr
+
+formatStackStkExpr' :: (StackConstraint valf stkf, Eq2 valf, Eq2 stkf)
+  => FixStk valf stkf -> FixStk valf stkf
+formatStackStkExpr' x = case x of
+  StackCons h t -> case formatStackValExpr' h of
+    h'@(StackHead s1') -> case formatStackStkExpr' t of
+      StackTail s2' | s1' == s2' -> s1'
+      t'                         -> stackCons h' t'
+    h'@StackBottom -> case formatStackStkExpr' t of
+      StackEmpty -> stackEmpty
+      t'         -> stackCons h' t'
+    h' -> stackCons h' (formatStackStkExpr' t)
+  StackEmpty    -> x
+  StackTail t   -> stackTail $ formatStackStkExpr' t
+  FixStk s      -> FixStk $ bimap formatStackValExpr' formatStackStkExpr' s
 
 
 type StackExprEither = Either

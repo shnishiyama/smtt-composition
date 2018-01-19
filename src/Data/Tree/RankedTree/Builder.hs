@@ -1,12 +1,38 @@
 module Data.Tree.RankedTree.Builder where
 
 import Data.Tree.RankedTree
+import qualified Data.HashMap as HashMap
 
 
-newtype RankedTreeBuilder m l = RankedTreeBuilder
-  { rtLabelBuilder :: RankNumber -> Maybe (m l)
-  } deriving (Eq, Ord, Show, Generic)
+buildRankedTreeByLeafCount :: forall m i t l.
+  ( RtConstraint t l, Monad m, Integral i
+  )
+  => [l] -> m i -> i -> m t
+buildRankedTree ls gen i
+  | i <= 0                  = error "negative number"
+  | isNothing $ lookup 0 ml = error "not contain any rank 0 labels"
+  | otherwise               = buildRankedTreeByLeafCount' ml gen i
+  where
+    tr = treeLabelRank @(Proxy t)
 
-buildRankedTree :: (RtConstraint t l, MonadState s m, Integral i)
-  => i -> RankedTreeBuilder m l -> m t
-buildRankedTree = undefined
+    ml = HashMap.fromListWith (<>) [(tr l, [l]) | l <- ls]
+
+buildRankedTreeByLeafCount' :: forall m i t l.
+  ( RtConstraint t l, Monad m, Integral i
+  )
+  => HashMap RankNumber l -> m RankNumber -> i -> m t
+buildRankedTreeByLeafCount' = undefined
+
+buildRankedTreeOverLeafCount :: forall m i t l.
+  ( RtConstraint t l, Monad m, Integral i
+  )
+  => [l] -> m i -> i -> m t
+buildRankedTreeOverLeafCount ls gen i
+  | i <= 0                  = error "negative number"
+  | isNothing $ lookup 0 ml = error "not contain any rank 0 labels"
+  | otherwise               = buildRankedTreeByLeafCount' ml gen i
+  where
+    tr = treeLabelRank @(Proxy t)
+
+    ml = HashMap.fromListWith (<>) [(tr l, [l]) | l <- ls]
+

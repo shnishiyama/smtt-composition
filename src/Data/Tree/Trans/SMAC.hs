@@ -20,8 +20,9 @@ module Data.Tree.Trans.SMAC
   , pattern SmttStackCons
   , prettyShowRhs
 
-    -- standard form
+    -- several form
   , toStandardForm
+  , toFormattedSmtt
   , toStackMacroTreeTransducer
 
     -- reduction system
@@ -697,6 +698,18 @@ toStandardForm trans = trans
     initialExpr = evalStackStkExpr $ smttInitialExpr trans
 
     rules = evalStackStkExpr <$> smttTransRules trans
+
+toFormattedSmtt :: (SmttConstraint s ta la tb lb, Eq lb)
+  => StackMacroTreeTransducer s ta la tb lb
+  -> StackMacroTreeTransducer s ta la tb lb
+toFormattedSmtt trans = trans
+    { smttInitialExpr = initialExpr
+    , smttTransRules  = rules
+    }
+  where
+    initialExpr = formatStackStkExpr $ smttInitialExpr trans
+
+    rules = formatStackStkExpr <$> smttTransRules trans
 
 
 toStackMacroTreeTransducer ::

@@ -1,5 +1,4 @@
 {-# LANGUAGE OverloadedLists   #-}
-{-# LANGUAGE OverloadedStrings #-}
 {-# OPTIONS_GHC -Wno-unused-imports #-}
 
 module Main where
@@ -27,32 +26,14 @@ import           Text.PrettyPrint.Classy
 
 main :: IO ()
 main = do
-    let inputInfixTree = buildTree (51 :: Int)
-    print inputInfixTree
-    inputPostfixTree <- treeTrans infixToPostfixMtt inputInfixTree
+    let inputTree = buildTree (3 :: Int)
+    print inputTree
 
-    trans <- composeSmttNCAndMttWSU postfixToInfixSmtt infixToPostfixMtt
+    trans <- composeSmttNCAndMttWSU sampleExpSmtt infixToPostfixMtt
     putDocLn $ pretty trans
 
-    print <=< treeTrans trans $ inputPostfixTree
-    print <=< treeTrans infixToPostfixMtt <=< treeTrans postfixToInfixSmtt $ inputPostfixTree
+    print <=< treeTrans trans $ inputTree
+    print <=< treeTrans infixToPostfixMtt <=< treeTrans sampleExpSmtt $ inputTree
   where
-    iOne = taggedRankedLabel @"one"
-    iTwo = taggedRankedLabel @"two"
-    iPlus = taggedRankedLabel @"plus"
-    iMulti = taggedRankedLabel @"multi"
-
-    buildTree n
-      | n <= 0 || n `mod` 2 == 0 = error "negative or even number"
-      | otherwise                = buildTree' True $ n `div` 2
-
-    buildTree' True  0 = mkTree iOne []
-    buildTree' False 0 = mkTree iTwo []
-    buildTree' True  n = mkTree iPlus
-      [ buildTree' False $ n `div` 3
-      , buildTree' True $ n - (n `div` 3) - 1
-      ]
-    buildTree' False n = mkTree iMulti
-      [ buildTree' True  $ n `div` 2
-      , buildTree' False $ n - (n `div` 2) - 1
-      ]
+    buildTree 1 = mkTree False []
+    buildTree n = mkTree True [buildTree $ n - 1]
