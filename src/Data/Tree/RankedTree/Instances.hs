@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedLists #-}
+{-# LANGUAGE OverloadedLists    #-}
 {-# LANGUAGE DerivingStrategies #-}
 
 module Data.Tree.RankedTree.Instances where

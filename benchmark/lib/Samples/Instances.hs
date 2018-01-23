@@ -148,8 +148,8 @@ twoCounter = initial
   where
     initial u0 = f0 u0 0
 
-    f0 InfixOneNode  y0 = y0
-    f0 InfixTwoNode  y0 = (+ 1) y0
+    f0 InfixOneNode  y0          = y0
+    f0 InfixTwoNode  y0          = (+ 1) y0
     f0 (InfixPlusNode  u0 u1) y0 = f0 u0 (f0 u1 y0)
     f0 (InfixMultiNode u0 u1) y0 = f0 u0 (f0 u1 y0)
 

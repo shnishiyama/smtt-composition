@@ -37,9 +37,8 @@ default-extensions:
   - NoImplicitPrelude
 
   # performance supports
-  - ApplicativeDo
   - BangPatterns
-  - MagicHash
+  - EmptyCase
   - StrictData
 
   # useful syntaxes
@@ -64,10 +63,11 @@ default-extensions:
 
   # useful derivable
   - GeneralizedNewtypeDeriving
-  - DeriveGeneric
   - DeriveDataTypeable
-  - DeriveFunctor
   - DeriveFoldable
+  - DeriveFunctor
+  - DeriveGeneric
+  - DeriveTraversable
   - DeriveAnyClass
 
   # extensions of type systems

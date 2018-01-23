@@ -124,7 +124,7 @@ buildTdtt ie rules = TopDownTreeTransducer <$> MAC.buildMtt ie (coerce rules)
 
 -- reduction system
 
-type ReductionState s ta la tb lb = MAC.ReductionState (TdttState s) ta la tb lb
+type ReductionState s ta la tb lb = MAC.ReductionState Void (TdttState s) ta la tb lb
 
 buildTdttReduction :: forall tz b s ta la tb lb.
   ( TdttConstraint s ta la tb lb, RankedTreeZipper tz

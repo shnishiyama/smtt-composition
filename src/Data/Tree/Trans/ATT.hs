@@ -1,6 +1,6 @@
-{-# LANGUAGE NoStrict        #-}
-{-# LANGUAGE OverloadedLists #-}
-{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE NoStrict           #-}
+{-# LANGUAGE OverloadedLists    #-}
+{-# LANGUAGE TemplateHaskell    #-}
 {-# LANGUAGE DerivingStrategies #-}
 
 module Data.Tree.Trans.ATT

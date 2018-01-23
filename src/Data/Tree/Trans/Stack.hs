@@ -265,7 +265,7 @@ formatStackStkExpr' x = case x of
   StackCons h t -> case formatStackValExpr' h of
     h'@(StackHead s1') -> case formatStackStkExpr' t of
       StackTail s2' | s1' == s2' -> s1'
-      t'                         -> stackCons h' t'
+      t'            -> stackCons h' t'
     h'@StackBottom -> case formatStackStkExpr' t of
       StackEmpty -> stackEmpty
       t'         -> stackCons h' t'

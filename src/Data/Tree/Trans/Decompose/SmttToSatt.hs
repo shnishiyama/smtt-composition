@@ -237,7 +237,7 @@ decomposeSmttNC transNoST = do
       let
         convConsList ((False, i):l) = case convConsList l of
           [(True, i')] | i + 1 == i' -> [(True, i)]
-          l'                         -> (False, i):l'
+          l'           -> (False, i):l'
         convConsList l              = l
       in buildSattInheritedRules' yj 0 $ convConsList xs
 

@@ -37,13 +37,12 @@ module Data.Tree.Trans.MAC
 
 import           SattPrelude
 
-import qualified Data.Foldable               as F
 import           Data.Tree.RankedTree
 import           Data.Tree.RankedTree.Label
 import           Data.Tree.RankedTree.Zipper
 import           Data.Tree.Trans.Class
+import qualified Text.PrettyPrint.Classy     as Pretty
 import qualified Text.Show                   as S
-import qualified Text.PrettyPrint.Classy as Pretty
 
 
 data RightHandSideF s t l u c rhs
@@ -214,40 +213,28 @@ mttTranslateRule trans p = fromMaybe MttBottomLabelSide
 
 -- reduction system
 
-newtype ReductionStateF s ta la tb lb state = ReductionStateF
-  { unwrapReductionStateF :: RightHandSideF s tb lb ta state state
-  } deriving (Eq, Ord, Show, Generic)
+newtype ReductionStateF c s ta la tb lb state = ReductionStateF
+  { unwrapReductionStateF :: RightHandSideF s tb lb ta c state
+  } deriving (Eq, Ord, Show, Generic, Functor, Foldable)
 
-instance Functor (ReductionStateF s ta la tb lb) where
-  fmap f = coerce $ bimap @(RightHandSideF s tb lb ta) f f
+deriveEq1 ''ReductionStateF
+deriveOrd1 ''ReductionStateF
+deriveShow1 ''ReductionStateF
 
-instance F.Foldable (ReductionStateF s ta la tb lb) where
-  foldMap f = coerce $ bifoldMap @(RightHandSideF s tb lb ta) f f
-  foldr f = coerce $ bifoldr @(RightHandSideF s tb lb ta) f f
+type instance Element (ReductionStateF c s ta la tb lb state) = state
 
-type instance Element (ReductionStateF s ta la tb lb state) = state
+instance MonoFoldable (ReductionStateF c s ta la tb lb state)
 
-instance MonoFoldable (ReductionStateF s ta la tb lb state)
-
-instance (Eq s, Eq lb, Eq ta) => Eq1 (ReductionStateF s ta la tb lb) where
-  liftEq f (ReductionStateF x1) (ReductionStateF x2) = liftEq2 f f x1 x2
-
-instance (Ord s, Ord lb, Ord ta) => Ord1 (ReductionStateF s ta la tb lb) where
-  liftCompare f (ReductionStateF x1) (ReductionStateF x2) = liftCompare2 f f x1 x2
-
-instance (Show s, Show lb, Show ta) => Show1 (ReductionStateF s ta la tb lb) where
-  liftShowsPrec sPrec sList i (ReductionStateF x) = liftShowsPrec2 sPrec sList sPrec sList i x
-
-type ReductionState s ta la tb lb = Fix (ReductionStateF s ta la tb lb)
+type ReductionState c s ta la tb lb = Fix (ReductionStateF c s ta la tb lb)
 
 pattern RedFix
-  :: RightHandSideF s tb lb ta (ReductionState s ta la tb lb) (ReductionState s ta la tb lb)
-  -> ReductionState s ta la tb lb
+  :: RightHandSideF s tb lb ta c (ReductionState c s ta la tb lb)
+  -> ReductionState c s ta la tb lb
 pattern RedFix s = Fix (ReductionStateF s)
 {-# COMPLETE RedFix #-}
 
-instance (MttConstraint s ta la tb lb) => RankedTree (ReductionState s ta la tb lb) where
-  type LabelType (ReductionState s ta la tb lb) = ReductionStateF s ta la tb lb ()
+instance (MttConstraint s ta la tb lb) => RankedTree (ReductionState c s ta la tb lb) where
+  type LabelType (ReductionState c s ta la tb lb) = ReductionStateF c s ta la tb lb ()
 
   treeLabel (Fix x) = void x
   treeChilds (Fix x) = fromList $ toList x
@@ -255,15 +242,15 @@ instance (MttConstraint s ta la tb lb) => RankedTree (ReductionState s ta la tb 
   treeLabelRank _ = length
 
   mkTreeUnchecked (ReductionStateF x) cs = RedFix $ case x of
-    MttContextF _       -> MttContextF $ cs `indexEx` 0
+    MttContextF y       -> MttContextF y
     MttStateF s t _     -> MttStateF s t cs
     MttLabelSideF l _   -> MttLabelSideF l cs
     MttBottomLabelSideF -> MttBottomLabelSideF
 
-buildMttReduction :: forall tz b s ta la tb lb. (MttConstraint s ta la tb lb, RankedTreeZipper tz)
-  => (RtApply tz (ReductionState s ta la tb lb) -> b -> b) -> b
+buildMttReduction :: forall tz b c s ta la tb lb. (MttConstraint s ta la tb lb, RankedTreeZipper tz)
+  => (RtApply tz (ReductionState c s ta la tb lb) -> b -> b) -> b
   -> MacroTreeTransducer s ta la tb lb
-  -> ReductionState s ta la tb lb
+  -> ReductionState c s ta la tb lb
   -> b
 buildMttReduction f is trans = go is . toZipper
   where
@@ -273,7 +260,7 @@ buildMttReduction f is trans = go is . toZipper
       MttStateF{}           -> True
       MttLabelSideF{}       -> False
       MttBottomLabelSideF{} -> False
-      MttContextF{}         -> error "MttContext should be reduce in replacements"
+      MttContextF{}         -> False
 
     go x sz = case zoomNextRightOutZipper (checkReducible . toTree) sz of
       Just sz' -> let
@@ -292,21 +279,21 @@ buildMttReduction f is trans = go is . toZipper
       MttLabelSideF l cs  -> RedFix $ MttLabelSideF l $ replaceRHS us ys <$> cs
       MttBottomLabelSideF -> RedFix MttBottomLabelSideF
 
-runMttReduction :: forall s ta la tb lb. (MttConstraint s ta la tb lb)
+runMttReduction :: forall c s ta la tb lb. (MttConstraint s ta la tb lb)
   => MacroTreeTransducer s ta la tb lb
-  -> ReductionState s ta la tb lb -> ReductionState s ta la tb lb
+  -> ReductionState c s ta la tb lb -> ReductionState c s ta la tb lb
 runMttReduction trans istate = toTopTree
   $ buildMttReduction const (rtZipper istate) trans istate
 
-runMttReductionWithHistory :: forall s ta la tb lb. (MttConstraint s ta la tb lb)
+runMttReductionWithHistory :: forall c s ta la tb lb. (MttConstraint s ta la tb lb)
   => MacroTreeTransducer s ta la tb lb
-  -> ReductionState s ta la tb lb -> [ReductionState s ta la tb lb]
+  -> ReductionState c s ta la tb lb -> [ReductionState c s ta la tb lb]
 runMttReductionWithHistory trans istate
   = buildMttReduction @RTZipper (\tz -> (. (toTopTree tz:))) (istate:) trans istate []
 
 toInitialReductionState :: MttConstraint s ta la tb lb
   => MacroTreeTransducer s ta la tb lb
-  -> ta -> ReductionState s ta la tb lb
+  -> ta -> ReductionState c s ta la tb lb
 toInitialReductionState trans t = go $ mttInitialExpr trans
   where
     go (Fix x) = RedFix $ case x of
@@ -316,7 +303,7 @@ toInitialReductionState trans t = go $ mttInitialExpr trans
       MttContextF{}       -> error "This tree transducer is illegal."
 
 fromReductionState :: MttConstraint s ta la tb lb
-  => ReductionState s ta la tb lb -> Maybe tb
+  => ReductionState c s ta la tb lb -> Maybe tb
 fromReductionState (RedFix x) = case x of
   MttLabelSideF l cs -> do
     cs' <- traverse fromReductionState cs
@@ -324,10 +311,10 @@ fromReductionState (RedFix x) = case x of
   MttBottomLabelSideF -> pure $ mkTreeUnchecked bottomLabel []
   _ -> Nothing
 
-prettyShowReductionState :: (Show s, Show ta, Show lb) => ReductionState s ta la tb lb -> String
+prettyShowReductionState :: (Show c, Show s, Show ta, Show lb) => ReductionState c s ta la tb lb -> String
 prettyShowReductionState redState = go redState ""
   where
-    go (RedFix x) = prettyShowRhsF S.shows go go x
+    go (RedFix x) = prettyShowRhsF S.shows S.shows go x
 
 
 -- A tree transduction for mtts

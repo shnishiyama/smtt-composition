@@ -91,7 +91,7 @@ composeTdttAndSatt ::
   ( TOP.TdttConstraint s ti1 li1 to1 lo1
   , to1 ~ ti2
   , SATT.SattConstraint syn inh ti2 li2 to2 lo2
-  , Show lo2, Show syn, Show s, Show lo1
+  , Show lo2, Show syn, Show s, Show lo1, Show li1
   )
   => TOP.TopDownTreeTransducer s ti1 li1 to1 lo1
   -> SATT.StackAttributedTreeTransducer syn inh ti2 li2 to2 lo2
@@ -160,7 +160,7 @@ composeSmttNCAndMttWSU ::
   , MAC.MttConstraint s2 ti2 li2 to2 lo2
   , Eq lo2, Hashable lo2
   , MonadThrow m
-  , Show lo2, Show s2, Show s1, Show lo1
+  , Show lo2, Show s2, Show s1, Show lo1, Show li1
   )
   => SMAC.StackMacroTreeTransducer s1 ti1 li1 to1 lo1
   -> MAC.MacroTreeTransducer s2 ti2 li2 to2 lo2

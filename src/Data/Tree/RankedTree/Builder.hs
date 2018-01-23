@@ -1,7 +1,7 @@
 module Data.Tree.RankedTree.Builder where
 
-import Data.Tree.RankedTree
-import qualified Data.HashMap as HashMap
+import qualified Data.HashMap         as HashMap
+import           Data.Tree.RankedTree
 
 
 buildRankedTreeByLeafCount :: forall m i t l.
