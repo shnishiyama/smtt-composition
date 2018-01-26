@@ -14,6 +14,7 @@ import           Data.Tree.Trans.ATT.Instances           as ATT
 import           Data.Tree.Trans.Class
 import           Data.Tree.Trans.Compose.ExtendDesc
 import           Data.Tree.Trans.Compose.ExtendVoigt2004
+import           Data.Tree.Trans.Compose.TdttAndSmtt
 import           Data.Tree.Trans.Decompose.SmttToSatt
 import           Data.Tree.Trans.MAC.Instances
 import qualified Data.Tree.Trans.SATT                    as SATT
@@ -26,14 +27,5 @@ import           Text.PrettyPrint.Classy
 
 main :: IO ()
 main = do
-    let inputTree = buildTree (3 :: Int)
-    print inputTree
-
-    trans <- composeSmttNCAndMttWSU sampleExpSmtt infixToPostfixMtt
-    putDocLn $ pretty trans
-
-    print <=< treeTrans trans $ inputTree
-    print <=< treeTrans infixToPostfixMtt <=< treeTrans sampleExpSmtt $ inputTree
-  where
-    buildTree 1 = mkTree False []
-    buildTree n = mkTree True [buildTree $ n - 1]
+  trans <- composeSmttNCAndMttWSU sampleExpSmtt infixToPostfixMtt
+  print trans

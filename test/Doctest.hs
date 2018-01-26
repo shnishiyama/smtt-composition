@@ -6,7 +6,7 @@ import           Build_doctests (flags, module_sources, pkgs)
 import           Test.DocTest
 
 customFlags :: [String]
-customFlags = ["-fno-warn-warnings-deprecations"]
+customFlags = ["-fno-warn-warnings-deprecations", "-with-rtsopts=M1G"]
 
 main :: IO ()
 main = do

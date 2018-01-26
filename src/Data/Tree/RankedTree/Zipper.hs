@@ -14,6 +14,7 @@ module Data.Tree.RankedTree.Zipper
     -- a main instance
   , RTZipper
   , rtZipper
+  , rtZipperPath
   , RtPathZipper (..)
   , rtPathZipper
   , _rtPathList
@@ -76,54 +77,62 @@ toTopTree = toTree . zoomTopRtZipper
 toTreeLabel :: (RankedTreeZipper tz, RtConstraint t l) => tz t l -> l
 toTreeLabel = treeLabel . toTree
 
-checkResult :: (a -> Bool) -> a -> Maybe a
+checkResult :: Alternative m => (a -> Bool) -> a -> m a
 checkResult f x = if f x then pure x else empty
 
 zoomNextLeftOutZipperBase :: (RankedTreeZipper tz, RtConstraint t l)
-  => Bool -> (tz t l -> Bool) -> tz t l -> Maybe (tz t l)
-zoomNextLeftOutZipperBase b f = runKleisli $ if b then goIn else goLeftOut
+  => (tz t l -> Bool) -> Kleisli Maybe (tz t l) (tz t l) -> Kleisli Maybe (tz t l) (tz t l)
+zoomNextLeftOutZipperBase f go = goIn
   where
     goIn
       =   Kleisli (checkResult f)
-      <+> (Kleisli zoomInRtZipper >>> goIn)
+      <+> (Kleisli zoomInRtZipper >>> go)
       <+> goLeftOut
 
     goLeftOut
-      =   (Kleisli zoomLeftRtZipper >>> goIn)
+      =   (Kleisli zoomLeftRtZipper >>> go)
       <+> (Kleisli zoomOutRtZipper >>> goLeftOut)
 
 {-# INLINE zoomNextLeftOutZipperBase #-}
 
 zoomNextLeftOutZipper :: (RankedTreeZipper tz, RtConstraint t l)
   => (tz t l -> Bool) -> tz t l -> Maybe (tz t l)
-zoomNextLeftOutZipper = zoomNextLeftOutZipperBase True
+zoomNextLeftOutZipper f = runKleisli go
+  where
+    go = zoomNextLeftOutZipperBase f go
 
 zoomNextLeftOutZipper1 :: (RankedTreeZipper tz, RtConstraint t l)
   => (tz t l -> Bool) -> tz t l -> Maybe (tz t l)
-zoomNextLeftOutZipper1 = zoomNextLeftOutZipperBase False
+zoomNextLeftOutZipper1 f = runKleisli $ zoomNextLeftOutZipperBase (const False) go
+  where
+    go = zoomNextLeftOutZipperBase f go
 
 zoomNextRightOutZipperBase :: (RankedTreeZipper tz, RtConstraint t l)
-  => Bool -> (tz t l -> Bool) -> tz t l -> Maybe (tz t l)
-zoomNextRightOutZipperBase b f = runKleisli $ if b then goIn else goRightOut
+  => (tz t l -> Bool) -> Kleisli Maybe (tz t l) (tz t l) -> Kleisli Maybe (tz t l) (tz t l)
+zoomNextRightOutZipperBase f go = goIn
   where
     goIn
       =   Kleisli (checkResult f)
-      <+> (Kleisli zoomInRtZipper >>> goIn)
+      <+> (Kleisli zoomInRtZipper >>> go)
       <+> goRightOut
 
     goRightOut
-      =   (Kleisli zoomRightRtZipper >>> goIn)
+      =   (Kleisli zoomRightRtZipper >>> go)
       <+> (Kleisli zoomOutRtZipper >>> goRightOut)
 
 {-# INLINE zoomNextRightOutZipperBase #-}
 
 zoomNextRightOutZipper :: (RankedTreeZipper tz, RtConstraint t l)
   => (tz t l -> Bool) -> tz t l -> Maybe (tz t l)
-zoomNextRightOutZipper = zoomNextRightOutZipperBase True
+zoomNextRightOutZipper f = runKleisli go
+  where
+    go = zoomNextRightOutZipperBase f go
 
 zoomNextRightOutZipper1 :: (RankedTreeZipper tz, RtConstraint t l)
   => (tz t l -> Bool) -> tz t l -> Maybe (tz t l)
-zoomNextRightOutZipper1 = zoomNextRightOutZipperBase False
+zoomNextRightOutZipper1 f = runKleisli $ zoomNextRightOutZipperBase (const False) go
+  where
+    go = zoomNextRightOutZipperBase f go
 
 
 -- RTZipper
@@ -189,6 +198,8 @@ fromTreeCrumb RTZCrumb{..} t = mkTreeUnchecked rtzcLabel rtzcChilds'
 -- Just C
 -- >>> toTree <$> (zoomNextRightOutZipper1 (const True) <=< zoomInRtZipper) treeABCZipper
 -- Just B(C)
+-- >>> toTree <$> (zoomNextRightOutZipper1 (const True)) treeABCZipper
+-- Just C
 --
 data RTZipper t l = RTZipper
   { rtzTree   :: t
@@ -200,6 +211,9 @@ rtZipper t = RTZipper
   { rtzTree   = t
   , rtzCrumbs = []
   }
+
+rtZipperPath :: RTZipper t l -> [RankNumber]
+rtZipperPath tz = rtzcIndex <$> rtzCrumbs tz
 
 instance RankedTreeZipper RTZipper where
   toZipper = rtZipper

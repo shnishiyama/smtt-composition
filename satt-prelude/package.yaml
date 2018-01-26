@@ -40,19 +40,23 @@ default-extensions:
   - NoImplicitPrelude
 
   # performance supports
-  - ApplicativeDo
   - BangPatterns
-  - MagicHash
+  - EmptyCase
   - StrictData
 
   # useful syntaxes
   - Arrows
   - BinaryLiterals
+  - DefaultSignatures
+  # for Cabal 2.0.x
+  #- DerivingStrategies
   - FlexibleContexts
   - FlexibleInstances
+  - InstanceSigs
+  - LambdaCase
+  - MultiWayIf
   - NamedFieldPuns
   - NegativeLiterals
-  - LambdaCase
   - PatternSynonyms
   - RecordWildCards
   - RecursiveDo
@@ -62,8 +66,12 @@ default-extensions:
 
   # useful derivable
   - GeneralizedNewtypeDeriving
-  - DeriveGeneric
   - DeriveDataTypeable
+  - DeriveFoldable
+  - DeriveFunctor
+  - DeriveGeneric
+  - DeriveTraversable
+  - DeriveAnyClass
 
   # extensions of type systems
   - ConstraintKinds
@@ -83,11 +91,14 @@ library:
   source-dirs: src
   exposed-modules:
   - SattPrelude
-  other-modules: []
+  other-modules:
+  - OrphanInstances
   dependencies:
     <<: *base-dependencies
     profunctors:
     bifunctors:
+    hashable:
+    vector:
     groom:
     unicode-show:
     deriving-compat:

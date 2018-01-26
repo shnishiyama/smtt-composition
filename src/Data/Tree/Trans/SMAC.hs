@@ -48,6 +48,7 @@ module Data.Tree.Trans.SMAC
   , smttStates
   , smttInitialExpr
   , smttTransRules
+  , smttTranslateRule
   ) where
 
 import           SattPrelude
@@ -454,43 +455,45 @@ buildSmttReduction f is trans = go is . toZipper
       SmttStackConsF{}  -> True
       SmttContextF{}    -> False
 
-    go x sz = case zoomNextRightOutZipper (checkReducible . toTree) sz of
-      Just sz' -> let
-          !nsz = reductState sz'
-          !nx  = f nsz x
-        in go nx nsz
-      Nothing -> x
+    go x sz =
+      let
+        mres = do
+          sz' <- zoomNextRightOutZipper (checkReducible . toTree) sz
+          case reductState sz' of
+            Just nsz -> pure (f nsz x, nsz)
+            Nothing   -> do
+              nsz <- zoomNextRightOutZipper1 (const True) sz'
+              pure (x, nsz)
+      in case mres of
+        Just (!nx, !nsz) -> go nx nsz
+        Nothing          -> x
 
     reductState sz = case toTree sz of
       RedFixStk x -> case x of
-        SmttStateF s t cs  -> setTreeZipper (reductStateSide s t cs) sz
-        SmttStackConsF h t -> deconsStackCons h t sz
-        SmttStackEmptyF    -> deconsStackEmpty sz
+        SmttStateF s t cs  -> pure $ setTreeZipper (reductStateSide s t cs) sz
+        SmttStackConsF h t -> deconsStackCons h t <=< zoomOutRtZipper $ sz
+        SmttStackEmptyF    -> deconsStackEmpty <=< zoomOutRtZipper $ sz
         _                  -> error "This state is irreducible"
       RedFixVal _ -> error "This state is irreducible"
 
     reductStateSide s t cs = replaceRHS (treeChilds t) cs
       $ rule (s, treeLabel t)
 
-    deconsStackEmpty sz = case zoomOutRtZipper sz of
-      Nothing -> errorUnreachable
-      Just nsz -> case toTree nsz of
-        RedFixVal x -> case x of
-          SmttStackHeadF{} -> setTreeZipper (RedFixVal SmttStackBottomF) nsz
-          _                -> errorUnreachable
-        RedFixStk x -> case x of
-          SmttStackTailF{} -> setTreeZipper (RedFixStk SmttStackEmptyF) nsz
-          _                -> errorUnreachable
+    deconsStackEmpty sz = case toTree sz of
+      RedFixVal x -> case x of
+        SmttStackHeadF{} -> pure $ setTreeZipper (RedFixVal SmttStackBottomF) sz
+        _                -> empty
+      RedFixStk x -> case x of
+        SmttStackTailF{} -> pure $ setTreeZipper (RedFixStk SmttStackEmptyF) sz
+        _                -> empty
 
-    deconsStackCons h t sz = case zoomOutRtZipper sz of
-      Nothing  -> errorUnreachable
-      Just nsz -> case toTree nsz of
-        RedFixVal x -> case x of
-          SmttStackHeadF{} -> setTreeZipper (ValuedExpr h) nsz
-          _                -> errorUnreachable
-        RedFixStk x -> case x of
-          SmttStackTailF{} -> setTreeZipper (StackedExpr t) nsz
-          _                -> errorUnreachable
+    deconsStackCons h t sz = case toTree sz of
+      RedFixVal x -> case x of
+        SmttStackHeadF{} -> pure $ setTreeZipper (ValuedExpr h) sz
+        _                -> empty
+      RedFixStk x -> case x of
+        SmttStackTailF{} -> pure $ setTreeZipper (StackedExpr t) sz
+        _                -> empty
 
     replaceRHS us ys = StackedExpr . replaceRHSStk us ys
 

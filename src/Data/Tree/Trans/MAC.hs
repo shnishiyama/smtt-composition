@@ -50,7 +50,7 @@ data RightHandSideF s t l u c rhs
   | MttStateF s u (NodeVec rhs)
   | MttLabelSideF l (NodeVec rhs)
   | MttBottomLabelSideF
-  deriving (Eq, Ord, Show, Generic, Generic1, Functor, Foldable, Hashable)
+  deriving (Eq, Ord, Show, Generic, Generic1, Functor, Foldable, Hashable, Hashable1)
 
 deriveEq1 ''RightHandSideF
 deriveEq2 ''RightHandSideF

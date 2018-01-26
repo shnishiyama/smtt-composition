@@ -303,3 +303,9 @@ instance RankedLabel a => RankedTree (RankedLabelledTree a) where
   treeLabelRank _ = labelRank
 
   mkTreeUnchecked = RankedLabelledTree
+
+
+-- tree form
+
+instance RankedLabel RankNumber where
+  labelRank = id

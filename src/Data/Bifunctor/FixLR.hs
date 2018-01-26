@@ -130,3 +130,9 @@ pattern BiFixR :: p2 (FixL p1 p2) (FixR p1 p2) -> BiFix p1 p2
 pattern BiFixR x = BiFixRight (FixR x)
 
 {-# COMPLETE BiFixL, BiFixR #-}
+
+type family BiFixLeft t where
+  BiFixLeft (BiFix p1 p2) = FixL p1 p2
+
+type family BiFixRight t where
+  BiFixRight (BiFix p1 p2) = FixR p1 p2

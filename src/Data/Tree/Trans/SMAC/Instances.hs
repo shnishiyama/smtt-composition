@@ -166,7 +166,7 @@ type SampleExpSmtt = SmttTransducer
 -- :}
 --
 -- >>> treeTrans sampleExpSmtt inputNumTree
--- plus(plus(two,plus(plus(two,two),two)),plus(plus(two,two),two))
+-- plus(plus(one,one),two)
 --
 sampleExpSmtt :: SampleExpSmtt
 sampleExpSmtt = fromMaybe errorUnreachable $ buildSmtt

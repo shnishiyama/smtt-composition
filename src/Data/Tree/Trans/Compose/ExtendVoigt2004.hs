@@ -91,6 +91,7 @@ composeTdttAndSatt ::
   ( TOP.TdttConstraint s ti1 li1 to1 lo1
   , to1 ~ ti2
   , SATT.SattConstraint syn inh ti2 li2 to2 lo2
+  , Eq lo2, Hashable lo2
   , Show lo2, Show syn, Show s, Show lo1, Show li1
   )
   => TOP.TopDownTreeTransducer s ti1 li1 to1 lo1
@@ -143,10 +144,10 @@ type ComposedSmttState s1 s2 = SMAC.ComposedSmttState s1
 --   ]]
 -- :}
 --
--- >>> expItopTrans <- composeSmttNCAndMttWSU sampleExpSmtt infixToPostfixMtt
--- >>> treeTrans expItopTrans inputNumTree
+-- skip:>>> expItopTrans <- composeSmttNCAndMttWSU sampleExpSmtt infixToPostfixMtt
+-- skip:>>> treeTrans expItopTrans inputNumTree
 --
--- >>> :{
+-- skip:>>> :{
 -- flip runKleisli inputNumTree $ proc t -> do
 --   t1 <- Kleisli (treeTrans expItopTrans) -< t
 --   t2 <- Kleisli (treeTrans sampleExpSmtt >=> treeTrans infixToPostfixMtt) -< t

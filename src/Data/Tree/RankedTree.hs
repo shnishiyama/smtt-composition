@@ -7,7 +7,9 @@ module Data.Tree.RankedTree
   , NodeVec
   , treeRank
   , foldTree
+  , showTreeWithPrinter
   , showTree
+  , showTreeForm
   , lengthTree
   , RtConstraint
   , RtApply
@@ -60,14 +62,20 @@ foldTree :: RankedTree t => (LabelType t -> NodeVec b -> b) -> t -> b
 foldTree f = go where
   go t = f (treeLabel t) $ go <$> treeChilds t
 
-showTree :: (RankedTree t, Show (LabelType t)) => t -> String
-showTree = foldTree go
+showTreeWithPrinter :: RtConstraint t l => (l -> String) -> t -> String
+showTreeWithPrinter f = foldTree go
   where
-    go l childs = show l <> childsStr childs
+    go l childs = f l <> childsStr childs
 
     childsStr ts
       | null ts = ""
       | otherwise = "(" <> intercalate "," ts <> ")"
+
+showTree :: (RankedTree t, Show (LabelType t)) => t -> String
+showTree = showTreeWithPrinter show
+
+showTreeForm :: (RankedTree t) => t -> String
+showTreeForm = showTreeWithPrinter (const "*")
 
 lengthTree :: forall t. RankedTree t => t -> Int
 lengthTree = length .# RankedTreeWrapper @t @(LabelType t)

@@ -1,3 +1,4 @@
+{-# LANGUAGE NoStrict        #-}
 {-# LANGUAGE OverloadedLists #-}
 {-# LANGUAGE TemplateHaskell #-}
 
@@ -5,7 +6,9 @@ module Data.Tree.Trans.Compose.TdttAndSmtt where
 
 import           SattPrelude
 
+import           Control.Monad.State         (evalState, get, put)
 import           Data.Bifunctor.FixLR
+import qualified Data.HashMap.Strict         as HashMap
 import           Data.Tree.RankedTree
 import           Data.Tree.RankedTree.Label
 import           Data.Tree.RankedTree.Zipper
@@ -14,6 +17,7 @@ import qualified Data.Tree.Trans.SMAC        as SMAC
 import           Data.Tree.Trans.Stack
 import qualified Data.Tree.Trans.TOP         as TOP
 import qualified Data.Vector                 as V
+import qualified Text.PrettyPrint.Classy     as Pretty
 
 
 data ComposedSmttState s1 s2 = ComposedSmttState s1 s2
@@ -21,6 +25,10 @@ data ComposedSmttState s1 s2 = ComposedSmttState s1 s2
 
 instance RankedLabel s2 => RankedLabel (ComposedSmttState s1 s2) where
   labelRank (ComposedSmttState _ s2) = labelRank s2
+
+instance (Show s1, Show s2) => Pretty.Pretty (ComposedSmttState s1 s2) where
+  pretty (ComposedSmttState s1 s2) = Pretty.tupled
+    [Pretty.prettyShowString s1, Pretty.prettyShowString s2]
 
 type ComposedSmttRHS s1 s2 to2 lo2 = SMAC.BiRightHandSide
   (ComposedSmttState s1 s2)
@@ -85,15 +93,7 @@ pattern PsSmttStackTailF s = BiInR (StackTailF s)
 pattern PsSmttStackConsF :: val -> stk -> PseudoReductionStateStkF c u sa sb ta la tb lb val stk
 pattern PsSmttStackConsF v s = BiInR (StackConsF v s)
 
-{-# COMPLETE PsSmttContextF, PsSmttStateF, PsSmttStackEmptyF, PsSmttStackTailF, PsSmttStackConsF #-}
-
-type PseudoReductionStateVal c u sa sb ta la tb lb = FixVal
-  (PseudoReductionStateValF c u sa sb ta la tb lb)
-  (PseudoReductionStateStkF c u sa sb ta la tb lb)
-
-type PseudoReductionStateStk c u sa sb ta la tb lb = FixStk
-  (PseudoReductionStateValF c u sa sb ta la tb lb)
-  (PseudoReductionStateStkF c u sa sb ta la tb lb)
+{-# COMPLETE PsSmttContextF, PsSmttStateF, PsSmttStateSideF, PsSmttStackEmptyF, PsSmttStackTailF, PsSmttStackConsF #-}
 
 type PseudoReductionState c u sa sb ta la tb lb = BiStackExprFix
   (PseudoReductionStateValF c u sa sb ta la tb lb)
@@ -119,11 +119,12 @@ instance RankedTree (PseudoReductionState c u sa sb ta la tb lb) where
         PsSmttStackBottomF   -> PsSmttStackBottomF
         PsSmttStackHeadF{}   -> PsSmttStackHeadF (fromStackedExpr $ cs `indexEx` 0)
       StackedExpr se -> BiFixStk $ case se of
-        PsSmttContextF c    -> PsSmttContextF c
-        PsSmttStateF s u _  -> PsSmttStateF s u $ fromStackedExpr <$> cs
-        PsSmttStackEmptyF   -> PsSmttStackEmptyF
-        PsSmttStackTailF{}  -> PsSmttStackTailF (fromStackedExpr $ cs `indexEx` 0)
-        PsSmttStackConsF{}  -> PsSmttStackConsF
+        PsSmttContextF c        -> PsSmttContextF c
+        PsSmttStateF s1 t _     -> PsSmttStateF s1 t $ fromStackedExpr <$> cs
+        PsSmttStateSideF s2 u _ -> PsSmttStateSideF s2 u $ fromStackedExpr <$> cs
+        PsSmttStackEmptyF       -> PsSmttStackEmptyF
+        PsSmttStackTailF{}      -> PsSmttStackTailF (fromStackedExpr $ cs `indexEx` 0)
+        PsSmttStackConsF{}      -> PsSmttStackConsF
           (fromValuedExpr  $ cs `indexEx` 0)
           (fromStackedExpr $ cs `indexEx` 1)
     where
@@ -132,6 +133,27 @@ instance RankedTree (PseudoReductionState c u sa sb ta la tb lb) where
 
       fromStackedExpr (StackedExpr x) = x
       fromStackedExpr _               = error "expected a stacked expression"
+
+instance (Show lb, Show c, Show sa, Show u, Show la, Pretty.Pretty sb, RtConstraint ta la)
+    => Pretty.Pretty (PseudoReductionState c u sa sb ta la tb lb) where
+
+  pretty state = case state of
+      ValuedExpr  v -> goVal v
+      StackedExpr s -> goStk s
+    where
+      goVal (FixVal x) = case x of
+        PsSmttLabelSideF l cs -> Pretty.prettyShowString l <> Pretty.tupled (goVal <$> toList cs)
+        PsSmttStackBottomF    -> Pretty.text "_|_"
+        PsSmttStackHeadF s    -> Pretty.text "H" <> Pretty.tupled [goStk s]
+      goStk (FixStk x) = case x of
+        PsSmttStateF     s1 t cs -> Pretty.prettyShowString s1
+          <> Pretty.tupled (Pretty.prettyShowString (treeLabel t):(goStk <$> toList cs))
+        PsSmttStateSideF s2 u cs -> Pretty.pretty s2
+          <> Pretty.tupled (Pretty.prettyShowString u:(goStk <$> toList cs))
+        PsSmttStackEmptyF        -> Pretty.text "[]"
+        PsSmttStackTailF s       -> Pretty.text "T" <> Pretty.tupled [goStk s]
+        PsSmttStackConsF v s     -> Pretty.text "C" <> Pretty.tupled [goVal v, goStk s]
+        PsSmttContextF c         -> Pretty.prettyShowString c
 
 
 type ComposeBasedPsSmttInputTree s1 to1 lo1
@@ -153,24 +175,197 @@ buildPseudoSmttReduction :: forall tz b s1 s2 to1 lo1 ti2 li2 to2 lo2.
   , to1 ~ ti2
   , SMAC.SmttConstraint s2 ti2 li2 to2 lo2
   , RankedTreeZipper tz
+  , Show b, Show s1, Show s2, Show lo1, Show lo2
+  , Show (RtApply tz (ComposeBasedPseudoReductionState s1 s2 to1 lo1 ti2 li2 to2 lo2))
   )
   => (RtApply tz (ComposeBasedPseudoReductionState s1 s2 to1 lo1 ti2 li2 to2 lo2) -> b -> b)
   -> b
   -> ComposeBasedPseudoSmtt s2 ti2 li2 to2 lo2
   -> ComposeBasedPseudoReductionState s1 s2 to1 lo1 ti2 li2 to2 lo2
   -> b
-buildPseudoSmttReduction f is (ComposeBasedPseudoSmtt trans) = undefined f is trans
+buildPseudoSmttReduction f is (ComposeBasedPseudoSmtt trans) = go is . toZipper
+  where
+    rule = SMAC.smttTranslateRule trans
+
+    checkReducible (BiFixVal x) = case x of
+      PsSmttLabelSideF{}   -> False
+      PsSmttStackBottomF{} -> False
+      PsSmttStackHeadF{}   -> False
+    checkReducible (BiFixStk x) = case x of
+      PsSmttStateF{}      -> True
+      PsSmttStateSideF{}  -> False
+      PsSmttStackEmptyF{} -> True
+      PsSmttStackTailF{}  -> False
+      PsSmttStackConsF{}  -> True
+      PsSmttContextF{}    -> False
+
+    go x sz =
+      let
+        mres = do
+          sz' <- zoomNextRightOutZipper (checkReducible . toTree) sz
+          case reductState sz' of
+            Just nsz -> pure (f nsz x, nsz)
+            Nothing   -> do
+              nsz <- zoomNextRightOutZipper1 (const True) sz'
+              pure (x, nsz)
+      in case mres of
+        Just (!nx, !nsz) -> go nx nsz
+        Nothing          -> x
+
+    reductState sz = case toTree sz of
+      BiFixStk x -> case x of
+        PsSmttStateF s t cs  -> pure $ setTreeZipper (reductStateSide s t cs) sz
+        PsSmttStackConsF h t -> deconsStackCons h t <=< zoomOutRtZipper $ sz
+        PsSmttStackEmptyF    -> deconsStackEmpty <=< zoomOutRtZipper $ sz
+        _                    -> error "This state is irreducible"
+      BiFixVal _ -> error "This state is irreducible"
+
+    reductStateSide s2 (Fix t) ys = case t of
+      TOP.TdttLabelSideF l cs   -> replaceRHS cs ys $ rule (s2, l)
+      TOP.TdttStateF s1 u       -> BiFixStk $ PsSmttStateSideF (ComposedSmttState s1 s2) u ys
+      TOP.TdttBottomLabelSideF  -> BiFixStk PsSmttStackEmptyF
+
+    deconsStackEmpty sz = case toTree sz of
+      BiFixVal x -> case x of
+        PsSmttStackHeadF{} -> pure $ setTreeZipper (BiFixVal PsSmttStackBottomF) sz
+        _                  -> empty
+      BiFixStk x -> case x of
+        PsSmttStackTailF{} -> pure $ setTreeZipper (BiFixStk PsSmttStackEmptyF) sz
+        _                  -> empty
+
+    deconsStackCons h t sz = case toTree sz of
+      BiFixVal x -> case x of
+        PsSmttStackHeadF{} -> pure $ setTreeZipper (ValuedExpr h) sz
+        _                  -> empty
+      BiFixStk x -> case x of
+        PsSmttStackTailF{} -> pure $ setTreeZipper (StackedExpr t) sz
+        _                  -> empty
+
+    replaceRHS us ys = StackedExpr . replaceRHSStk us ys
+
+    replaceRHSVal us ys (FixVal x) = FixVal $ case x of
+      SMAC.SmttLabelSideF l cs -> PsSmttLabelSideF l $ replaceRHSVal us ys <$> cs
+      SMAC.SmttStackBottomF    -> PsSmttStackBottomF
+      SMAC.SmttStackHeadF s    -> PsSmttStackHeadF $ replaceRHSStk us ys s
+
+    replaceRHSStk us ys (FixStk x) = case x of
+      SMAC.SmttContextF yi      -> ys `indexEx` yi
+      SMAC.SmttStateF s ui cs   -> FixStk $ PsSmttStateF s (us `indexEx` ui) $ replaceRHSStk us ys <$> cs
+      SMAC.SmttStackEmptyF      -> FixStk PsSmttStackEmptyF
+      SMAC.SmttStackTailF s     -> FixStk $ PsSmttStackTailF $ replaceRHSStk us ys s
+      SMAC.SmttStackConsF v s   -> FixStk $ PsSmttStackConsF
+        (replaceRHSVal us ys v)
+        (replaceRHSStk us ys s)
 
 runPseudoSmttReduction :: forall s1 s2 to1 lo1 ti2 li2 to2 lo2.
   ( Eq s1, Hashable s1, RtConstraint to1 lo1
   , to1 ~ ti2
   , MAC.MttConstraint s2 ti2 li2 to2 lo2
+  , Eq lo2, Hashable lo2
+  , Show s1, Show s2, Show lo1, Show lo2
   )
   => ComposeBasedPseudoSmtt s2 ti2 li2 to2 lo2
   -> ComposeBasedPseudoReductionState s1 s2 to1 lo1 ti2 li2 to2 lo2
   -> ComposeBasedPseudoReductionState s1 s2 to1 lo1 ti2 li2 to2 lo2
-runPseudoSmttReduction trans istate = toTopTree
-  $ buildPseudoSmttReduction const (rtZipper istate) trans istate
+runPseudoSmttReduction (ComposeBasedPseudoSmtt trans) = reductState
+  where
+    rule = SMAC.smttTranslateRule trans
+
+    reductState = bimap
+      (flip evalState HashMap.empty . reductStateVal)
+      (flip evalState HashMap.empty . reductStateStk)
+
+    reductStateVal = reductStateValBase reductStateVal reductStateStk
+    reductStateStk = reductStateStkBase reductStateVal reductStateStk
+
+    reductStateValBase fv fs v@(FixVal x) = case x of
+      PsSmttStackBottomF      -> pure v
+      PsSmttLabelSideF l cs   -> FixVal #. PsSmttLabelSideF l <$> traverse fv cs
+      PsSmttStackHeadF s'     -> reductStateStackHead fv fs (0 :: Int) s'
+
+    reductStateStkBase fv fs s@(FixStk x) = case x of
+      PsSmttStackEmptyF        -> pure s
+      PsSmttContextF{}         -> pure s
+      PsSmttStateF     g t cs  -> do
+        p <- getPartialState g t
+        fs $ replaceCxtsStk cs p
+      PsSmttStateSideF fg u cs -> FixStk #. PsSmttStateSideF fg u <$> traverse fs cs
+      PsSmttStackTailF s'      -> reductStateStackTail fv fs (1 :: Int) s'
+      PsSmttStackConsF v' s'   -> fmap FixStk $ PsSmttStackConsF <$> fv v' <*> fs s'
+
+    reductStateStackHead fv fs i s@(FixStk x) = case x of
+      PsSmttStackEmptyF        -> pure $ FixVal PsSmttStackBottomF
+      PsSmttContextF{}         -> pure .# FixVal $ PsSmttStackHeadF
+        $ stimesEndo i (FixStk #. PsSmttStackTailF) s
+      PsSmttStateSideF fg u cs -> FixVal #. PsSmttStackHeadF
+        . stimesEndo i (FixStk #. PsSmttStackTailF)
+        . FixStk #. PsSmttStateSideF fg u <$> traverse (reductStateStkBase fv fs) cs
+      PsSmttStackConsF v' s'   -> if
+        | i <  0    -> error "negative number"
+        | i == 0    -> fv v'
+        | otherwise -> reductStateStackHead fv fs (i - 1) s'
+      PsSmttStackTailF s'      -> reductStateStackHead fv fs (i + 1) s'
+      PsSmttStateF{}           -> do
+        s' <- reductStateStkBase errorUnreachable pure s
+        reductStateStackHead fv fs i s'
+
+    reductStateStackTail fv fs i s@(FixStk x) = case x of
+      PsSmttStackEmptyF        -> pure s
+      PsSmttContextF{}         -> pure $ stimesEndo i (FixStk #. PsSmttStackTailF) s
+      PsSmttStateSideF fg u cs -> stimesEndo i (FixStk #. PsSmttStackTailF)
+        . FixStk #. PsSmttStateSideF fg u <$> traverse (reductStateStkBase fv fs) cs
+      PsSmttStackConsF _ s'    -> if
+        | i <  0    -> error "negative number"
+        | i == 0    -> reductStateStkBase fv fs s
+        | i == 1    -> fs s'
+        | otherwise -> reductStateStackTail fv fs (i - 1) s'
+      PsSmttStackTailF s'      -> reductStateStackTail fv fs (i + 1) s'
+      PsSmttStateF{}           -> do
+        s' <- reductStateStkBase errorUnreachable pure s
+        reductStateStackTail fv fs i s'
+
+    getPartialState g t = do
+      m <- get
+      case lookup (g, t) m of
+        Just p  -> pure p
+        Nothing -> do
+          p <- reductStateStk $ applyTransRule g t
+          put $ insertMap (g, t) p m
+          pure p
+
+    replaceCxtsVal ys v@(FixVal x) = case x of
+      PsSmttStackBottomF      -> v
+      PsSmttLabelSideF l cs   -> FixVal $ PsSmttLabelSideF l $ replaceCxtsVal ys <$> cs
+      PsSmttStackHeadF s'     -> FixVal $ PsSmttStackHeadF $ replaceCxtsStk ys s'
+
+    replaceCxtsStk ys s@(FixStk x) = case x of
+      PsSmttStackEmptyF        -> s
+      PsSmttContextF yi        -> ys `indexEx` yi
+      PsSmttStateF     g t cs  -> FixStk $ PsSmttStateF g t $ replaceCxtsStk ys <$> cs
+      PsSmttStateSideF fg u cs -> FixStk $ PsSmttStateSideF fg u $ replaceCxtsStk ys <$> cs
+      PsSmttStackTailF s'      -> FixStk $ PsSmttStackTailF $ replaceCxtsStk ys s'
+      PsSmttStackConsF v' s'   -> FixStk $ PsSmttStackConsF (replaceCxtsVal ys v') (replaceCxtsStk ys s')
+
+    applyTransRule s2 (Fix t) = case t of
+      TOP.TdttLabelSideF l cs  -> replaceRHSStk cs $ rule (s2, l)
+      TOP.TdttStateF s1 u      -> FixStk $ PsSmttStateSideF (ComposedSmttState s1 s2) u
+        $ V.generate (labelRank s2 - 1) (FixStk #. PsSmttContextF)
+      TOP.TdttBottomLabelSideF -> FixStk PsSmttStackEmptyF
+
+    replaceRHSVal us (FixVal x) = FixVal $ case x of
+      SMAC.SmttLabelSideF l cs -> PsSmttLabelSideF l $ replaceRHSVal us <$> cs
+      SMAC.SmttStackBottomF    -> PsSmttStackBottomF
+      SMAC.SmttStackHeadF s    -> PsSmttStackHeadF $ replaceRHSStk us s
+
+    replaceRHSStk us (FixStk x) = FixStk $ case x of
+      SMAC.SmttContextF yi      -> PsSmttContextF yi
+      SMAC.SmttStateF s ui cs   -> PsSmttStateF s (us `indexEx` ui) $ replaceRHSStk us <$> cs
+      SMAC.SmttStackEmptyF      -> PsSmttStackEmptyF
+      SMAC.SmttStackTailF s     -> PsSmttStackTailF $ replaceRHSStk us s
+      SMAC.SmttStackConsF v s   -> PsSmttStackConsF
+        (replaceRHSVal us v)
+        (replaceRHSStk us s)
+
 
 fromReductionState ::
   ( SMAC.SmttConstraint s2 ti2 li2 to2 lo2
@@ -228,6 +423,7 @@ composeTdttAndSmtt :: forall s1 s2 ti1 li1 to1 lo1 ti2 li2 to2 lo2.
   ( TOP.TdttConstraint s1 ti1 li1 to1 lo1
   , to1 ~ ti2
   , SMAC.SmttConstraint s2 ti2 li2 to2 lo2
+  , Eq lo2, Hashable lo2
   , Show lo2, Show s2, Show s1, Show lo1, Show li1
   )
   => TOP.TopDownTreeTransducer s1 ti1 li1 to1 lo1
@@ -236,7 +432,7 @@ composeTdttAndSmtt :: forall s1 s2 ti1 li1 to1 lo1 ti2 li2 to2 lo2.
 composeTdttAndSmtt trans1 trans2 = fromMaybe errorUnreachable
     $ SMAC.buildSmtt ie rules
   where
-    composeBasedPseudoSmtt = coerce trans2
+    composeBasedPseudoSmtt = coerce $ SMAC.toFormattedSmtt trans2
 
     runRedComposeBased = fromMaybe errorUnreachable
       . fromReductionState
@@ -266,11 +462,11 @@ composeTdttAndSmtt trans1 trans2 = fromMaybe errorUnreachable
       let r = labelRank g - 1
       ((f', l), rhs) <- mapToList $ TOP.tdttTransRules trans1
       let f = coerce f'
-      pure $ trace ("rule - " <> show f <> "," <> show g <> ": " <> show l)
+      pure
         ( ComposedSmttState f g
         , l
         , runReductionWithRep
-          $ StackedExpr $ FixStk $ PsSmttStateF g rhs
+          $ BiFixStk $ PsSmttStateF g rhs
             $ V.generate r
             $ \i -> FixStk $ PsSmttContextF i
         )

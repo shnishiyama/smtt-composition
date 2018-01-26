@@ -1,7 +1,7 @@
+{-# LANGUAGE DerivingStrategies #-}
 {-# LANGUAGE NoStrict           #-}
 {-# LANGUAGE OverloadedLists    #-}
 {-# LANGUAGE TemplateHaskell    #-}
-{-# LANGUAGE DerivingStrategies #-}
 
 module Data.Tree.Trans.ATT
   ( -- common
@@ -62,8 +62,8 @@ import           SattPrelude
 import           Data.Tree.RankedTree
 import           Data.Tree.RankedTree.Zipper
 import           Data.Tree.Trans.Class
-import qualified Text.Show                   as S
 import qualified Text.PrettyPrint.Classy     as Pretty
+import qualified Text.Show                   as S
 
 
 -- TODO: Use Either (GHC 8.2.x have a critical bug for pattern synonyms)

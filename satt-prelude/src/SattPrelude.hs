@@ -10,6 +10,7 @@ module SattPrelude
   , module Data.Either
   , module Data.Functor.Classes
   , module Data.Functor.Foldable
+  , module Data.Hashable.Lifted
   , module Data.Kind
   , module Lens.Micro
   , module Data.Void
@@ -60,6 +61,7 @@ import           Data.Either              (isLeft, isRight)
 import           Data.Functor.Classes
 import           Data.Functor.Foldable    (Corecursive (..), Fix (..),
                                            Recursive (..))
+import           Data.Hashable.Lifted
 import           Data.Kind                (Type)
 import           Data.Monoid              hiding ((<>))
 import           Data.Profunctor.Unsafe
@@ -79,6 +81,9 @@ import           Text.Show.Deriving
 
 import           GHC.Exception            (errorCallWithCallStackException)
 import           GHC.Stack                (HasCallStack)
+
+import           OrphanInstances
+
 
 throwErrorM :: (HasCallStack, MonadThrow m) => String -> m a
 throwErrorM s = throwM $ errorCallWithCallStackException s ?callStack

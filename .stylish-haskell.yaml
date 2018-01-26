@@ -26,45 +26,56 @@ columns: 80
 newline: native
 
 language_extensions:
-  # use classy-prelude
+  # use satt-prelude
   - NoImplicitPrelude
 
   # performance supports
   - BangPatterns
+  - EmptyCase
   - StrictData
-  - ApplicativeDo
 
   # useful syntaxes
-  - EmptyDataDecls
+  - Arrows
+  - BinaryLiterals
+  - DefaultSignatures
+  # for Cabal 2.0.x
+  #- DerivingStrategies
   - FlexibleContexts
   - FlexibleInstances
+  - InstanceSigs
   - LambdaCase
-  - TupleSections
-  - RecordWildCards
-  - ViewPatterns
+  - MultiWayIf
+  - NamedFieldPuns
+  - NegativeLiterals
   - PatternSynonyms
+  - RecordWildCards
+  - RecursiveDo
   - StandaloneDeriving
-  - DerivingStrategies
+  - TupleSections
+  - ViewPatterns
 
   # useful derivable
   - GeneralizedNewtypeDeriving
-  - DeriveGeneric
   - DeriveDataTypeable
+  - DeriveFoldable
+  - DeriveFunctor
+  - DeriveGeneric
+  - DeriveTraversable
+  - DeriveAnyClass
 
   # extensions of type systems
-  - DataKinds
-  - PolyKinds
-  - TypeApplications
-  - TypeOperators
-  - TypeFamilies
-  - RoleAnnotations
-  - GADTs
-  - ExistentialQuantification
-  - TypeFamilyDependencies
-  - FunctionalDependencies
-  - ScopedTypeVariables
-  - RankNTypes
   - ConstraintKinds
+  - DataKinds
+  - FunctionalDependencies
+  - GADTs
+  - PolyKinds
+  - RankNTypes
+  - RoleAnnotations
+  - ScopedTypeVariables
+  - TypeApplications
+  - TypeFamilies
+  - TypeFamilyDependencies
+  - TypeOperators
 
   # for stylish-haskell
   - MultiParamTypeClasses

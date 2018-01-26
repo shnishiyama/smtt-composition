@@ -8,6 +8,7 @@ module Text.PrettyPrint.Classy
     -- for show wrapper
   , ShowDoc (..)
   , prettyShowString
+  , prettyShowsPrec
 
     -- combinators
   , record
@@ -37,6 +38,9 @@ instance Show a => Pretty (ShowDoc a) where
 
 prettyShowString :: Show a => a -> Doc
 prettyShowString x = pretty (ShowDoc x)
+
+prettyShowsPrec :: Show a => Int -> a -> Doc
+prettyShowsPrec d x = pretty $ showsPrec d x ""
 
 
 record :: String -> [(String, Doc)] -> Doc

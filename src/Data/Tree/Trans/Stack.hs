@@ -47,6 +47,8 @@ module Data.Tree.Trans.Stack
   , pattern BiFixVal
   , pattern BiFixStk
   , StackExprLabel
+  , BiFixValue
+  , BiFixStack
   ) where
 
 import           SattPrelude
@@ -314,3 +316,7 @@ pattern BiFixStk x = BiFixR x
 
 type StackExprLabel
   = StackExprEither (StackExprValF () ()) (StackExprStkF () ())
+
+
+type BiFixValue t = BiFixLeft t
+type BiFixStack t = BiFixRight t
