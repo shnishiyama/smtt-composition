@@ -6,9 +6,7 @@ module Data.Tree.Trans.Compose.TdttAndSmtt where
 
 import           SattPrelude
 
-import           Control.Monad.State         (evalState, get, put)
 import           Data.Bifunctor.FixLR
-import qualified Data.HashMap.Strict         as HashMap
 import           Data.Tree.RankedTree
 import           Data.Tree.RankedTree.Label
 import           Data.Tree.RankedTree.Zipper
@@ -38,13 +36,17 @@ type ComposedSmttRHS s1 s2 to2 lo2 = SMAC.BiRightHandSide
 
 data BasePseudoReductionStateValF c u sa sb ta la tb lb val stk
   = BasePsSmttLabelSideF lb (NodeVec val)
-  deriving (Eq, Ord, Show, Generic, Hashable)
+  deriving (Eq, Ord, Show, Generic, Generic1, Hashable, Hashable1)
+
+instance Hashable lb => Hashable2 (BasePseudoReductionStateValF c u sa sb ta la tb lb) where
+  liftHashWithSalt2 = defaultLiftHashWithSalt2
 
 deriveEq2 ''BasePseudoReductionStateValF
 deriveOrd2 ''BasePseudoReductionStateValF
 deriveShow2 ''BasePseudoReductionStateValF
 deriveBifunctor ''BasePseudoReductionStateValF
 deriveBifoldable ''BasePseudoReductionStateValF
+deriveBitraversable ''BasePseudoReductionStateValF
 
 type PseudoReductionStateValF c u sa sb ta la tb lb
   = BasePseudoReductionStateValF c u sa sb ta la tb lb :+|+: StackExprValF
@@ -64,13 +66,19 @@ data BasePseudoReductionStateStkF c u sa sb ta la tb lb val stk
   = BasePsSmttContextF c
   | BasePsSmttStateF sa ta (NodeVec stk)
   | BasePsSmttStateSideF sb u (NodeVec stk)
-  deriving (Eq, Ord, Show, Generic, Hashable)
+  deriving (Eq, Ord, Show, Generic, Generic1, Hashable, Hashable1)
+
+instance (Hashable c, Hashable sa, Hashable ta, Hashable sb, Hashable u)
+    => Hashable2 (BasePseudoReductionStateStkF c u sa sb ta la tb lb) where
+
+  liftHashWithSalt2 = defaultLiftHashWithSalt2
 
 deriveEq2 ''BasePseudoReductionStateStkF
 deriveOrd2 ''BasePseudoReductionStateStkF
 deriveShow2 ''BasePseudoReductionStateStkF
 deriveBifunctor ''BasePseudoReductionStateStkF
 deriveBifoldable ''BasePseudoReductionStateStkF
+deriveBitraversable ''BasePseudoReductionStateStkF
 
 type PseudoReductionStateStkF c u sa sb ta la tb lb
   = BasePseudoReductionStateStkF c u sa sb ta la tb lb :+|+: StackExprStkF
@@ -271,100 +279,55 @@ runPseudoSmttReduction (ComposeBasedPseudoSmtt trans) = reductState
   where
     rule = SMAC.smttTranslateRule trans
 
-    reductState = bimap
-      (flip evalState HashMap.empty . reductStateVal)
-      (flip evalState HashMap.empty . reductStateStk)
+    reductState = bimap repRedVal repRedStk
 
-    reductStateVal = reductStateValBase reductStateVal reductStateStk
-    reductStateStk = reductStateStkBase reductStateVal reductStateStk
+    stackConsReduct v@(FixVal x) s@(FixStk y) = case (x, y) of
+      (PsSmttStackBottomF, PsSmttStackEmptyF) -> s
+      _                                       -> FixStk $ PsSmttStackConsF v s
 
-    reductStateValBase fv fs v@(FixVal x) = case x of
-      PsSmttStackBottomF      -> pure v
-      PsSmttLabelSideF l cs   -> FixVal #. PsSmttLabelSideF l <$> traverse fv cs
-      PsSmttStackHeadF s'     -> reductStateStackHead fv fs (0 :: Int) s'
+    stackTailReduct s@(FixStk x) = case x of
+      PsSmttStackEmptyF     -> s
+      PsSmttStackConsF _ s' -> s'
+      _                     -> FixStk $ PsSmttStackTailF s
 
-    reductStateStkBase fv fs s@(FixStk x) = case x of
-      PsSmttStackEmptyF        -> pure s
-      PsSmttContextF{}         -> pure s
-      PsSmttStateF     g t cs  -> do
-        p <- getPartialState g t
-        fs $ replaceCxtsStk cs p
-      PsSmttStateSideF fg u cs -> FixStk #. PsSmttStateSideF fg u <$> traverse fs cs
-      PsSmttStackTailF s'      -> reductStateStackTail fv fs (1 :: Int) s'
-      PsSmttStackConsF v' s'   -> fmap FixStk $ PsSmttStackConsF <$> fv v' <*> fs s'
+    stackHeadReduct s@(FixStk x) = case x of
+      PsSmttStackEmptyF     -> stackBottom
+      PsSmttStackConsF v' _ -> v'
+      _                     -> FixVal $ PsSmttStackHeadF s
 
-    reductStateStackHead fv fs i s@(FixStk x) = case x of
-      PsSmttStackEmptyF        -> pure $ FixVal PsSmttStackBottomF
-      PsSmttContextF{}         -> pure .# FixVal $ PsSmttStackHeadF
-        $ stimesEndo i (FixStk #. PsSmttStackTailF) s
-      PsSmttStateSideF fg u cs -> FixVal #. PsSmttStackHeadF
-        . stimesEndo i (FixStk #. PsSmttStackTailF)
-        . FixStk #. PsSmttStateSideF fg u <$> traverse (reductStateStkBase fv fs) cs
-      PsSmttStackConsF v' s'   -> if
-        | i <  0    -> error "negative number"
-        | i == 0    -> fv v'
-        | otherwise -> reductStateStackHead fv fs (i - 1) s'
-      PsSmttStackTailF s'      -> reductStateStackHead fv fs (i + 1) s'
-      PsSmttStateF{}           -> do
-        s' <- reductStateStkBase errorUnreachable pure s
-        reductStateStackHead fv fs i s'
+    repRedVal v@(FixVal x) = case x of
+      PsSmttStackBottomF    -> v
+      PsSmttLabelSideF l cs -> FixVal #. PsSmttLabelSideF l $ fmap repRedVal cs
+      PsSmttStackHeadF s'   -> stackHeadReduct $ repRedStk s'
 
-    reductStateStackTail fv fs i s@(FixStk x) = case x of
-      PsSmttStackEmptyF        -> pure s
-      PsSmttContextF{}         -> pure $ stimesEndo i (FixStk #. PsSmttStackTailF) s
-      PsSmttStateSideF fg u cs -> stimesEndo i (FixStk #. PsSmttStackTailF)
-        . FixStk #. PsSmttStateSideF fg u <$> traverse (reductStateStkBase fv fs) cs
-      PsSmttStackConsF _ s'    -> if
-        | i <  0    -> error "negative number"
-        | i == 0    -> reductStateStkBase fv fs s
-        | i == 1    -> fs s'
-        | otherwise -> reductStateStackTail fv fs (i - 1) s'
-      PsSmttStackTailF s'      -> reductStateStackTail fv fs (i + 1) s'
-      PsSmttStateF{}           -> do
-        s' <- reductStateStkBase errorUnreachable pure s
-        reductStateStackTail fv fs i s'
-
-    getPartialState g t = do
-      m <- get
-      case lookup (g, t) m of
-        Just p  -> pure p
-        Nothing -> do
-          p <- reductStateStk $ applyTransRule g t
-          put $ insertMap (g, t) p m
-          pure p
-
-    replaceCxtsVal ys v@(FixVal x) = case x of
-      PsSmttStackBottomF      -> v
-      PsSmttLabelSideF l cs   -> FixVal $ PsSmttLabelSideF l $ replaceCxtsVal ys <$> cs
-      PsSmttStackHeadF s'     -> FixVal $ PsSmttStackHeadF $ replaceCxtsStk ys s'
-
-    replaceCxtsStk ys s@(FixStk x) = case x of
+    repRedStk s@(FixStk x) = case x of
       PsSmttStackEmptyF        -> s
-      PsSmttContextF yi        -> ys `indexEx` yi
-      PsSmttStateF     g t cs  -> FixStk $ PsSmttStateF g t $ replaceCxtsStk ys <$> cs
-      PsSmttStateSideF fg u cs -> FixStk $ PsSmttStateSideF fg u $ replaceCxtsStk ys <$> cs
-      PsSmttStackTailF s'      -> FixStk $ PsSmttStackTailF $ replaceCxtsStk ys s'
-      PsSmttStackConsF v' s'   -> FixStk $ PsSmttStackConsF (replaceCxtsVal ys v') (replaceCxtsStk ys s')
+      PsSmttContextF{}         -> s
+      PsSmttStateF     g t cs  -> stateFunc g t $ fmap repRedStk cs
+      PsSmttStateSideF fg u cs -> FixStk #. PsSmttStateSideF fg u $ fmap repRedStk cs
+      PsSmttStackTailF s'      -> stackTailReduct $ repRedStk s'
+      PsSmttStackConsF v' s'   -> stackConsReduct (repRedVal v') (repRedStk s')
 
-    applyTransRule s2 (Fix t) = case t of
-      TOP.TdttLabelSideF l cs  -> replaceRHSStk cs $ rule (s2, l)
-      TOP.TdttStateF s1 u      -> FixStk $ PsSmttStateSideF (ComposedSmttState s1 s2) u
-        $ V.generate (labelRank s2 - 1) (FixStk #. PsSmttContextF)
-      TOP.TdttBottomLabelSideF -> FixStk PsSmttStackEmptyF
+    stateFunc s2 (Fix t) ys = case t of
+      TOP.TdttLabelSideF l us  -> replaceRHSStk us ys $ rule (s2, l)
+      TOP.TdttStateF s1 u      -> FixStk $ PsSmttStateSideF (ComposedSmttState s1 s2) u ys
+      TOP.TdttBottomLabelSideF -> stackEmpty
 
-    replaceRHSVal us (FixVal x) = FixVal $ case x of
-      SMAC.SmttLabelSideF l cs -> PsSmttLabelSideF l $ replaceRHSVal us <$> cs
-      SMAC.SmttStackBottomF    -> PsSmttStackBottomF
-      SMAC.SmttStackHeadF s    -> PsSmttStackHeadF $ replaceRHSStk us s
+    replaceRHSVal us ys (FixVal x) = case x of
+      SMAC.SmttLabelSideF l cs -> FixVal #. PsSmttLabelSideF l $ fmap (replaceRHSVal us ys) cs
+      SMAC.SmttStackBottomF    -> stackBottom
+      SMAC.SmttStackHeadF s    -> stackHeadReduct $ replaceRHSStk us ys s
 
-    replaceRHSStk us (FixStk x) = FixStk $ case x of
-      SMAC.SmttContextF yi      -> PsSmttContextF yi
-      SMAC.SmttStateF s ui cs   -> PsSmttStateF s (us `indexEx` ui) $ replaceRHSStk us <$> cs
-      SMAC.SmttStackEmptyF      -> PsSmttStackEmptyF
-      SMAC.SmttStackTailF s     -> PsSmttStackTailF $ replaceRHSStk us s
-      SMAC.SmttStackConsF v s   -> PsSmttStackConsF
-        (replaceRHSVal us v)
-        (replaceRHSStk us s)
+    replaceRHSStk us ys (FixStk x) = case x of
+      SMAC.SmttContextF yi      -> ys `indexEx` yi
+      SMAC.SmttStateF g ui cs   ->
+        let t = us `indexEx` ui
+        in stateFunc g t $ fmap (replaceRHSStk us ys) cs
+      SMAC.SmttStackEmptyF      -> stackEmpty
+      SMAC.SmttStackTailF s     -> stackTailReduct $ replaceRHSStk us ys s
+      SMAC.SmttStackConsF v s   -> stackConsReduct
+        (replaceRHSVal us ys v)
+        (replaceRHSStk us ys s)
 
 
 fromReductionState ::

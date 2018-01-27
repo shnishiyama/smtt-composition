@@ -66,7 +66,10 @@ import qualified Text.Show                   as S
 
 data BaseRightHandSideValF s t l u c valrhs stkrhs
   = BaseSmttLabelSideF l (NodeVec valrhs)
-  deriving (Eq, Ord, Show, Generic, Hashable)
+  deriving (Eq, Ord, Show, Generic, Generic1, Hashable, Hashable1)
+
+instance Hashable l => Hashable2 (BaseRightHandSideValF s t l u c) where
+  liftHashWithSalt2 = defaultLiftHashWithSalt2
 
 deriveEq2 ''BaseRightHandSideValF
 deriveOrd2 ''BaseRightHandSideValF
@@ -90,7 +93,12 @@ pattern SmttStackHeadF s = BiInR (StackHeadF s)
 data BaseRightHandSideStkF s t l u c valrhs stkrhs
   = BaseSmttContextF c
   | BaseSmttStateF s u (NodeVec stkrhs)
-  deriving (Eq, Ord, Show, Generic, Hashable)
+  deriving (Eq, Ord, Show, Generic, Generic1, Hashable, Hashable1)
+
+instance (Hashable s, Hashable u, Hashable c)
+    => Hashable2 (BaseRightHandSideStkF s t l u c) where
+
+  liftHashWithSalt2 = defaultLiftHashWithSalt2
 
 deriveEq2 ''BaseRightHandSideStkF
 deriveOrd2 ''BaseRightHandSideStkF

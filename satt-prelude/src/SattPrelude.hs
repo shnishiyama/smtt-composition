@@ -1,4 +1,5 @@
-{-# LANGUAGE ImplicitParams #-}
+{-# LANGUAGE ImplicitParams       #-}
+{-# LANGUAGE UndecidableInstances #-}
 
 module SattPrelude
   ( -- common
@@ -7,10 +8,12 @@ module SattPrelude
     -- useful modules
   , module Control.Arrow
   , module Data.Bifoldable
+  , module Data.Bitraversable
   , module Data.Either
   , module Data.Functor.Classes
   , module Data.Functor.Foldable
   , module Data.Hashable.Lifted
+  , defaultLiftHashWithSalt2
   , module Data.Kind
   , module Lens.Micro
   , module Data.Void
@@ -56,6 +59,7 @@ import           ClassyPrelude
 
 import           Control.Arrow            (Kleisli (..), returnA, (<<<), (>>>))
 import           Data.Bifoldable
+import           Data.Bitraversable
 import           Data.Coerce
 import           Data.Either              (isLeft, isRight)
 import           Data.Functor.Classes
@@ -117,3 +121,15 @@ invert GT = LT
 
 stimesEndo :: forall a b. Integral b => b -> (a -> a) -> (a -> a)
 stimesEndo = coerce (stimesMonoid :: b -> Endo a -> Endo a)
+
+
+data WithDictHashable a = WithDictHashable (Int -> a -> Int) a
+
+instance Hashable (WithDictHashable a) where
+  hashWithSalt i (WithDictHashable f x) = f i x
+
+
+defaultLiftHashWithSalt2 :: (Hashable1 (p (WithDictHashable a)), Bifunctor p)
+  => (Int -> a -> Int) -> (Int -> b -> Int) -> Int -> p a b -> Int
+defaultLiftHashWithSalt2 f g i = hashWithSalt1 i
+  . bimap (WithDictHashable f) (WithDictHashable g)

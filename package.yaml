@@ -127,6 +127,7 @@ library:
     singletons:
     mtl:
     ansi-wl-pprint:
+    data-reify:
 
 executables:
   satt-composit:
@@ -139,6 +140,7 @@ executables:
     ghc-prof-options:
     - -threaded
     - -rtsopts
+    - -eventlog
     - "\"-with-rtsopts=-N -xc\""
     dependencies:
       <<: *base-depends

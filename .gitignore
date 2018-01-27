@@ -2,6 +2,7 @@
 .stack-work*/
 *.cabal
 *.prof
+*.eventlog
 
 # for HIE
 cabal-helper*.build/

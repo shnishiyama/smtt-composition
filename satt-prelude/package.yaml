@@ -105,6 +105,7 @@ library:
     singletons:
     recursion-schemes:
     microlens:
+    constraints:
 
 tests:
   lint:
