@@ -33,3 +33,4 @@ stackEmpty = Stack []
 
 stackBottom :: a
 stackBottom = error "stack bottom"
+{-# INLINE stackBottom #-}

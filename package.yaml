@@ -117,6 +117,10 @@ library:
     - Data.Tree.Trans.Compose.ExtendVoigt2004
     - Data.Tree.Trans.Decompose.MttToAtt
     - Data.Tree.Trans.Decompose.SmttToSatt
+
+    # haskell generator
+    - Language.Haskell.Encoding
+    - Language.Haskell.Tree.Trans.SMAC
   other-modules: []
   ghc-options:
   - -dcore-lint
@@ -128,6 +132,7 @@ library:
     mtl:
     ansi-wl-pprint:
     data-reify:
+    text:
 
 executables:
   satt-composit:
@@ -193,33 +198,29 @@ _bench-base-depends: &bench-base-depends
   random:
   mtl:
 
+_bench-ghc-options: &bench-ghc-options
+  - -O1
+  - -threaded
+  - -with-rtsopts=-N
+
 benchmarks:
   common:
     main: ../Common.hs
     source-dirs: benchmark/lib
-    ghc-options:
-    - -O2
-    - -threaded
-    - -with-rtsopts=-N
+    ghc-options: *bench-ghc-options
     dependencies:
       <<: *bench-base-depends
 
   fusion-speed-bench:
     main: ../CriterionFusionMain.hs
     source-dirs: benchmark/lib
-    ghc-options:
-    - -O0
-    - -threaded
-    - -with-rtsopts=-N
+    ghc-options: *bench-ghc-options
     dependencies:
       <<: *bench-base-depends
 
   fusion-memory-bench:
     main: ../WeighFusionMain.hs
     source-dirs: benchmark/lib
-    ghc-options:
-    - -O0
-    - -threaded
-    - -with-rtsopts=-N
+    ghc-options: *bench-ghc-options
     dependencies:
       <<: *bench-base-depends

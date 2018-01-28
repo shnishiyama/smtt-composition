@@ -14,16 +14,11 @@ import SattPrelude
 #if MIN_VERSION_cabal_doctest(1,0,0)
 
 import Distribution.Simple
-import Distribution.Extra.Doctest ( generateBuildModule )
+import Distribution.Extra.Doctest ( addDoctestsUserHook )
 
 main :: IO ()
-main = defaultMainWithHooks simpleUserHooks
-  { buildHook = buildHookScript
-  }
-  where
-    buildHookScript pkg lbi hooks flags = do
-      generateBuildModule "doc-test" flags pkg lbi -- generate Build_doctests
-      buildHook simpleUserHooks pkg lbi hooks flags
+main = defaultMainWithHooks
+  $ addDoctestsUserHook "doc-test" simpleUserHooks
 
 #else
 

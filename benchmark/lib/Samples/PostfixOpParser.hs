@@ -22,30 +22,28 @@ data InfixOpTree
   deriving (Eq, Ord, Show, Generic, NFData)
 
 
+-- |
+-- Original:
+-- >>> putStrLn $ encodeHaskellFromSmac "ptoi" postfixToInfixSmtt
+--
 ptoi :: PostfixOpTree -> InfixOpTree
-ptoi t = stackHead (f0 t stackEmpty)
+ptoi = stackHead . initial
   where
-    f0 (PostfixMultiNode u0) y0 = f0 u0
-      (stackCons
-        (InfixMultiNode
-          (stackHead (stackTail y0))
-          (stackHead y0)
-        )
-        (stackTail (stackTail y0))
-      )
-    f0 (PostfixPlusNode u0) y0 = f0 u0
-      (stackCons
-        (InfixPlusNode
-          (stackHead (stackTail y0))
-          (stackHead y0)
-        )
-        (stackTail (stackTail y0))
-      )
-    f0 (PostfixOneNode u0) y0 = f0 u0
-      (stackCons InfixOneNode y0)
-    f0 (PostfixTwoNode u0) y0 = f0 u0
-      (stackCons InfixTwoNode y0)
-    f0 PostfixEndNode      y0 = y0
+    initial u0 = i_f0_000000 u0 stackEmpty
+
+    i_f0_000000 (PostfixPlusNode u0) y0 = i_f0_000000 u0
+      (stackCons (InfixPlusNode (stackHead (stackTail y0)) (stackHead y0))
+        (stackTail (stackTail y0)))
+
+    i_f0_000000 (PostfixMultiNode u0) y0 = i_f0_000000 u0
+      (stackCons (InfixMultiNode (stackHead (stackTail y0)) (stackHead y0))
+        (stackTail (stackTail y0)))
+
+    i_f0_000000 PostfixEndNode y0 = y0
+
+    i_f0_000000 (PostfixTwoNode u0) y0 = i_f0_000000 u0 (stackCons InfixTwoNode y0)
+
+    i_f0_000000 (PostfixOneNode u0) y0 = i_f0_000000 u0 (stackCons InfixOneNode y0)
 
 
 itop :: InfixOpTree -> PostfixOpTree

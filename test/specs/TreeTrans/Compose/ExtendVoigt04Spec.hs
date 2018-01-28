@@ -11,12 +11,23 @@ import           Data.Tree.RankedTree.Label
 import           Data.Tree.Trans.Class
 import           Data.Tree.Trans.Compose.ExtendVoigt2004
 import           Data.Tree.Trans.MAC.Instances
+import qualified Data.Tree.Trans.SMAC                    as SMAC
 import           Data.Tree.Trans.SMAC.Instances
 
 
 spec :: Spec
 spec = do
   describe "composeSmttNCAndMttWSU" $ do
+    it "should be equal to original semantics for itop/rev" $ do
+      let inputInfixTree = buildTree (51 :: Int)
+
+      trans <- composeSmttNCAndMttWSU (SMAC.toStackMacroTreeTransducer infixToPostfixMtt) reverseMtt
+
+      t1 <- treeTrans trans inputInfixTree
+      t2 <- treeTrans infixToPostfixMtt >=> treeTrans reverseMtt $ inputInfixTree
+
+      t1 `shouldBe` t2
+
     it "should be equal to original semantics for ptoi/counter" $ do
       let inputInfixTree = buildTree (51 :: Int)
       inputPostfixTree <- treeTrans infixToPostfixMtt inputInfixTree
@@ -39,7 +50,6 @@ spec = do
 
       t1 `shouldBe` t2
       t1 `shouldBe` inputPostfixTree
-
 
 buildTree :: Int -> InfixOpTree
 buildTree n

@@ -19,7 +19,10 @@ import qualified Text.PrettyPrint.Classy     as Pretty
 
 
 data ComposedSmttState s1 s2 = ComposedSmttState s1 s2
-  deriving (Eq, Ord, Show, Generic, Hashable)
+  deriving (Eq, Ord, Generic, Hashable)
+
+instance (Show s1, Show s2) => Show (ComposedSmttState s1 s2) where
+  show (ComposedSmttState s1 s2) = show (s1, s2)
 
 instance RankedLabel s2 => RankedLabel (ComposedSmttState s1 s2) where
   labelRank (ComposedSmttState _ s2) = labelRank s2

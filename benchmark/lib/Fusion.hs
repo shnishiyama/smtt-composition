@@ -45,13 +45,13 @@ buildPostfixOpTree n = itop <$> buildInfixOpTree n
 infixOpTreeCases :: [(String, InfixOpTree)]
 infixOpTreeCases =
   [ (show n, evalRandomState 0 $ buildInfixOpTree $ 2 * n + 1)
-  | n <- [100, 250, 500, 1500]
+  | n <- [50, 120, 250, 1000]
   ]
 
 postfixOpTreeCases :: [(String, PostfixOpTree)]
 postfixOpTreeCases =
   [ (show n, evalRandomState 0 $ buildPostfixOpTree $ 2 * n + 1)
-  | n <- [200, 500, 1000, 3000]
+  | n <- [100, 250, 500, 1500]
   ]
 
 benchSpec :: ([Benchmark], [NameableWeigh])
@@ -59,16 +59,17 @@ benchSpec = unzip
   [ nmGroup "itop-reverse"
     [ nmGroup "normal" $ testCases infixOpTreeCases $ itop >>> reversePop
     , nmGroup "fusion" $ testCases infixOpTreeCases itopReversePop
-    , nmGroup "fusionOrig" $ testCases infixOpTreeCases itopReversePopOrig
+    --, nmGroup "fusionOrig" $ testCases infixOpTreeCases itopReversePopOrig
     ]
-  , nmGroup "ptoi-twoCounter"
+  {-, nmGroup "ptoi-twoCounter"
     [ nmGroup "normal" $ testCases postfixOpTreeCases $ ptoi >>> twoCounter
     , nmGroup "fusion" $ testCases postfixOpTreeCases ptoiTwoCounter
     , nmGroup "fusionOrig" $ testCases postfixOpTreeCases ptoiTwoCounterOrig
-    ]
+    ]-}
   , nmGroup "ptoi-itop"
     [ nmGroup "normal" $ testCases postfixOpTreeCases $ ptoi >>> itop
     , nmGroup "fusion" $ testCases postfixOpTreeCases ptoiItop
-    , nmGroup "fusionOrig" $ testCases postfixOpTreeCases ptoiItopOrig
+    --, nmGroup "fusionOrig" $ testCases postfixOpTreeCases ptoiItopOrig
+    --, nmGroup "fusionWalk" $ testCases postfixOpTreeCases ptoiItopWalk
     ]
   ]
