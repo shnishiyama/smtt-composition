@@ -156,63 +156,52 @@ twoCounter = initial
 ptoiTwoCounter :: PostfixOpTree -> Int
 ptoiTwoCounter = stackHead . initial
   where
-    initial u0 = stackCons (stackHead (f0_s_f0_s u0 u0_y1 u0_y2)) stackEmpty
+    initial u0 = stackCons (stackHead (f0_s_f0_s u0 u0_y2)) stackEmpty
       where
-        u0_y1 = stackCons 0 stackEmpty
         u0_y2 = stackEmpty
 
-    f0_s_f0_s PostfixEndNode y1 y2 = y2
-    f0_s_f0_s (PostfixMultiNode u0) y1 y2 = f0_s_f0_s u0 u0_y1 u0_y2
+    f0_s_f0_s PostfixEndNode        y2 = y2
+    f0_s_f0_s (PostfixMultiNode u0) y2 = f0_s_f0_s u0 u0_y2
       where
-        u0_y1 = y1
         u0_y2 = stackTail y2
-    f0_s_f0_s (PostfixPlusNode  u0) y1 y2 = f0_s_f0_s u0 u0_y1 u0_y2
+    f0_s_f0_s (PostfixPlusNode  u0) y2 = f0_s_f0_s u0 u0_y2
       where
-        u0_y1 = y1
         u0_y2 = stackTail y2
-    f0_s_f0_s (PostfixOneNode   u0) y1 y2 = f0_s_f0_s u0 u0_y1 u0_y2
+    f0_s_f0_s (PostfixOneNode   u0) y2 = f0_s_f0_s u0 u0_y2
       where
-        u0_y1 = y1
-        u0_y2 = stackCons (stackHead (f0_0_f0_0 u0 u0_y1 u0_y2)) y2
-    f0_s_f0_s (PostfixTwoNode   u0) y1 y2 = f0_s_f0_s u0 u0_y1 u0_y2
+        u0_y2 = stackCons (stackHead (f0_0_f0_0 u0 u0_y2)) y2
+    f0_s_f0_s (PostfixTwoNode   u0) y2 = f0_s_f0_s u0 u0_y2
       where
-        u0_y1 = y1
-        u0_y2 = stackCons ((+ 1) (stackHead (f0_0_f0_0 u0 u0_y1 u0_y2))) y2
+        u0_y2 = stackCons ((+ 1) (stackHead (f0_0_f0_0 u0 u0_y2))) y2
 
-    f0_0_f0_0 PostfixEndNode y1 y2 = y1
-    f0_0_f0_0 (PostfixMultiNode u0) y1 y2 = stackCons
-        (stackHead f0_0_f0_0_u0)
-        (stackCons
-          (stackHead y2)
-          (stackTail f0_0_f0_0_u0)
-        )
+    f0_0_f0_0 PostfixEndNode        y2 = stackCons 0 stackEmpty
+    f0_0_f0_0 (PostfixMultiNode u0) y2 =
+        stackCons (stackHead f0_0_f0_0_u0)
+          (stackCons (stackHead y2)
+            (stackTail f0_0_f0_0_u0)
+          )
       where
-        f0_0_f0_0_u0 = f0_0_f0_0 u0 u0_y1 u0_y2
+        f0_0_f0_0_u0 = f0_0_f0_0 u0 u0_y2
 
-        u0_y1 = y1
         u0_y2 = stackTail y2
-    f0_0_f0_0 (PostfixPlusNode  u0) y1 y2 = stackCons
-        (stackHead f0_0_f0_0_u0)
-        (stackCons
-          (stackHead y2)
-          (stackTail f0_0_f0_0_u0)
-        )
+    f0_0_f0_0 (PostfixPlusNode  u0) y2 =
+        stackCons (stackHead f0_0_f0_0_u0)
+          (stackCons (stackHead y2)
+            (stackTail f0_0_f0_0_u0)
+          )
       where
-        f0_0_f0_0_u0 = f0_0_f0_0 u0 u0_y1 u0_y2
+        f0_0_f0_0_u0 = f0_0_f0_0 u0 u0_y2
 
-        u0_y1 = y1
         u0_y2 = stackTail y2
-    f0_0_f0_0 (PostfixOneNode  u0) y1 y2 = stackTail f0_0_f0_0_u0
+    f0_0_f0_0 (PostfixOneNode  u0) y2 = stackTail f0_0_f0_0_u0
       where
-        f0_0_f0_0_u0 = f0_0_f0_0 u0 u0_y1 u0_y2
+        f0_0_f0_0_u0 = f0_0_f0_0 u0 u0_y2
 
-        u0_y1 = y1
         u0_y2 = stackCons (stackHead f0_0_f0_0_u0) y2
-    f0_0_f0_0 (PostfixTwoNode  u0) y1 y2 = stackTail f0_0_f0_0_u0
+    f0_0_f0_0 (PostfixTwoNode  u0) y2 = stackTail f0_0_f0_0_u0
       where
-        f0_0_f0_0_u0 = f0_0_f0_0 u0 u0_y1 u0_y2
+        f0_0_f0_0_u0 = f0_0_f0_0 u0 u0_y2
 
-        u0_y1 = y1
         u0_y2 = stackCons ((+ 1) (stackHead f0_0_f0_0_u0)) y2
 
 

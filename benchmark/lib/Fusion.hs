@@ -29,14 +29,30 @@ buildInfixOpTree n
   | otherwise = go $ n `div` 2
   where
     go 0 = do
-      i <- nextRandomState
-      pure $ [ InfixOneNode, InfixTwoNode ] `indexEx` (i `mod` 2)
+      i <- mod <$> nextRandomState <*> pure 2
+      pure $ [ InfixOneNode, InfixTwoNode ] `indexEx` i
     go m = do
-      i <- nextRandomState
-      let nodef = [ InfixMultiNode, InfixPlusNode ] `indexEx` (i `mod` 2)
-      j <- (`mod` m) <$> nextRandomState
+      i <- mod <$> nextRandomState <*> pure 2
+      let nodef = [ InfixMultiNode, InfixPlusNode ] `indexEx` i
+      j <- mod <$> nextRandomState <*> pure m
       lnode <- go j
       rnode <- go $ m - j - 1
+      pure $ nodef lnode rnode
+
+buildLinearInfixOpTree :: Int -> State StdGen InfixOpTree
+buildLinearInfixOpTree n
+  | n < 1     = error "non positive number"
+  | otherwise = go n
+  where
+    go 1 = do
+      i <- mod <$> nextRandomState <*> pure 2
+      pure $ [ InfixOneNode, InfixTwoNode ] `indexEx` i
+    go m = do
+      i <- mod <$> nextRandomState <*> pure 2
+      let nodef = [ InfixMultiNode, InfixPlusNode ] `indexEx` i
+      j <- mod <$> nextRandomState <*> pure 2
+      let lnode = [ InfixOneNode, InfixTwoNode ] `indexEx` j
+      rnode <- go $ m - 1
       pure $ nodef lnode rnode
 
 buildPostfixOpTree :: Int -> State StdGen PostfixOpTree
@@ -45,31 +61,31 @@ buildPostfixOpTree n = itop <$> buildInfixOpTree n
 infixOpTreeCases :: [(String, InfixOpTree)]
 infixOpTreeCases =
   [ (show n, evalRandomState 0 $ buildInfixOpTree $ 2 * n + 1)
-  | n <- [50, 120, 250, 1000]
+  | n <- [100, 250, 500, 1500]
   ]
 
 postfixOpTreeCases :: [(String, PostfixOpTree)]
-postfixOpTreeCases =
-  [ (show n, evalRandomState 0 $ buildPostfixOpTree $ 2 * n + 1)
-  | n <- [100, 250, 500, 1500]
-  ]
+postfixOpTreeCases = do
+  n <- [100, 250, 500, 1500]
+  let case1 = ("random-" <> show n, evalRandomState 0 $ buildPostfixOpTree $ 2 * n + 1)
+  [ case1 ]
 
 benchSpec :: ([Benchmark], [NameableWeigh])
 benchSpec = unzip
   [ nmGroup "itop-reverse"
     [ nmGroup "normal" $ testCases infixOpTreeCases $ itop >>> reversePop
     , nmGroup "fusion" $ testCases infixOpTreeCases itopReversePop
-    --, nmGroup "fusionOrig" $ testCases infixOpTreeCases itopReversePopOrig
+    , nmGroup "fusionOrig" $ testCases infixOpTreeCases itopReversePopOrig
     ]
-  {-, nmGroup "ptoi-twoCounter"
+  , nmGroup "ptoi-twoCounter"
     [ nmGroup "normal" $ testCases postfixOpTreeCases $ ptoi >>> twoCounter
     , nmGroup "fusion" $ testCases postfixOpTreeCases ptoiTwoCounter
     , nmGroup "fusionOrig" $ testCases postfixOpTreeCases ptoiTwoCounterOrig
-    ]-}
+    ]
   , nmGroup "ptoi-itop"
     [ nmGroup "normal" $ testCases postfixOpTreeCases $ ptoi >>> itop
     , nmGroup "fusion" $ testCases postfixOpTreeCases ptoiItop
-    --, nmGroup "fusionOrig" $ testCases postfixOpTreeCases ptoiItopOrig
-    --, nmGroup "fusionWalk" $ testCases postfixOpTreeCases ptoiItopWalk
+    , nmGroup "fusionOrig" $ testCases postfixOpTreeCases ptoiItopOrig
+    , nmGroup "fusionWalk" $ testCases postfixOpTreeCases ptoiItopWalk
     ]
   ]

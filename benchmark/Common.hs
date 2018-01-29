@@ -11,7 +11,7 @@ import           Samples.PostfixOpParser
 
 main :: IO ()
 main = do
-    print $ length $ show $ ptoiItop inputPostfixTree
+    print $ ptoiTwoCounter inputPostfixTree == (ptoi >>> twoCounter) inputPostfixTree
   where
     inputPostfixTree = build (2 * 1500 + 1 :: Int) PostfixEndNode
 
