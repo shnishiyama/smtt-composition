@@ -4,6 +4,15 @@ import           SattPrelude
 
 import qualified Data.Char   as Char
 
+showHexWithMaxNumber :: Integral i => i -> i -> String
+showHexWithMaxNumber = showHexWithWidth . width (16 :: Int)
+  where
+    width n m = goWidth n m 1
+
+    goWidth n m i = let m' = m `div` 16 in if
+      | m' == 0   -> i
+      | otherwise -> goWidth n m' $ i + 1
+
 showHexWithWidth :: Integral i => Int -> i -> String
 showHexWithWidth = go ""
   where

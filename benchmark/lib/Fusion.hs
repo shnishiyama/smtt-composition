@@ -77,15 +77,25 @@ benchSpec = unzip
     , nmGroup "fusion" $ testCases infixOpTreeCases itopReversePop
     , nmGroup "fusionOrig" $ testCases infixOpTreeCases itopReversePopOrig
     ]
-  , nmGroup "ptoi-twoCounter"
+  {-, nmGroup "ptoi-twoCounter"
     [ nmGroup "normal" $ testCases postfixOpTreeCases $ ptoi >>> twoCounter
     , nmGroup "fusion" $ testCases postfixOpTreeCases ptoiTwoCounter
-    , nmGroup "fusionOrig" $ testCases postfixOpTreeCases ptoiTwoCounterOrig
-    ]
+    , nmGroup "fusionOrig" $ testCases postfixOpTreeCases ptoiTwocounterOrig
+    ] -}
   , nmGroup "ptoi-itop"
     [ nmGroup "normal" $ testCases postfixOpTreeCases $ ptoi >>> itop
     , nmGroup "fusion" $ testCases postfixOpTreeCases ptoiItop
     , nmGroup "fusionOrig" $ testCases postfixOpTreeCases ptoiItopOrig
-    , nmGroup "fusionWalk" $ testCases postfixOpTreeCases ptoiItopWalk
+    --, nmGroup "fusionWalk" $ testCases postfixOpTreeCases ptoiItopWalk
+    ]
+  {-, nmGroup "ptoi-depth"
+    [ nmGroup "normal" $ testCases postfixOpTreeCases $ ptoi >>> depthRightSide
+    , nmGroup "fusion" $ testCases postfixOpTreeCases ptoiDepth
+    , nmGroup "fusionOrig" $ testCases postfixOpTreeCases ptoiDepthOrig
+    ]-}
+  , nmGroup "ptoi-flat"
+    [ nmGroup "normal" $ testCases postfixOpTreeCases $ ptoi >>> flatRightSide
+    , nmGroup "fusion" $ testCases postfixOpTreeCases ptoiFlat
+    , nmGroup "fusionOrig" $ testCases postfixOpTreeCases ptoiFlatOrig
     ]
   ]

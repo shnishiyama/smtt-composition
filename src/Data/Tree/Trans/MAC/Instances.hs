@@ -161,3 +161,33 @@ reverseMtt = fromMaybe errorUnreachable $ buildMtt
     pPlus  = taggedRankedLabel @"plus"
     pMulti = taggedRankedLabel @"multi"
     pEnd   = taggedRankedLabel @"end"
+
+
+type FlatStateAlphabet = TaggedRankedAlphabet
+  '[ '("f0", 2)]
+
+type FlatRightSideMtt = MttTransducer
+  FlatStateAlphabet
+  InfixOpTree PostfixOpTree
+
+flatRightSideMtt :: FlatRightSideMtt
+flatRightSideMtt = fromMaybe errorUnreachable $ buildMtt
+    (MttState f0 0 [MttLabelSide pEnd []])
+    [ (f0, iOne, MttLabelSide pOne [MttContext 0])
+    , (f0, iTwo, MttLabelSide pTwo [MttContext 0])
+    , (f0, iMulti, MttLabelSide pMulti [MttState f0 0 [MttLabelSide pMulti [MttContext 0]]])
+    , (f0, iPlus,  MttLabelSide pPlus  [MttState f0 0 [MttLabelSide pPlus  [MttContext 0]]])
+    ]
+  where
+    f0 = taggedRankedLabel @"f0"
+
+    pOne   = taggedRankedLabel @"one"
+    pTwo   = taggedRankedLabel @"two"
+    pPlus  = taggedRankedLabel @"plus"
+    pMulti = taggedRankedLabel @"multi"
+    pEnd   = taggedRankedLabel @"end"
+
+    iOne   = taggedRankedLabel @"one"
+    iTwo   = taggedRankedLabel @"two"
+    iPlus  = taggedRankedLabel @"plus"
+    iMulti = taggedRankedLabel @"multi"

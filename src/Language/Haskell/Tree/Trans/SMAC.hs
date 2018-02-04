@@ -38,7 +38,7 @@ encodeHaskellFromSmac name trans = intercalate "\n" $
       (\(i, m) f -> (i + 1, insertMap f (encodeToIdent i f) m))
       (0 :: Int, HashMap.empty) (smttStates trans)
 
-    encodeToIdent i = T.pack . encodeToIdentifier (showHexWithWidth 6 i) . show
+    encodeToIdent i = T.pack . encodeToIdentifier (showHexWithMaxNumber (length $ smttStates trans) i) . show
 
     lookupStateIdent f = fromMaybe (error "illegal transducer") $ lookup f stateMap
 

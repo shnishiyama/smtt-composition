@@ -5,6 +5,7 @@ module Data.Tree.Trans.TOP.Instances where
 import           SattPrelude
 
 import           Data.Tree.RankedTree
+import           Data.Tree.RankedTree.Instances
 import           Data.Tree.RankedTree.Label
 import           Data.Tree.Trans.TOP
 import qualified Data.Vector                as V
@@ -20,12 +21,6 @@ identityTransducer ls = fromMaybe errorUnreachable $ buildTdtt
   | l <- setToList ls
   , let r = treeLabelRank (Proxy @t) l
   ]
-
-type InputSampleAlphabet = TaggedRankedAlphabet
-  ['("A", 2), '("B", 1), '("C", 0)]
-
-type OutputSampleAlphabet = TaggedRankedAlphabet
-  ['("D", 2), '("E", 1), '("F", 0)]
 
 type SampleStateAlphabet = TaggedAlphabet
   ["f0", "f1"]
@@ -67,3 +62,43 @@ sampleTdtt = fromMaybe errorUnreachable $ buildTdtt
     d = taggedRankedLabel @"D"
     e = taggedRankedLabel @"E"
     f = taggedRankedLabel @"F"
+
+
+type DepthStateAlphabet = TaggedAlphabet
+  '[ "f0" ]
+
+type DepthRightSideTdtt = TdttTransducer
+  DepthStateAlphabet
+  InfixOpTree NatNum
+
+-- | A depth counter for right side
+--
+-- Sample:
+-- >>> :set -XOverloadedLists
+-- >>> import Data.Tree.Trans.Class
+-- >>> iOne   = taggedRankedLabel @"one"
+-- >>> iTwo   = taggedRankedLabel @"two"
+-- >>> iPlus  = taggedRankedLabel @"plus"
+-- >>> iMulti = taggedRankedLabel @"multi"
+-- >>> :{
+-- inputInfixTree = mkTree iMulti [mkTree iTwo [], mkTree iPlus [mkTree iOne [], mkTree iTwo []]]
+-- :}
+--
+-- >>> treeTrans depthRightSideTdtt inputInfixTree
+-- Succ (Succ Zero)
+--
+depthRightSideTdtt :: DepthRightSideTdtt
+depthRightSideTdtt = fromMaybe errorUnreachable $ buildTdtt
+    (tdttState f0 0)
+    [ (f0, iPlus,  TdttLabelSide True [tdttState f0 0])
+    , (f0, iMulti, TdttLabelSide True [tdttState f0 0])
+    , (f0, iOne,   TdttLabelSide True [TdttLabelSide False []])
+    , (f0, iTwo,   TdttLabelSide True [TdttLabelSide False []])
+    ]
+  where
+    f0 = taggedLabel @"f0"
+
+    iOne   = taggedRankedLabel @"one"
+    iTwo   = taggedRankedLabel @"two"
+    iPlus  = taggedRankedLabel @"plus"
+    iMulti = taggedRankedLabel @"multi"
