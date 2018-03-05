@@ -85,10 +85,10 @@ prefixOpTreeCases = do
 
 benchSpec :: ([Benchmark], [NameableWeigh])
 benchSpec = unzip
-  [ nmGroup "i2pr-rev"
-    [ nmGroup "normal" $ testCases infixOpTreeCases $ i2pr >>> reversePop
-    , nmGroup "fusion" $ testCases infixOpTreeCases i2prRev
-    , nmGroup "fusionOrig" $ testCases infixOpTreeCases i2prRevOrig
+  [ nmGroup "i2po-rev"
+    [ nmGroup "normal" $ testCases infixOpTreeCases $ i2po >>> reversePop
+    , nmGroup "fusion" $ testCases infixOpTreeCases i2poRev
+    , nmGroup "fusionOrig" $ testCases infixOpTreeCases i2poRevOrig
     ]
   , nmGroup "po2i-depth"
     [ nmGroup "normal" $ testCases postfixOpTreeCases $ po2i >>> depthRightSide
@@ -101,9 +101,9 @@ benchSpec = unzip
     , nmGroup "fusionOrig" $ testCases postfixOpTreeCases po2iFlatOrig
     ]
   {-, nmGroup "po2i-twoCounter"
-    [ nmGroup "normal" $ testCases postfixOpTreeCases $ ptoi >>> twoCounter
-    , nmGroup "fusion" $ testCases postfixOpTreeCases ptoiTwoCounter
-    , nmGroup "fusionOrig" $ testCases postfixOpTreeCases ptoiTwocounterOrig
+    [ nmGroup "normal" $ testCases postfixOpTreeCases $ po2i >>> twoCounter
+    , nmGroup "fusion" $ testCases postfixOpTreeCases po2iTwocounter
+    , nmGroup "fusionOrig" $ testCases postfixOpTreeCases po2iTwocounterOrig
     ]-}
   , nmGroup "pr2i-i2pr"
     [ nmGroup "normal" $ testCases prefixOpTreeCases $ pr2i >>> i2pr

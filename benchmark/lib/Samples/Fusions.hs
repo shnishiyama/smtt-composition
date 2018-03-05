@@ -12,43 +12,38 @@ import           Samples.TermOpParser
 {-# ANN module "HLint: ignore" #-}
 
 
-i2prRev :: ITerm -> PostTerm
-i2prRev = initial
+i2poRev :: ITerm -> PostTerm
+i2poRev = initial
   where
-    initial u0 = i_1_u0
+    initial u0 = i__f0______f0_______1 u0 (end) u0_y2
       where
-        i_0_u0 = i__f0__0__f0_0____0 u0 (end) i_0_u0
-        i_1_u0 = i__f0______f0_______1 u0 (end) (i_0_u0)
+        u0_y2 = i__f0__0__f0_0____0 u0 (end) u0_y2
 
-    i__f0__0__f0_0____0 (IMult u0 u1) y1 y2 = i_0_u1
+    i__f0__0__f0_0____0 (IMult u0 u1) y1 y2 = multi (i__f0__0__f0_0____0 u1 u1_y1 y2)
       where
-        i_0_u0 = i__f0__0__f0_0____0 u0 (multi y1) i_1_u1
-        i_0_u1 = i__f0__0__f0_0____0 u1 i_0_u0 y2
-        i_1_u1 = i__f0______f0_______1 u1 i_0_u0 y2
+        u1_y1 = i__f0__0__f0_0____0 u0 y1 u0_y2
+        u0_y2 = i__f0__0__f0_0____0 u1 u1_y1 y2
 
     i__f0__0__f0_0____0 (IOne) y1 y2 = one y1
 
-    i__f0__0__f0_0____0 (IPlus u0 u1) y1 y2 = i_0_u1
+    i__f0__0__f0_0____0 (IPlus u0 u1) y1 y2 = plus (i__f0__0__f0_0____0 u1 u1_y1 y2)
       where
-        i_0_u0 = i__f0__0__f0_0____0 u0 (plus y1) i_1_u1
-        i_0_u1 = i__f0__0__f0_0____0 u1 i_0_u0 y2
-        i_1_u1 = i__f0______f0_______1 u1 i_0_u0 y2
+        u1_y1 = i__f0__0__f0_0____0 u0 y1 u0_y2
+        u0_y2 = i__f0__0__f0_0____0 u1 u1_y1 y2
 
     i__f0__0__f0_0____0 (ITwo) y1 y2 = two y1
 
-    i__f0______f0_______1 (IMult u0 u1) y1 y2 = i_1_u0
+    i__f0______f0_______1 (IMult u0 u1) y1 y2 = i__f0______f0_______1 u0 y1 u0_y2
       where
-        i_0_u0 = i__f0__0__f0_0____0 u0 (multi y1) i_1_u1
-        i_1_u0 = i__f0______f0_______1 u0 (multi y1) i_1_u1
-        i_1_u1 = i__f0______f0_______1 u1 i_0_u0 y2
+        u0_y2 = i__f0______f0_______1 u1 u1_y1 y2
+        u1_y1 = i__f0______f0_______1 u0 y1 u0_y2
 
     i__f0______f0_______1 (IOne) y1 y2 = y2
 
-    i__f0______f0_______1 (IPlus u0 u1) y1 y2 = i_1_u0
+    i__f0______f0_______1 (IPlus u0 u1) y1 y2 = i__f0______f0_______1 u0 y1 u0_y2
       where
-        i_0_u0 = i__f0__0__f0_0____0 u0 (plus y1) i_1_u1
-        i_1_u0 = i__f0______f0_______1 u0 (plus y1) i_1_u1
-        i_1_u1 = i__f0______f0_______1 u1 i_0_u0 y2
+        u0_y2 = i__f0______f0_______1 u1 u1_y1 y2
+        u1_y1 = i__f0______f0_______1 u0 y1 u0_y2
 
     i__f0______f0_______1 (ITwo) y1 y2 = y2
 
@@ -62,26 +57,26 @@ i2prRev = initial
 -- |
 --
 -- Original:
--- >>> putStrLn =<< encodeHaskellFromSmtt "i2prRevOrig" <$> composeSmttNCAndMttWSU (SMAC.toStackMacroTreeTransducer infixToPrefixMtt) reverseMtt
+-- >>> putStrLn =<< encodeHaskellFromSmtt "i2poRevOrig" <$> composeSmttNCAndMttWSU (SMAC.toStackMacroTreeTransducer infixToPostfixMtt) reverseMtt
 --
-i2prRevOrig :: ITerm -> PostTerm
-i2prRevOrig = stackHead . initial
+i2poRevOrig :: ITerm -> PostTerm
+i2poRevOrig = stackHead . initial
   where
     initial u0 = stackCons (stackHead (i__f0______f0_______1 u0 stackEmpty (stackCons (end) stackEmpty) (stackCons (stackHead (i__f0__0__f0_0____0 u0 stackEmpty (stackCons (end) stackEmpty) (stackCons (stackHead (i__f0__0__f0_0____0 u0 stackEmpty (stackCons (end) stackEmpty) stackEmpty)) stackEmpty))) stackEmpty))) stackEmpty
 
-    i__f0__0__f0_0____0 (IMult u0 u1) y0 y1 y2 = i__f0__0__f0_0____0 u1 stackEmpty (i__f0__0__f0_0____0 u0 stackEmpty (stackCons (multi (stackHead y1)) stackEmpty) (i__f0______f0_______1 u1 stackEmpty (i__f0__0__f0_0____0 u0 stackEmpty (stackCons (multi (stackHead y1)) stackEmpty) (i__f0______f0_______1 u1 stackEmpty stackEmpty y2)) y2)) y2
+    i__f0__0__f0_0____0 (IMult u0 u1) y0 y1 y2 = stackCons (multi (stackHead (i__f0__0__f0_0____0 u1 stackEmpty (i__f0__0__f0_0____0 u0 stackEmpty y1 (i__f0______f0_______1 u1 stackEmpty (i__f0__0__f0_0____0 u0 stackEmpty y1 (i__f0______f0_______1 u1 stackEmpty stackEmpty (stackCons (stackHead y2) stackEmpty))) (stackCons (stackHead y2) stackEmpty))) (stackCons (stackHead y2) stackEmpty)))) stackEmpty
 
     i__f0__0__f0_0____0 (IOne) y0 y1 y2 = stackCons (one (stackHead y1)) stackEmpty
 
-    i__f0__0__f0_0____0 (IPlus u0 u1) y0 y1 y2 = i__f0__0__f0_0____0 u1 stackEmpty (i__f0__0__f0_0____0 u0 stackEmpty (stackCons (plus (stackHead y1)) stackEmpty) (i__f0______f0_______1 u1 stackEmpty (i__f0__0__f0_0____0 u0 stackEmpty (stackCons (plus (stackHead y1)) stackEmpty) (i__f0______f0_______1 u1 stackEmpty stackEmpty y2)) y2)) y2
+    i__f0__0__f0_0____0 (IPlus u0 u1) y0 y1 y2 = stackCons (plus (stackHead (i__f0__0__f0_0____0 u1 stackEmpty (i__f0__0__f0_0____0 u0 stackEmpty y1 (i__f0______f0_______1 u1 stackEmpty (i__f0__0__f0_0____0 u0 stackEmpty y1 (i__f0______f0_______1 u1 stackEmpty stackEmpty (stackCons (stackHead y2) stackEmpty))) (stackCons (stackHead y2) stackEmpty))) (stackCons (stackHead y2) stackEmpty)))) stackEmpty
 
     i__f0__0__f0_0____0 (ITwo) y0 y1 y2 = stackCons (two (stackHead y1)) stackEmpty
 
-    i__f0______f0_______1 (IMult u0 u1) y0 y1 y2 = stackCons (stackHead (i__f0______f0_______1 u0 stackEmpty (stackCons (multi (stackHead y1)) stackEmpty) (i__f0______f0_______1 u1 stackEmpty (i__f0__0__f0_0____0 u0 stackEmpty (stackCons (multi (stackHead y1)) stackEmpty) (i__f0______f0_______1 u1 stackEmpty (i__f0__0__f0_0____0 u0 stackEmpty (stackCons (multi (stackHead y1)) stackEmpty) stackEmpty) y2)) y2))) stackEmpty
+    i__f0______f0_______1 (IMult u0 u1) y0 y1 y2 = i__f0______f0_______1 u0 stackEmpty y1 (i__f0______f0_______1 u1 stackEmpty (i__f0__0__f0_0____0 u0 stackEmpty y1 (i__f0______f0_______1 u1 stackEmpty (i__f0__0__f0_0____0 u0 stackEmpty y1 stackEmpty) (stackCons (stackHead y2) stackEmpty))) (stackCons (stackHead y2) stackEmpty))
 
     i__f0______f0_______1 (IOne) y0 y1 y2 = stackCons (stackHead y2) stackEmpty
 
-    i__f0______f0_______1 (IPlus u0 u1) y0 y1 y2 = stackCons (stackHead (i__f0______f0_______1 u0 stackEmpty (stackCons (plus (stackHead y1)) stackEmpty) (i__f0______f0_______1 u1 stackEmpty (i__f0__0__f0_0____0 u0 stackEmpty (stackCons (plus (stackHead y1)) stackEmpty) (i__f0______f0_______1 u1 stackEmpty (i__f0__0__f0_0____0 u0 stackEmpty (stackCons (plus (stackHead y1)) stackEmpty) stackEmpty) y2)) y2))) stackEmpty
+    i__f0______f0_______1 (IPlus u0 u1) y0 y1 y2 = i__f0______f0_______1 u0 stackEmpty y1 (i__f0______f0_______1 u1 stackEmpty (i__f0__0__f0_0____0 u0 stackEmpty y1 (i__f0______f0_______1 u1 stackEmpty (i__f0__0__f0_0____0 u0 stackEmpty y1 stackEmpty) (stackCons (stackHead y2) stackEmpty))) (stackCons (stackHead y2) stackEmpty))
 
     i__f0______f0_______1 (ITwo) y0 y1 y2 = stackCons (stackHead y2) stackEmpty
 
@@ -399,23 +394,35 @@ po2iFlat = stackHead . initial
 
     i__f0__0__f0_0____0 (PEnd) y2 = stackCons (end) stackEmpty
 
-    i__f0__0__f0_0____0 (PMult u0) y2 = stackCons stackBottom (stackCons (multi (stackHead (i__f0__0__f0_0____0 u0 (stackCons (multi (stackHead (stackTail y2))) (stackTail (stackTail y2)))))) (stackTail (i__f0__0__f0_0____0 u0 (stackCons (multi (stackHead (stackTail y2))) (stackTail (stackTail y2))))))
+    i__f0__0__f0_0____0 (PMult u0) y2 = stackCons stackBottom (stackCons (multi (stackHead i_0_u0)) (stackTail i_0_u0))
+      where
+        i_0_u0 = i__f0__0__f0_0____0 u0 (stackTail y2)
 
-    i__f0__0__f0_0____0 (POne u0) y2 = stackTail (i__f0__0__f0_0____0 u0 (stackCons (one (stackHead (i__f0__0__f0_0____0 u0 (stackCons (one (stackHead (i__f0__0__f0_0____0 u0 (stackCons (one stackBottom) y2)))) y2)))) y2))
+    i__f0__0__f0_0____0 (POne u0) y2 = stackTail (i__f0__0__f0_0____0 u0 u0_y2)
+      where
+        u0_y2 = stackCons (one (stackHead (i__f0__0__f0_0____0 u0 u0_y2))) y2
 
-    i__f0__0__f0_0____0 (PPlus u0) y2 = stackCons stackBottom (stackCons (plus (stackHead (i__f0__0__f0_0____0 u0 (stackCons (plus (stackHead (stackTail y2))) (stackTail (stackTail y2)))))) (stackTail (i__f0__0__f0_0____0 u0 (stackCons (plus (stackHead (stackTail y2))) (stackTail (stackTail y2))))))
+    i__f0__0__f0_0____0 (PPlus u0) y2 = stackCons stackBottom (stackCons (plus (stackHead i_0_u0)) (stackTail i_0_u0))
+      where
+        i_0_u0 = i__f0__0__f0_0____0 u0 (stackTail y2)
 
-    i__f0__0__f0_0____0 (PTwo u0) y2 = stackTail (i__f0__0__f0_0____0 u0 (stackCons (two (stackHead (i__f0__0__f0_0____0 u0 (stackCons (two (stackHead (i__f0__0__f0_0____0 u0 (stackCons (two stackBottom) y2)))) y2)))) y2))
+    i__f0__0__f0_0____0 (PTwo u0) y2 = stackTail (i__f0__0__f0_0____0 u0 u0_y2)
+      where
+        u0_y2 = stackCons (two (stackHead (i__f0__0__f0_0____0 u0 u0_y2))) y2
 
     i__f0______f0_______1 (PEnd) y2 = y2
 
-    i__f0______f0_______1 (PMult u0) y2 = i__f0______f0_______1 u0 (stackCons (multi (stackHead (stackTail y2))) (stackTail (stackTail y2)))
+    i__f0______f0_______1 (PMult u0) y2 = i__f0______f0_______1 u0 (stackTail y2)
 
-    i__f0______f0_______1 (POne u0) y2 = i__f0______f0_______1 u0 (stackCons (one (stackHead (i__f0__0__f0_0____0 u0 (stackCons (one (stackHead (i__f0__0__f0_0____0 u0 (stackCons (one (stackHead (i__f0__0__f0_0____0 u0 stackEmpty))) y2)))) y2)))) y2)
+    i__f0______f0_______1 (POne u0) y2 = i__f0______f0_______1 u0 u0_y2
+      where
+        u0_y2 = stackCons (one (stackHead (i__f0__0__f0_0____0 u0 u0_y2))) y2
 
-    i__f0______f0_______1 (PPlus u0) y2 = i__f0______f0_______1 u0 (stackCons (plus (stackHead (stackTail y2))) (stackTail (stackTail y2)))
+    i__f0______f0_______1 (PPlus u0) y2 = i__f0______f0_______1 u0 (stackTail y2)
 
-    i__f0______f0_______1 (PTwo u0) y2 = i__f0______f0_______1 u0 (stackCons (two (stackHead (i__f0__0__f0_0____0 u0 (stackCons (two (stackHead (i__f0__0__f0_0____0 u0 (stackCons (two (stackHead (i__f0__0__f0_0____0 u0 stackEmpty))) y2)))) y2)))) y2)
+    i__f0______f0_______1 (PTwo u0) y2 = i__f0______f0_______1 u0 u0_y2
+      where
+        u0_y2 = stackCons (two (stackHead (i__f0__0__f0_0____0 u0 u0_y2))) y2
 
     end   = PEnd
     one   = POne
@@ -434,21 +441,21 @@ po2iFlatOrig = stackHead . initial
 
     i__f0__0__f0_0____0 (PEnd) y0 y1 y2 = y1
 
-    i__f0__0__f0_0____0 (PMult u0) y0 y1 y2 = stackCons stackBottom (stackCons (multi (stackHead (i__f0__0__f0_0____0 u0 stackEmpty y1 (stackCons (multi (stackHead (stackTail y2))) (stackTail (stackTail y2)))))) (stackTail (i__f0__0__f0_0____0 u0 stackEmpty y1 (stackCons (multi (stackHead (stackTail y2))) (stackTail (stackTail y2))))))
+    i__f0__0__f0_0____0 (PMult u0) y0 y1 y2 = stackCons stackBottom (stackCons (multi (stackHead (i__f0__0__f0_0____0 u0 stackEmpty y1 (stackTail y2)))) (stackTail (i__f0__0__f0_0____0 u0 stackEmpty y1 (stackTail y2))))
 
     i__f0__0__f0_0____0 (POne u0) y0 y1 y2 = stackTail (i__f0__0__f0_0____0 u0 stackEmpty y1 (stackCons (one (stackHead (i__f0__0__f0_0____0 u0 stackEmpty y1 (stackCons (one (stackHead (i__f0__0__f0_0____0 u0 stackEmpty y1 (stackCons (one stackBottom) y2)))) y2)))) y2))
 
-    i__f0__0__f0_0____0 (PPlus u0) y0 y1 y2 = stackCons stackBottom (stackCons (plus (stackHead (i__f0__0__f0_0____0 u0 stackEmpty y1 (stackCons (plus (stackHead (stackTail y2))) (stackTail (stackTail y2)))))) (stackTail (i__f0__0__f0_0____0 u0 stackEmpty y1 (stackCons (plus (stackHead (stackTail y2))) (stackTail (stackTail y2))))))
+    i__f0__0__f0_0____0 (PPlus u0) y0 y1 y2 = stackCons stackBottom (stackCons (plus (stackHead (i__f0__0__f0_0____0 u0 stackEmpty y1 (stackTail y2)))) (stackTail (i__f0__0__f0_0____0 u0 stackEmpty y1 (stackTail y2))))
 
     i__f0__0__f0_0____0 (PTwo u0) y0 y1 y2 = stackTail (i__f0__0__f0_0____0 u0 stackEmpty y1 (stackCons (two (stackHead (i__f0__0__f0_0____0 u0 stackEmpty y1 (stackCons (two (stackHead (i__f0__0__f0_0____0 u0 stackEmpty y1 (stackCons (two stackBottom) y2)))) y2)))) y2))
 
     i__f0______f0_______1 (PEnd) y0 y1 y2 = y2
 
-    i__f0______f0_______1 (PMult u0) y0 y1 y2 = i__f0______f0_______1 u0 stackEmpty y1 (stackCons (multi (stackHead (stackTail y2))) (stackTail (stackTail y2)))
+    i__f0______f0_______1 (PMult u0) y0 y1 y2 = i__f0______f0_______1 u0 stackEmpty y1 (stackTail y2)
 
     i__f0______f0_______1 (POne u0) y0 y1 y2 = i__f0______f0_______1 u0 stackEmpty y1 (stackCons (one (stackHead (i__f0__0__f0_0____0 u0 stackEmpty y1 (stackCons (one (stackHead (i__f0__0__f0_0____0 u0 stackEmpty y1 (stackCons (one (stackHead (i__f0__0__f0_0____0 u0 stackEmpty y1 stackEmpty))) y2)))) y2)))) y2)
 
-    i__f0______f0_______1 (PPlus u0) y0 y1 y2 = i__f0______f0_______1 u0 stackEmpty y1 (stackCons (plus (stackHead (stackTail y2))) (stackTail (stackTail y2)))
+    i__f0______f0_______1 (PPlus u0) y0 y1 y2 = i__f0______f0_______1 u0 stackEmpty y1 (stackTail y2)
 
     i__f0______f0_______1 (PTwo u0) y0 y1 y2 = i__f0______f0_______1 u0 stackEmpty y1 (stackCons (two (stackHead (i__f0__0__f0_0____0 u0 stackEmpty y1 (stackCons (two (stackHead (i__f0__0__f0_0____0 u0 stackEmpty y1 (stackCons (two (stackHead (i__f0__0__f0_0____0 u0 stackEmpty y1 stackEmpty))) y2)))) y2)))) y2)
 

@@ -25,7 +25,7 @@ spec = do
     it "preserve original semantics" $ do
       let inputInfixOpTree = evalRandomState 0 $ buildInfixOpTree $ 2 * 25 + 1
       traverse_ (shouldBeDoing inputInfixOpTree)
-        [ TestCase (i2pr >>> reversePop) i2prRev
+        [ TestCase (i2po >>> reversePop) i2poRev
         ]
 
       let inputPostfixOpTree = i2po inputInfixOpTree

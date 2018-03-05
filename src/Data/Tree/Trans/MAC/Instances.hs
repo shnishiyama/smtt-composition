@@ -218,8 +218,8 @@ flatRightSideMtt = fromMaybe errorUnreachable $ buildMtt
     (MttState f0 0 [MttLabelSide pEnd []])
     [ (f0, iOne, MttLabelSide pOne [MttContext 0])
     , (f0, iTwo, MttLabelSide pTwo [MttContext 0])
-    , (f0, iMulti, MttLabelSide pMulti [MttState f0 0 [MttLabelSide pMulti [MttContext 0]]])
-    , (f0, iPlus,  MttLabelSide pPlus  [MttState f0 0 [MttLabelSide pPlus  [MttContext 0]]])
+    , (f0, iMulti, MttState f0 0 [MttLabelSide pMulti [MttContext 0]])
+    , (f0, iPlus,  MttState f0 0 [MttLabelSide pPlus  [MttContext 0]])
     ]
   where
     f0 = taggedRankedLabel @"f0"

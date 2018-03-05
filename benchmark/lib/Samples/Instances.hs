@@ -36,16 +36,16 @@ depthRightSide = initial
 -- Original:
 -- >>> putStrLn $ encodeHaskellFromMtt "flatRightSide" flatRightSideMtt
 --
-flatRightSide :: ITerm -> PostTerm
+flatRightSide :: ITerm -> PTerm
 flatRightSide = initial
   where
     initial u0 = i_f0_0 u0 (end)
 
-    i_f0_0 (IMult u0 u1) y0 = multi (i_f0_0 u0 (multi y0))
+    i_f0_0 (IMult u0 u1) y0 = i_f0_0 u0 (multi y0)
 
     i_f0_0 (IOne) y0 = one y0
 
-    i_f0_0 (IPlus u0 u1) y0 = plus (i_f0_0 u0 (plus y0))
+    i_f0_0 (IPlus u0 u1) y0 = i_f0_0 u0 (plus y0)
 
     i_f0_0 (ITwo) y0 = two y0
 
