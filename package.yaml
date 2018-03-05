@@ -120,6 +120,7 @@ library:
 
     # haskell generator
     - Language.Haskell.Encoding
+    - Language.Haskell.Tree.Trans.MAC
     - Language.Haskell.Tree.Trans.SMAC
   other-modules: []
   ghc-options:
@@ -210,6 +211,8 @@ benchmarks:
     ghc-options: *bench-ghc-options
     dependencies:
       <<: *bench-base-depends
+      hspec:
+      QuickCheck:
 
   fusion-speed-bench:
     main: ../CriterionFusionMain.hs

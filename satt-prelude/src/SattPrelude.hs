@@ -86,7 +86,7 @@ import           Text.Show.Deriving
 import           GHC.Exception            (errorCallWithCallStackException)
 import           GHC.Stack                (HasCallStack)
 
-import           OrphanInstances
+import           OrphanInstances          ()
 
 
 throwErrorM :: (HasCallStack, MonadThrow m) => String -> m a

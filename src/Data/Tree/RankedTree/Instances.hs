@@ -111,11 +111,3 @@ type MiniPostfixOpAlphabet = TaggedRankedAlphabet
   ['("one", 1), '("plus", 1), '("end", 0)]
 
 type MiniPostfixOpTree = RankedLabelledTree MiniPostfixOpAlphabet
-
-
-type EndOpTokenStreamAlphabet = TaggedRankedAlphabet
-  [ '("<one>", 1), '("<two>", 1), '("<plus>", 1), '("<multi>", 1)
-  , '("</>", 1), '("$", 0)
-  ]
-
-type EndTaggedInfixOpTree = RankedLabelledTree EndOpTokenStreamAlphabet

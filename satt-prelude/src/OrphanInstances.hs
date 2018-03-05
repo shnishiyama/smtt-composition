@@ -7,8 +7,6 @@ import           ClassyPrelude
 import qualified Data.Foldable         as Foldable
 import           Data.Functor.Foldable
 import           Data.Hashable.Lifted
-import           Data.Vector           (Vector (..))
-import           GHC.Generics          (Generic1)
 
 
 deriving instance Generic (Fix f)

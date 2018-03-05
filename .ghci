@@ -1,5 +1,5 @@
 -- Pretty Print for Unicode
-:set -interactive-print=SattPrelude.groomPrint
+-- :set -interactive-print=SattPrelude.groomPrint
 
 -- Disable Warnings
 :set -Wno-type-defaults

@@ -1,0 +1,420 @@
+satt-composition-0.2.0.0: unregistering (local file changes: benchmark/lib/Fusion.hs)
+satt-composition-0.2.0.0: build (lib + exe + bench)
+Preprocessing library for satt-composition-0.2.0.0..
+Building library for satt-composition-0.2.0.0..
+Preprocessing benchmark 'fusion-memory-bench' for satt-composition-0.2.0.0..
+Building benchmark 'fusion-memory-bench' for satt-composition-0.2.0.0..
+[6 of 7] Compiling Fusion           ( benchmark/lib/Fusion.hs, .stack-work/dist/x86_64-osx/Cabal-2.0.1.0/build/fusion-memory-bench/fusion-memory-bench-tmp/Fusion.o )
+Linking .stack-work/dist/x86_64-osx/Cabal-2.0.1.0/build/fusion-memory-bench/fusion-memory-bench ...
+Preprocessing benchmark 'fusion-speed-bench' for satt-composition-0.2.0.0..
+Building benchmark 'fusion-speed-bench' for satt-composition-0.2.0.0..
+[6 of 7] Compiling Fusion           ( benchmark/lib/Fusion.hs, .stack-work/dist/x86_64-osx/Cabal-2.0.1.0/build/fusion-speed-bench/fusion-speed-bench-tmp/Fusion.o )
+Linking .stack-work/dist/x86_64-osx/Cabal-2.0.1.0/build/fusion-speed-bench/fusion-speed-bench ...
+Preprocessing executable 'satt-composit' for satt-composition-0.2.0.0..
+Building executable 'satt-composit' for satt-composition-0.2.0.0..
+Preprocessing benchmark 'common' for satt-composition-0.2.0.0..
+Building benchmark 'common' for satt-composition-0.2.0.0..
+[6 of 7] Compiling Fusion           ( benchmark/lib/Fusion.hs, .stack-work/dist/x86_64-osx/Cabal-2.0.1.0/build/common/common-tmp/Fusion.o )
+Linking .stack-work/dist/x86_64-osx/Cabal-2.0.1.0/build/common/common ...
+satt-composition-0.2.0.0: copy/register
+Installing library in /Users/mizunashi/Workspace/LaboWorks/satt-composition/.stack-work/install/x86_64-osx/lts-10.3/8.2.2/lib/x86_64-osx-ghc-8.2.2/satt-composition-0.2.0.0-HTcHE2u0pfoGCypgFyQQWU
+Installing executable satt-composit in /Users/mizunashi/Workspace/LaboWorks/satt-composition/.stack-work/install/x86_64-osx/lts-10.3/8.2.2/bin
+Registering library for satt-composition-0.2.0.0..
+satt-composition-0.2.0.0: benchmarks
+Running 3 benchmarks...
+Benchmark common: RUNNING...
+2
+2
+True
+Benchmark common: FINISH
+Benchmark fusion-memory-bench: RUNNING...
+
+Case                               Allocated  GCs
+itop-reverse/normal/100               59,696    0
+itop-reverse/normal/250              147,216    0
+itop-reverse/normal/500              293,648    0
+itop-reverse/normal/1500           1,008,320    0
+itop-reverse/fusion/100               61,232    0
+itop-reverse/fusion/250              151,152    0
+itop-reverse/fusion/500              301,584    0
+itop-reverse/fusion/1500             933,952    0
+itop-reverse/fusionOrig/100           92,760    0
+itop-reverse/fusionOrig/250          229,480    0
+itop-reverse/fusionOrig/500          457,912    0
+itop-reverse/fusionOrig/1500       1,435,048    1
+ptoi-itop/normal/random-100           73,248    0
+ptoi-itop/normal/random-250          181,168    0
+ptoi-itop/normal/random-500          357,456    0
+ptoi-itop/normal/random-1500       1,142,640    1
+ptoi-itop/fusion/random-100           87,840    0
+ptoi-itop/fusion/random-250          217,440    0
+ptoi-itop/fusion/random-500          433,440    0
+ptoi-itop/fusion/random-1500       1,362,912    1
+ptoi-itop/fusionOrig/random-100      250,736    0
+ptoi-itop/fusionOrig/random-250      666,256    0
+ptoi-itop/fusionOrig/random-500    1,412,288    1
+ptoi-itop/fusionOrig/random-1500   5,593,824    5
+ptoi-depth/normal/random-100          22,136    0
+ptoi-depth/normal/random-250          54,824    0
+ptoi-depth/normal/random-500         108,800    0
+ptoi-depth/normal/random-1500        325,040    0
+ptoi-depth/fusion/random-100           5,720    0
+ptoi-depth/fusion/random-250          13,400    0
+ptoi-depth/fusion/random-500          25,560    0
+ptoi-depth/fusion/random-1500         73,880    0
+ptoi-depth/fusionOrig/random-100       5,720    0
+ptoi-depth/fusionOrig/random-250      13,400    0
+ptoi-depth/fusionOrig/random-500      25,560    0
+ptoi-depth/fusionOrig/random-1500     73,880    0
+ptoi-flat/normal/random-100           24,560    0
+ptoi-flat/normal/random-250           58,328    0
+ptoi-flat/normal/random-500          112,664    0
+ptoi-flat/normal/random-1500         329,608    0
+ptoi-flat/fusion/random-100           51,184    0
+ptoi-flat/fusion/random-250          121,984    0
+ptoi-flat/fusion/random-500          242,144    0
+ptoi-flat/fusion/random-1500         713,264    0
+ptoi-flat/fusionOrig/random-100       57,632    0
+ptoi-flat/fusionOrig/random-250      138,032    0
+ptoi-flat/fusionOrig/random-500      274,192    0
+ptoi-flat/fusionOrig/random-1500     809,312    0
+Benchmark fusion-memory-bench: FINISH
+Benchmark fusion-speed-bench: RUNNING...
+benchmarking itop-reverse/normal/100
+time                 48.28 μs   (41.84 μs .. 56.71 μs)
+                     0.882 R²   (0.846 R² .. 0.957 R²)
+mean                 47.45 μs   (44.07 μs .. 52.40 μs)
+std dev              14.16 μs   (10.42 μs .. 18.34 μs)
+variance introduced by outliers: 98% (severely inflated)
+
+benchmarking itop-reverse/normal/250
+time                 130.6 μs   (119.9 μs .. 143.3 μs)
+                     0.955 R²   (0.941 R² .. 0.973 R²)
+mean                 148.9 μs   (128.2 μs .. 243.3 μs)
+std dev              124.9 μs   (23.67 μs .. 281.5 μs)
+variance introduced by outliers: 99% (severely inflated)
+
+benchmarking itop-reverse/normal/500
+time                 222.7 μs   (205.7 μs .. 241.4 μs)
+                     0.936 R²   (0.899 R² .. 0.963 R²)
+mean                 328.1 μs   (286.4 μs .. 414.5 μs)
+std dev              205.7 μs   (120.8 μs .. 378.6 μs)
+variance introduced by outliers: 99% (severely inflated)
+
+benchmarking itop-reverse/normal/1500
+time                 915.9 μs   (828.9 μs .. 1.041 ms)
+                     0.796 R²   (0.670 R² .. 0.943 R²)
+mean                 1.228 ms   (1.096 ms .. 1.456 ms)
+std dev              591.1 μs   (426.4 μs .. 889.3 μs)
+variance introduced by outliers: 98% (severely inflated)
+
+benchmarking itop-reverse/fusion/100
+time                 45.72 μs   (42.15 μs .. 48.58 μs)
+                     0.966 R²   (0.955 R² .. 0.977 R²)
+mean                 40.15 μs   (38.10 μs .. 43.05 μs)
+std dev              7.519 μs   (6.193 μs .. 9.374 μs)
+variance introduced by outliers: 95% (severely inflated)
+
+benchmarking itop-reverse/fusion/250
+time                 118.0 μs   (110.4 μs .. 128.0 μs)
+                     0.966 R²   (0.940 R² .. 0.990 R²)
+mean                 113.6 μs   (108.4 μs .. 120.5 μs)
+std dev              18.03 μs   (13.78 μs .. 24.59 μs)
+variance introduced by outliers: 92% (severely inflated)
+
+benchmarking itop-reverse/fusion/500
+time                 311.0 μs   (289.1 μs .. 340.6 μs)
+                     0.896 R²   (0.811 R² .. 0.978 R²)
+mean                 309.2 μs   (290.2 μs .. 348.2 μs)
+std dev              88.56 μs   (52.59 μs .. 151.4 μs)
+variance introduced by outliers: 98% (severely inflated)
+
+benchmarking itop-reverse/fusion/1500
+time                 760.0 μs   (724.1 μs .. 817.0 μs)
+                     0.955 R²   (0.930 R² .. 0.977 R²)
+mean                 952.3 μs   (904.1 μs .. 1.019 ms)
+std dev              211.9 μs   (144.0 μs .. 304.3 μs)
+variance introduced by outliers: 94% (severely inflated)
+
+benchmarking itop-reverse/fusionOrig/100
+time                 69.01 μs   (65.09 μs .. 72.84 μs)
+                     0.973 R²   (0.960 R² .. 0.984 R²)
+mean                 69.61 μs   (66.76 μs .. 74.22 μs)
+std dev              11.93 μs   (9.267 μs .. 17.09 μs)
+variance introduced by outliers: 94% (severely inflated)
+
+benchmarking itop-reverse/fusionOrig/250
+time                 136.9 μs   (124.2 μs .. 163.4 μs)
+                     0.809 R²   (0.720 R² .. 0.946 R²)
+mean                 191.0 μs   (168.4 μs .. 251.8 μs)
+std dev              111.7 μs   (54.20 μs .. 238.3 μs)
+variance introduced by outliers: 99% (severely inflated)
+
+benchmarking itop-reverse/fusionOrig/500
+time                 253.0 μs   (247.5 μs .. 260.3 μs)
+                     0.979 R²   (0.957 R² .. 0.993 R²)
+mean                 274.5 μs   (263.1 μs .. 292.9 μs)
+std dev              54.59 μs   (35.97 μs .. 76.16 μs)
+variance introduced by outliers: 94% (severely inflated)
+
+benchmarking itop-reverse/fusionOrig/1500
+time                 1.248 ms   (1.099 ms .. 1.361 ms)
+                     0.930 R²   (0.905 R² .. 0.951 R²)
+mean                 936.4 μs   (876.3 μs .. 1.016 ms)
+std dev              232.7 μs   (175.4 μs .. 284.4 μs)
+variance introduced by outliers: 95% (severely inflated)
+
+benchmarking ptoi-itop/normal/random-100
+time                 88.74 μs   (73.93 μs .. 104.6 μs)
+                     0.864 R²   (0.830 R² .. 0.924 R²)
+mean                 77.14 μs   (70.17 μs .. 88.29 μs)
+std dev              26.10 μs   (20.17 μs .. 32.77 μs)
+variance introduced by outliers: 98% (severely inflated)
+
+benchmarking ptoi-itop/normal/random-250
+time                 142.1 μs   (134.6 μs .. 149.7 μs)
+                     0.950 R²   (0.906 R² .. 0.973 R²)
+mean                 226.1 μs   (184.6 μs .. 331.2 μs)
+std dev              245.8 μs   (84.26 μs .. 529.7 μs)
+variance introduced by outliers: 99% (severely inflated)
+
+benchmarking ptoi-itop/normal/random-500
+time                 275.1 μs   (262.5 μs .. 290.8 μs)
+                     0.985 R²   (0.976 R² .. 0.996 R²)
+mean                 303.9 μs   (268.4 μs .. 440.7 μs)
+std dev              221.9 μs   (14.78 μs .. 471.8 μs)
+variance introduced by outliers: 99% (severely inflated)
+
+benchmarking ptoi-itop/normal/random-1500
+time                 981.4 μs   (942.7 μs .. 1.024 ms)
+                     0.985 R²   (0.975 R² .. 0.992 R²)
+mean                 984.0 μs   (955.5 μs .. 1.019 ms)
+std dev              108.7 μs   (79.89 μs .. 151.8 μs)
+variance introduced by outliers: 76% (severely inflated)
+
+benchmarking ptoi-itop/fusion/random-100
+time                 59.00 μs   (54.12 μs .. 63.35 μs)
+                     0.978 R²   (0.971 R² .. 0.997 R²)
+mean                 56.02 μs   (54.90 μs .. 57.85 μs)
+std dev              4.825 μs   (2.843 μs .. 7.505 μs)
+variance introduced by outliers: 79% (severely inflated)
+
+benchmarking ptoi-itop/fusion/random-250
+time                 180.0 μs   (151.8 μs .. 224.9 μs)
+                     0.862 R²   (0.809 R² .. 0.992 R²)
+mean                 163.6 μs   (157.3 μs .. 182.6 μs)
+std dev              34.00 μs   (14.93 μs .. 66.42 μs)
+variance introduced by outliers: 95% (severely inflated)
+
+benchmarking ptoi-itop/fusion/random-500
+time                 367.2 μs   (346.1 μs .. 399.7 μs)
+                     0.954 R²   (0.926 R² .. 0.977 R²)
+mean                 415.6 μs   (388.7 μs .. 461.4 μs)
+std dev              121.0 μs   (79.56 μs .. 199.8 μs)
+variance introduced by outliers: 98% (severely inflated)
+
+benchmarking ptoi-itop/fusion/random-1500
+time                 993.9 μs   (957.8 μs .. 1.052 ms)
+                     0.968 R²   (0.934 R² .. 0.990 R²)
+mean                 1.073 ms   (1.031 ms .. 1.155 ms)
+std dev              189.9 μs   (131.4 μs .. 292.2 μs)
+variance introduced by outliers: 89% (severely inflated)
+
+benchmarking ptoi-itop/fusionOrig/random-100
+time                 107.5 μs   (101.0 μs .. 113.2 μs)
+                     0.963 R²   (0.938 R² .. 0.982 R²)
+mean                 126.7 μs   (116.4 μs .. 145.0 μs)
+std dev              46.23 μs   (31.45 μs .. 69.47 μs)
+variance introduced by outliers: 99% (severely inflated)
+
+benchmarking ptoi-itop/fusionOrig/random-250
+time                 299.9 μs   (276.3 μs .. 347.7 μs)
+                     0.817 R²   (0.647 R² .. 0.977 R²)
+mean                 314.0 μs   (288.4 μs .. 369.2 μs)
+std dev              123.7 μs   (67.27 μs .. 228.7 μs)
+variance introduced by outliers: 99% (severely inflated)
+
+benchmarking ptoi-itop/fusionOrig/random-500
+time                 744.5 μs   (685.7 μs .. 807.9 μs)
+                     0.952 R²   (0.920 R² .. 0.977 R²)
+mean                 741.5 μs   (698.9 μs .. 801.6 μs)
+std dev              164.2 μs   (112.9 μs .. 263.5 μs)
+variance introduced by outliers: 94% (severely inflated)
+
+benchmarking ptoi-itop/fusionOrig/random-1500
+time                 3.089 ms   (2.861 ms .. 3.302 ms)
+                     0.965 R²   (0.942 R² .. 0.983 R²)
+mean                 2.821 ms   (2.727 ms .. 2.954 ms)
+std dev              332.4 μs   (242.4 μs .. 430.6 μs)
+variance introduced by outliers: 73% (severely inflated)
+
+benchmarking ptoi-depth/normal/random-100
+time                 16.02 μs   (15.00 μs .. 17.53 μs)
+                     0.913 R²   (0.857 R² .. 0.963 R²)
+mean                 19.51 μs   (17.91 μs .. 22.04 μs)
+std dev              6.405 μs   (4.976 μs .. 8.262 μs)
+variance introduced by outliers: 99% (severely inflated)
+
+benchmarking ptoi-depth/normal/random-250
+time                 52.09 μs   (44.68 μs .. 64.10 μs)
+                     0.440 R²   (0.303 R² .. 0.664 R²)
+mean                 115.4 μs   (88.99 μs .. 157.8 μs)
+std dev              108.0 μs   (66.30 μs .. 191.7 μs)
+variance introduced by outliers: 99% (severely inflated)
+
+benchmarking ptoi-depth/normal/random-500
+time                 87.75 μs   (80.69 μs .. 97.50 μs)
+                     0.748 R²   (0.573 R² .. 0.956 R²)
+mean                 116.8 μs   (98.62 μs .. 146.4 μs)
+std dev              73.37 μs   (42.56 μs .. 110.8 μs)
+variance introduced by outliers: 99% (severely inflated)
+
+benchmarking ptoi-depth/normal/random-1500
+time                 302.7 μs   (246.6 μs .. 381.9 μs)
+                     0.827 R²   (0.776 R² .. 0.981 R²)
+mean                 270.3 μs   (253.4 μs .. 307.1 μs)
+std dev              77.68 μs   (46.66 μs .. 124.1 μs)
+variance introduced by outliers: 98% (severely inflated)
+
+benchmarking ptoi-depth/fusion/random-100
+time                 2.727 μs   (2.259 μs .. 3.165 μs)
+                     0.868 R²   (0.832 R² .. 0.932 R²)
+mean                 2.810 μs   (2.293 μs .. 4.595 μs)
+std dev              2.636 μs   (743.6 ns .. 5.765 μs)
+variance introduced by outliers: 99% (severely inflated)
+
+benchmarking ptoi-depth/fusion/random-250
+time                 8.250 μs   (6.348 μs .. 10.51 μs)
+                     0.788 R²   (0.717 R² .. 0.954 R²)
+mean                 6.573 μs   (5.992 μs .. 8.069 μs)
+std dev              2.583 μs   (1.222 μs .. 5.112 μs)
+variance introduced by outliers: 99% (severely inflated)
+
+benchmarking ptoi-depth/fusion/random-500
+time                 10.49 μs   (9.917 μs .. 11.40 μs)
+                     0.866 R²   (0.784 R² .. 0.932 R²)
+mean                 20.28 μs   (14.67 μs .. 31.02 μs)
+std dev              26.73 μs   (6.450 μs .. 47.17 μs)
+variance introduced by outliers: 99% (severely inflated)
+
+benchmarking ptoi-depth/fusion/random-1500
+time                 35.51 μs   (33.26 μs .. 38.91 μs)
+                     0.792 R²   (0.565 R² .. 0.980 R²)
+mean                 44.44 μs   (38.63 μs .. 62.14 μs)
+std dev              30.29 μs   (8.510 μs .. 60.79 μs)
+variance introduced by outliers: 99% (severely inflated)
+
+benchmarking ptoi-depth/fusionOrig/random-100
+time                 2.380 μs   (2.060 μs .. 2.731 μs)
+                     0.897 R²   (0.846 R² .. 0.953 R²)
+mean                 3.685 μs   (2.160 μs .. 11.05 μs)
+std dev              8.843 μs   (650.7 ns .. 20.09 μs)
+variance introduced by outliers: 99% (severely inflated)
+
+benchmarking ptoi-depth/fusionOrig/random-250
+time                 7.115 μs   (5.468 μs .. 9.212 μs)
+                     0.548 R²   (0.398 R² .. 0.704 R²)
+mean                 16.59 μs   (12.05 μs .. 23.08 μs)
+std dev              19.77 μs   (13.22 μs .. 35.47 μs)
+variance introduced by outliers: 99% (severely inflated)
+
+benchmarking ptoi-depth/fusionOrig/random-500
+time                 8.928 μs   (8.427 μs .. 9.542 μs)
+                     0.968 R²   (0.945 R² .. 0.987 R²)
+mean                 10.62 μs   (9.447 μs .. 13.98 μs)
+std dev              6.427 μs   (2.529 μs .. 12.51 μs)
+variance introduced by outliers: 99% (severely inflated)
+
+benchmarking ptoi-depth/fusionOrig/random-1500
+time                 41.04 μs   (38.05 μs .. 43.62 μs)
+                     0.959 R²   (0.938 R² .. 0.976 R²)
+mean                 48.99 μs   (42.36 μs .. 63.50 μs)
+std dev              33.75 μs   (15.89 μs .. 54.68 μs)
+variance introduced by outliers: 99% (severely inflated)
+
+benchmarking ptoi-flat/normal/random-100
+time                 20.15 μs   (18.39 μs .. 22.24 μs)
+                     0.944 R²   (0.915 R² .. 0.979 R²)
+mean                 18.15 μs   (17.05 μs .. 19.59 μs)
+std dev              4.001 μs   (2.977 μs .. 5.569 μs)
+variance introduced by outliers: 97% (severely inflated)
+
+benchmarking ptoi-flat/normal/random-250
+time                 57.89 μs   (51.15 μs .. 63.74 μs)
+                     0.938 R²   (0.915 R² .. 0.966 R²)
+mean                 55.92 μs   (51.85 μs .. 60.23 μs)
+std dev              13.50 μs   (11.71 μs .. 16.13 μs)
+variance introduced by outliers: 97% (severely inflated)
+
+benchmarking ptoi-flat/normal/random-500
+time                 87.45 μs   (82.78 μs .. 92.67 μs)
+                     0.973 R²   (0.956 R² .. 0.985 R²)
+mean                 92.52 μs   (87.73 μs .. 102.9 μs)
+std dev              24.29 μs   (14.43 μs .. 40.55 μs)
+variance introduced by outliers: 97% (severely inflated)
+
+benchmarking ptoi-flat/normal/random-1500
+time                 414.9 μs   (335.7 μs .. 507.5 μs)
+                     0.788 R²   (0.712 R² .. 0.914 R²)
+mean                 357.8 μs   (311.6 μs .. 441.9 μs)
+std dev              190.6 μs   (116.0 μs .. 331.9 μs)
+variance introduced by outliers: 99% (severely inflated)
+
+benchmarking ptoi-flat/fusion/random-100
+time                 24.36 μs   (22.44 μs .. 26.38 μs)
+                     0.933 R²   (0.900 R² .. 0.961 R²)
+mean                 27.42 μs   (24.74 μs .. 32.26 μs)
+std dev              10.55 μs   (7.901 μs .. 14.47 μs)
+variance introduced by outliers: 99% (severely inflated)
+
+benchmarking ptoi-flat/fusion/random-250
+time                 61.53 μs   (57.58 μs .. 64.97 μs)
+                     0.944 R²   (0.908 R² .. 0.969 R²)
+mean                 73.02 μs   (66.03 μs .. 85.46 μs)
+std dev              32.86 μs   (21.98 μs .. 47.54 μs)
+variance introduced by outliers: 99% (severely inflated)
+
+benchmarking ptoi-flat/fusion/random-500
+time                 113.5 μs   (104.6 μs .. 125.7 μs)
+                     0.881 R²   (0.788 R² .. 0.958 R²)
+mean                 132.3 μs   (119.5 μs .. 158.9 μs)
+std dev              57.76 μs   (35.91 μs .. 88.27 μs)
+variance introduced by outliers: 99% (severely inflated)
+
+benchmarking ptoi-flat/fusion/random-1500
+time                 298.1 μs   (283.0 μs .. 315.3 μs)
+                     0.930 R²   (0.876 R² .. 0.966 R²)
+mean                 394.8 μs   (350.1 μs .. 459.4 μs)
+std dev              182.8 μs   (118.3 μs .. 274.6 μs)
+variance introduced by outliers: 99% (severely inflated)
+
+benchmarking ptoi-flat/fusionOrig/random-100
+time                 17.19 μs   (16.36 μs .. 17.98 μs)
+                     0.987 R²   (0.981 R² .. 0.995 R²)
+mean                 16.90 μs   (16.51 μs .. 17.92 μs)
+std dev              2.107 μs   (1.445 μs .. 3.495 μs)
+variance introduced by outliers: 90% (severely inflated)
+
+benchmarking ptoi-flat/fusionOrig/random-250
+time                 49.44 μs   (45.16 μs .. 53.44 μs)
+                     0.942 R²   (0.913 R² .. 0.964 R²)
+mean                 56.01 μs   (51.64 μs .. 62.32 μs)
+std dev              19.23 μs   (14.29 μs .. 24.77 μs)
+variance introduced by outliers: 98% (severely inflated)
+
+benchmarking ptoi-flat/fusionOrig/random-500
+time                 89.22 μs   (85.55 μs .. 93.14 μs)
+                     0.982 R²   (0.971 R² .. 0.989 R²)
+mean                 97.26 μs   (93.58 μs .. 101.8 μs)
+std dev              14.53 μs   (11.95 μs .. 18.44 μs)
+variance introduced by outliers: 91% (severely inflated)
+
+benchmarking ptoi-flat/fusionOrig/random-1500
+time                 337.6 μs   (321.7 μs .. 354.2 μs)
+                     0.979 R²   (0.969 R² .. 0.988 R²)
+mean                 327.1 μs   (314.3 μs .. 348.1 μs)
+std dev              50.41 μs   (38.12 μs .. 71.16 μs)
+variance introduced by outliers: 90% (severely inflated)
+
+Benchmark fusion-speed-bench: FINISH
+Completed 2 action(s).

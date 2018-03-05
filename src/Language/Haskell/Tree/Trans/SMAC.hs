@@ -10,12 +10,12 @@ import           Data.Tree.RankedTree.Label
 import           Data.Tree.Trans.SMAC
 import           Language.Haskell.Encoding
 
-encodeHaskellFromSmac :: forall s ta la tb lb.
+encodeHaskellFromSmtt :: forall s ta la tb lb.
   ( SmttConstraint s ta la tb lb
   , Show s, Show la, Show lb
   )
   => Text -> StackMacroTreeTransducer s ta la tb lb -> Text
-encodeHaskellFromSmac name trans = intercalate "\n" $
+encodeHaskellFromSmtt name trans = intercalate "\n" $
     [ name <> " = stackHead . initial" ]
     <> indentTexts
       ( [ "where" ]
