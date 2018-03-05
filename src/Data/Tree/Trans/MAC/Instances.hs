@@ -92,6 +92,49 @@ infixToPostfixMtt = fromMaybe errorUnreachable $ buildMtt
     pEnd   = taggedRankedLabel @"end"
 
 
+type I2PrStateAlphabet = TaggedRankedAlphabet
+  '[ '("f0", 2)]
+
+type InfixToPrefixSmtt = MttTransducer
+  I2PrStateAlphabet
+  InfixOpTree PrefixOpTree
+
+-- | A macro tree transducer to prefix tree from infix tree
+--
+-- Sample:
+-- >>> :set -XOverloadedLists
+-- >>> import Data.Tree.Trans.Class
+-- >>> iOne   = taggedRankedLabel @"one"
+-- >>> iTwo   = taggedRankedLabel @"two"
+-- >>> iPlus  = taggedRankedLabel @"plus"
+-- >>> iMulti = taggedRankedLabel @"multi"
+-- >>> inputInfixTree = mkTree iMulti [mkTree iTwo [], mkTree iPlus [mkTree iOne [], mkTree iTwo []]]
+-- >>> treeTrans infixToPrefixMtt inputInfixTree
+-- multi(two(plus(one(two(end)))))
+--
+infixToPrefixMtt :: InfixToPrefixSmtt
+infixToPrefixMtt = fromMaybe errorUnreachable $ buildMtt
+    (MttState f0 0 [MttLabelSide pEnd []])
+    [ (f0, iOne, MttLabelSide pOne [MttContext 0])
+    , (f0, iTwo, MttLabelSide pTwo [MttContext 0])
+    , (f0, iPlus, MttLabelSide pPlus [MttState f0 0 [MttState f0 1 [MttContext 0]]])
+    , (f0, iMulti, MttLabelSide pMulti [MttState f0 0 [MttState f0 1 [MttContext 0]]])
+    ]
+  where
+    f0 = taggedRankedLabel @"f0"
+
+    iOne   = taggedRankedLabel @"one"
+    iTwo   = taggedRankedLabel @"two"
+    iPlus  = taggedRankedLabel @"plus"
+    iMulti = taggedRankedLabel @"multi"
+
+    pOne   = taggedRankedLabel @"one"
+    pTwo   = taggedRankedLabel @"two"
+    pPlus  = taggedRankedLabel @"plus"
+    pMulti = taggedRankedLabel @"multi"
+    pEnd   = taggedRankedLabel @"end"
+
+
 type MiniInfixToPostfixMtt = MttTransducer
   ItoPStateAlphabet
   MiniInfixOpTree MiniPostfixOpTree

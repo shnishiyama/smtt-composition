@@ -1,14 +1,14 @@
-name:        satt-composition
+name:        smtt-composition
 version:     '0.2.0.0'
-synopsis:    Implementation of SATT Composition
-description: SATT Composition implementation
+synopsis:    Implementation of SMTT Composition
+description: SMTT Composition implementation
 category:    Tree
-author:      Mizunashi Mana
-maintainer:  mizunashi-mana@noreply.git
-copyright:   2017 Mizunashi Mana
+author:      Nishiyama Shun
+maintainer:  nishiyama@ipl.cs.uec.ac.jp
+copyright:   2018 Nishiyama Shun
 license:     MIT
-homepage:    https://gitlab.com/mizunashi-mana/satt-composition#readme
-git:         https://gitlab.com/mizunashi-mana/satt-composition
+homepage:    https://github.com/shnishiyama/satt-composition
+git:         https://github.com/shnishiyama/satt-composition
 
 extra-source-files:
 - README.md
@@ -149,7 +149,7 @@ executables:
     - "\"-with-rtsopts=-N -xc\""
     dependencies:
       <<: *base-depends
-      satt-composition:
+      smtt-composition:
       deepseq:
 
 tests:
@@ -172,7 +172,7 @@ tests:
     - -with-rtsopts=-N
     dependencies:
       <<: *base-depends
-      satt-composition:
+      smtt-composition:
       hspec:
       QuickCheck:
 
@@ -199,7 +199,7 @@ _bench-base-depends: &bench-base-depends
   mtl:
 
 _bench-ghc-options: &bench-ghc-options
-  - -O2
+  - -O0
   - -threaded
   - -with-rtsopts=-N
 

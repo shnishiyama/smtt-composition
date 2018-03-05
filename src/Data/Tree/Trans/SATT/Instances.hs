@@ -100,8 +100,8 @@ type InhPtoIAttr = TaggedAlphabet
 type PostfixToInfixSatt = SattTransducer
   SynPtoIAttr
   InhPtoIAttr
-  (RankedLabelledTree PostfixOpAlphabet)
-  (RankedLabelledTree InfixOpAlphabet)
+  PostfixOpTree
+  InfixOpTree
 
 -- | An stack-attributed tree transducer converting postfix to infix
 --

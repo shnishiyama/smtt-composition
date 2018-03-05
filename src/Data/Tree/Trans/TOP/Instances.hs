@@ -85,15 +85,55 @@ type DepthRightSideTdtt = TdttTransducer
 -- :}
 --
 -- >>> treeTrans depthRightSideTdtt inputInfixTree
--- Succ (Succ Zero)
+-- Succ (Succ (Succ Zero))
 --
 depthRightSideTdtt :: DepthRightSideTdtt
 depthRightSideTdtt = fromMaybe errorUnreachable $ buildTdtt
     (tdttState f0 0)
-    [ (f0, iPlus,  TdttLabelSide True [tdttState f0 0])
-    , (f0, iMulti, TdttLabelSide True [tdttState f0 0])
+    [ (f0, iPlus,  TdttLabelSide True [tdttState f0 1])
+    , (f0, iMulti, TdttLabelSide True [tdttState f0 1])
     , (f0, iOne,   TdttLabelSide True [TdttLabelSide False []])
     , (f0, iTwo,   TdttLabelSide True [TdttLabelSide False []])
+    ]
+  where
+    f0 = taggedLabel @"f0"
+
+    iOne   = taggedRankedLabel @"one"
+    iTwo   = taggedRankedLabel @"two"
+    iPlus  = taggedRankedLabel @"plus"
+    iMulti = taggedRankedLabel @"multi"
+
+
+type MirrorAlphabet = TaggedAlphabet
+  '[ "f0" ]
+
+type MirrorTdtt = TdttTransducer
+  MirrorAlphabet
+  InfixOpTree InfixOpTree
+
+-- | A depth counter for right side
+--
+-- Sample:
+-- >>> :set -XOverloadedLists
+-- >>> import Data.Tree.Trans.Class
+-- >>> iOne   = taggedRankedLabel @"one"
+-- >>> iTwo   = taggedRankedLabel @"two"
+-- >>> iPlus  = taggedRankedLabel @"plus"
+-- >>> iMulti = taggedRankedLabel @"multi"
+-- >>> :{
+-- inputInfixTree = mkTree iMulti [mkTree iPlus [mkTree iOne [], mkTree iTwo []], mkTree iTwo []]
+-- :}
+--
+-- >>> treeTrans mirrorTdtt inputInfixTree
+-- multi(two,plus(two,one))
+--
+mirrorTdtt :: MirrorTdtt
+mirrorTdtt = fromMaybe errorUnreachable $ buildTdtt
+    (tdttState f0 0)
+    [ (f0, iPlus,  TdttLabelSide iPlus [tdttState f0 1, tdttState f0 0])
+    , (f0, iMulti, TdttLabelSide iMulti [tdttState f0 1, tdttState f0 0])
+    , (f0, iOne,   TdttLabelSide iOne [])
+    , (f0, iTwo,   TdttLabelSide iTwo [])
     ]
   where
     f0 = taggedLabel @"f0"

@@ -88,11 +88,11 @@ benchSpec = unzip
     , nmGroup "fusionOrig" $ testCases postfixOpTreeCases ptoiItopOrig
     --, nmGroup "fusionWalk" $ testCases postfixOpTreeCases ptoiItopWalk
     ]
-  {-, nmGroup "ptoi-depth"
+  , nmGroup "ptoi-depth"
     [ nmGroup "normal" $ testCases postfixOpTreeCases $ ptoi >>> depthRightSide
     , nmGroup "fusion" $ testCases postfixOpTreeCases ptoiDepth
     , nmGroup "fusionOrig" $ testCases postfixOpTreeCases ptoiDepthOrig
-    ]-}
+    ]
   , nmGroup "ptoi-flat"
     [ nmGroup "normal" $ testCases postfixOpTreeCases $ ptoi >>> flatRightSide
     , nmGroup "fusion" $ testCases postfixOpTreeCases ptoiFlat

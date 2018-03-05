@@ -94,10 +94,12 @@ type InfixOpAlphabet = TaggedRankedAlphabet
 
 type InfixOpTree = RankedLabelledTree InfixOpAlphabet
 
-type PostfixOpAlphabet = TaggedRankedAlphabet
+type OpTokenStreamAlphabet = TaggedRankedAlphabet
   ['("one", 1), '("two", 1), '("plus", 1), '("multi", 1), '("end", 0)]
 
-type PostfixOpTree = RankedLabelledTree PostfixOpAlphabet
+type PrefixOpTree = RankedLabelledTree OpTokenStreamAlphabet
+
+type PostfixOpTree = RankedLabelledTree OpTokenStreamAlphabet
 
 
 type MiniInfixOpAlphabet = TaggedRankedAlphabet
@@ -109,3 +111,11 @@ type MiniPostfixOpAlphabet = TaggedRankedAlphabet
   ['("one", 1), '("plus", 1), '("end", 0)]
 
 type MiniPostfixOpTree = RankedLabelledTree MiniPostfixOpAlphabet
+
+
+type EndOpTokenStreamAlphabet = TaggedRankedAlphabet
+  [ '("<one>", 1), '("<two>", 1), '("<plus>", 1), '("<multi>", 1)
+  , '("</>", 1), '("$", 0)
+  ]
+
+type EndTaggedInfixOpTree = RankedLabelledTree EndOpTokenStreamAlphabet
