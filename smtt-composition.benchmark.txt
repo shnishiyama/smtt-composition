@@ -1,0 +1,489 @@
+smtt-composition-0.2.0.0: unregistering (local file changes: benchmark/lib/Samples/Fusions.hs)
+smtt-composition-0.2.0.0: build (lib + exe + bench)
+Preprocessing benchmark 'fusion-memory-bench' for smtt-composition-0.2.0.0..
+Building benchmark 'fusion-memory-bench' for smtt-composition-0.2.0.0..
+[6 of 8] Compiling Samples.Fusions  ( benchmark/lib/Samples/Fusions.hs, .stack-work/dist/x86_64-osx/Cabal-2.0.1.0/build/fusion-memory-bench/fusion-memory-bench-tmp/Samples/Fusions.o )
+Linking .stack-work/dist/x86_64-osx/Cabal-2.0.1.0/build/fusion-memory-bench/fusion-memory-bench ...
+Preprocessing benchmark 'fusion-speed-bench' for smtt-composition-0.2.0.0..
+Building benchmark 'fusion-speed-bench' for smtt-composition-0.2.0.0..
+[6 of 8] Compiling Samples.Fusions  ( benchmark/lib/Samples/Fusions.hs, .stack-work/dist/x86_64-osx/Cabal-2.0.1.0/build/fusion-speed-bench/fusion-speed-bench-tmp/Samples/Fusions.o )
+Linking .stack-work/dist/x86_64-osx/Cabal-2.0.1.0/build/fusion-speed-bench/fusion-speed-bench ...
+Preprocessing benchmark 'common' for smtt-composition-0.2.0.0..
+Building benchmark 'common' for smtt-composition-0.2.0.0..
+[6 of 8] Compiling Samples.Fusions  ( benchmark/lib/Samples/Fusions.hs, .stack-work/dist/x86_64-osx/Cabal-2.0.1.0/build/common/common-tmp/Samples/Fusions.o )
+Linking .stack-work/dist/x86_64-osx/Cabal-2.0.1.0/build/common/common ...
+Preprocessing library for smtt-composition-0.2.0.0..
+Building library for smtt-composition-0.2.0.0..
+Preprocessing executable 'satt-composit' for smtt-composition-0.2.0.0..
+Building executable 'satt-composit' for smtt-composition-0.2.0.0..
+smtt-composition-0.2.0.0: copy/register
+Installing library in /Users/mizunashi/Workspace/LaboWorks/satt-composition/.stack-work/install/x86_64-osx/lts-10.3/8.2.2/lib/x86_64-osx-ghc-8.2.2/smtt-composition-0.2.0.0-1lI5mtwhgt0JLgnvWn8sDC
+Installing executable satt-composit in /Users/mizunashi/Workspace/LaboWorks/satt-composition/.stack-work/install/x86_64-osx/lts-10.3/8.2.2/bin
+Registering library for smtt-composition-0.2.0.0..
+smtt-composition-0.2.0.0: benchmarks
+Running 3 benchmarks...
+Benchmark common: RUNNING...
+
+fusions
+  preserve original semantics
+
+Finished in 0.0005 seconds
+1 example, 0 failures
+Benchmark common: FINISH
+Benchmark fusion-memory-bench: RUNNING...
+
+Case                               Allocated  GCs
+i2po-rev/normal/100                   58,880    0
+i2po-rev/normal/250                  145,200    0
+i2po-rev/normal/500                  289,632    0
+i2po-rev/normal/1500                 996,304    0
+i2po-rev/fusion/100                   62,832    0
+i2po-rev/fusion/250                  155,152    0
+i2po-rev/fusion/500                  309,584    0
+i2po-rev/fusion/1500                 957,952    0
+i2po-rev/fusionOrig/100               95,984    0
+i2po-rev/fusionOrig/250              237,504    0
+i2po-rev/fusionOrig/500              473,936    0
+i2po-rev/fusionOrig/1500           1,483,072    1
+po2i-depth/normal/random-100          21,800    0
+po2i-depth/normal/random-250          54,320    0
+po2i-depth/normal/random-500         108,240    0
+po2i-depth/normal/random-1500        324,368    0
+po2i-depth/fusion/random-100           5,432    0
+po2i-depth/fusion/random-250          12,968    0
+po2i-depth/fusion/random-500          25,080    0
+po2i-depth/fusion/random-1500         73,304    0
+po2i-depth/fusionOrig/random-100       5,432    0
+po2i-depth/fusionOrig/random-250      12,968    0
+po2i-depth/fusionOrig/random-500      25,080    0
+po2i-depth/fusionOrig/random-1500     73,304    0
+po2i-flat/normal/random-100           24,176    0
+po2i-flat/normal/random-250           56,576    0
+po2i-flat/normal/random-500          111,656    0
+po2i-flat/normal/random-1500         327,208    0
+po2i-flat/fusion/random-100           37,856    0
+po2i-flat/fusion/random-250           90,656    0
+po2i-flat/fusion/random-500          179,736    0
+po2i-flat/fusion/random-1500         531,288    0
+po2i-flat/fusionOrig/random-100       46,736    0
+po2i-flat/fusionOrig/random-250      112,736    0
+po2i-flat/fusionOrig/random-500      223,816    0
+po2i-flat/fusionOrig/random-1500     663,368    0
+pr2i-i2pr/normal/random-100          134,616    0
+pr2i-i2pr/normal/random-250          369,088    0
+pr2i-i2pr/normal/random-500          803,504    0
+pr2i-i2pr/normal/random-1500       2,503,936    2
+pr2i-i2pr/fusion/random-100          236,512    0
+pr2i-i2pr/fusion/random-250          666,696    0
+pr2i-i2pr/fusion/random-500        1,480,616    1
+pr2i-i2pr/fusion/random-1500       4,647,800    4
+pr2i-i2pr/fusionOrig/random-100      236,512    0
+pr2i-i2pr/fusionOrig/random-250      666,696    0
+pr2i-i2pr/fusionOrig/random-500    1,480,616    1
+pr2i-i2pr/fusionOrig/random-1500   4,647,800    4
+po2i-i2pr/normal/random-100           70,032    0
+po2i-i2pr/normal/random-250          173,152    0
+po2i-i2pr/normal/random-500          345,464    0
+po2i-i2pr/normal/random-1500       1,065,880    0
+po2i-i2pr/fusion/random-100          109,296    0
+po2i-i2pr/fusion/random-250          272,104    0
+po2i-i2pr/fusion/random-500          543,624    0
+po2i-i2pr/fusion/random-1500       1,696,856    1
+po2i-i2pr/fusionOrig/random-100      292,496    0
+po2i-i2pr/fusionOrig/random-250      780,688    0
+po2i-i2pr/fusionOrig/random-500    1,660,544    1
+po2i-i2pr/fusionOrig/random-1500   6,649,536    6
+Benchmark fusion-memory-bench: FINISH
+Benchmark fusion-speed-bench: RUNNING...
+benchmarking i2po-rev/normal/100
+time                 32.49 μs   (32.30 μs .. 32.85 μs)
+                     0.997 R²   (0.989 R² .. 1.000 R²)
+mean                 32.86 μs   (32.35 μs .. 35.43 μs)
+std dev              2.807 μs   (611.0 ns .. 6.598 μs)
+variance introduced by outliers: 80% (severely inflated)
+
+benchmarking i2po-rev/normal/250
+time                 85.26 μs   (85.04 μs .. 85.48 μs)
+                     1.000 R²   (1.000 R² .. 1.000 R²)
+mean                 84.95 μs   (84.81 μs .. 85.12 μs)
+std dev              519.7 ns   (448.1 ns .. 669.0 ns)
+
+benchmarking i2po-rev/normal/500
+time                 201.8 μs   (186.8 μs .. 215.6 μs)
+                     0.970 R²   (0.959 R² .. 0.989 R²)
+mean                 193.5 μs   (185.9 μs .. 204.1 μs)
+std dev              29.48 μs   (22.17 μs .. 37.47 μs)
+variance introduced by outliers: 91% (severely inflated)
+
+benchmarking i2po-rev/normal/1500
+time                 616.7 μs   (613.3 μs .. 620.9 μs)
+                     0.998 R²   (0.995 R² .. 1.000 R²)
+mean                 633.8 μs   (625.2 μs .. 662.8 μs)
+std dev              46.58 μs   (13.63 μs .. 95.55 μs)
+variance introduced by outliers: 62% (severely inflated)
+
+benchmarking i2po-rev/fusion/100
+time                 30.89 μs   (30.78 μs .. 30.99 μs)
+                     1.000 R²   (1.000 R² .. 1.000 R²)
+mean                 30.71 μs   (30.63 μs .. 30.79 μs)
+std dev              264.1 ns   (210.5 ns .. 352.5 ns)
+
+benchmarking i2po-rev/fusion/250
+time                 81.40 μs   (80.80 μs .. 82.35 μs)
+                     1.000 R²   (0.999 R² .. 1.000 R²)
+mean                 80.90 μs   (80.60 μs .. 81.28 μs)
+std dev              1.131 μs   (864.9 ns .. 1.602 μs)
+
+benchmarking i2po-rev/fusion/500
+time                 167.3 μs   (166.8 μs .. 168.0 μs)
+                     1.000 R²   (1.000 R² .. 1.000 R²)
+mean                 167.0 μs   (166.4 μs .. 167.6 μs)
+std dev              1.845 μs   (1.380 μs .. 2.769 μs)
+
+benchmarking i2po-rev/fusion/1500
+time                 564.3 μs   (562.7 μs .. 566.3 μs)
+                     1.000 R²   (1.000 R² .. 1.000 R²)
+mean                 566.8 μs   (564.8 μs .. 568.7 μs)
+std dev              6.885 μs   (5.517 μs .. 9.674 μs)
+
+benchmarking i2po-rev/fusionOrig/100
+time                 40.32 μs   (40.22 μs .. 40.44 μs)
+                     1.000 R²   (1.000 R² .. 1.000 R²)
+mean                 40.13 μs   (40.03 μs .. 40.35 μs)
+std dev              403.6 ns   (228.3 ns .. 718.3 ns)
+
+benchmarking i2po-rev/fusionOrig/250
+time                 104.9 μs   (104.2 μs .. 105.8 μs)
+                     1.000 R²   (0.999 R² .. 1.000 R²)
+mean                 104.8 μs   (104.3 μs .. 105.4 μs)
+std dev              1.675 μs   (1.419 μs .. 1.962 μs)
+
+benchmarking i2po-rev/fusionOrig/500
+time                 240.3 μs   (237.5 μs .. 245.3 μs)
+                     0.997 R²   (0.993 R² .. 1.000 R²)
+mean                 240.0 μs   (238.4 μs .. 245.6 μs)
+std dev              8.541 μs   (3.869 μs .. 17.77 μs)
+variance introduced by outliers: 32% (moderately inflated)
+
+benchmarking i2po-rev/fusionOrig/1500
+time                 748.8 μs   (738.7 μs .. 762.8 μs)
+                     0.999 R²   (0.997 R² .. 1.000 R²)
+mean                 740.5 μs   (736.3 μs .. 746.2 μs)
+std dev              16.99 μs   (12.33 μs .. 26.12 μs)
+variance introduced by outliers: 14% (moderately inflated)
+
+benchmarking po2i-depth/normal/random-100
+time                 9.754 μs   (9.737 μs .. 9.781 μs)
+                     1.000 R²   (1.000 R² .. 1.000 R²)
+mean                 9.775 μs   (9.738 μs .. 9.817 μs)
+std dev              133.4 ns   (95.79 ns .. 196.2 ns)
+
+benchmarking po2i-depth/normal/random-250
+time                 26.68 μs   (26.63 μs .. 26.74 μs)
+                     1.000 R²   (1.000 R² .. 1.000 R²)
+mean                 26.74 μs   (26.66 μs .. 26.90 μs)
+std dev              365.6 ns   (256.4 ns .. 548.9 ns)
+
+benchmarking po2i-depth/normal/random-500
+time                 57.69 μs   (57.59 μs .. 57.82 μs)
+                     1.000 R²   (1.000 R² .. 1.000 R²)
+mean                 57.54 μs   (57.42 μs .. 57.69 μs)
+std dev              440.9 ns   (379.4 ns .. 538.6 ns)
+
+benchmarking po2i-depth/normal/random-1500
+time                 203.6 μs   (202.1 μs .. 205.1 μs)
+                     1.000 R²   (1.000 R² .. 1.000 R²)
+mean                 203.0 μs   (202.3 μs .. 203.7 μs)
+std dev              2.311 μs   (1.764 μs .. 2.995 μs)
+
+benchmarking po2i-depth/fusion/random-100
+time                 1.277 μs   (1.266 μs .. 1.295 μs)
+                     0.999 R²   (0.998 R² .. 0.999 R²)
+mean                 1.272 μs   (1.260 μs .. 1.288 μs)
+std dev              42.67 ns   (31.35 ns .. 57.00 ns)
+variance introduced by outliers: 46% (moderately inflated)
+
+benchmarking po2i-depth/fusion/random-250
+time                 3.191 μs   (3.166 μs .. 3.225 μs)
+                     0.999 R²   (0.998 R² .. 1.000 R²)
+mean                 3.176 μs   (3.152 μs .. 3.204 μs)
+std dev              83.58 ns   (58.30 ns .. 120.8 ns)
+variance introduced by outliers: 32% (moderately inflated)
+
+benchmarking po2i-depth/fusion/random-500
+time                 6.437 μs   (6.402 μs .. 6.489 μs)
+                     0.998 R²   (0.996 R² .. 0.999 R²)
+mean                 6.641 μs   (6.501 μs .. 6.947 μs)
+std dev              636.6 ns   (270.5 ns .. 1.038 μs)
+variance introduced by outliers: 86% (severely inflated)
+
+benchmarking po2i-depth/fusion/random-1500
+time                 26.52 μs   (26.28 μs .. 26.73 μs)
+                     1.000 R²   (1.000 R² .. 1.000 R²)
+mean                 26.45 μs   (26.37 μs .. 26.56 μs)
+std dev              337.7 ns   (258.4 ns .. 451.7 ns)
+
+benchmarking po2i-depth/fusionOrig/random-100
+time                 1.328 μs   (1.321 μs .. 1.338 μs)
+                     0.999 R²   (0.999 R² .. 1.000 R²)
+mean                 1.333 μs   (1.324 μs .. 1.344 μs)
+std dev              36.64 ns   (27.50 ns .. 48.37 ns)
+variance introduced by outliers: 36% (moderately inflated)
+
+benchmarking po2i-depth/fusionOrig/random-250
+time                 3.303 μs   (3.295 μs .. 3.311 μs)
+                     1.000 R²   (0.999 R² .. 1.000 R²)
+mean                 3.310 μs   (3.272 μs .. 3.337 μs)
+std dev              109.0 ns   (79.41 ns .. 144.7 ns)
+variance introduced by outliers: 43% (moderately inflated)
+
+benchmarking po2i-depth/fusionOrig/random-500
+time                 6.654 μs   (6.621 μs .. 6.696 μs)
+                     0.999 R²   (0.999 R² .. 1.000 R²)
+mean                 6.650 μs   (6.604 μs .. 6.700 μs)
+std dev              169.3 ns   (129.0 ns .. 257.4 ns)
+variance introduced by outliers: 29% (moderately inflated)
+
+benchmarking po2i-depth/fusionOrig/random-1500
+time                 27.25 μs   (27.16 μs .. 27.37 μs)
+                     1.000 R²   (1.000 R² .. 1.000 R²)
+mean                 27.19 μs   (27.09 μs .. 27.31 μs)
+std dev              369.6 ns   (288.9 ns .. 474.2 ns)
+
+benchmarking po2i-flat/normal/random-100
+time                 11.05 μs   (11.01 μs .. 11.11 μs)
+                     1.000 R²   (1.000 R² .. 1.000 R²)
+mean                 11.06 μs   (11.02 μs .. 11.12 μs)
+std dev              174.7 ns   (144.1 ns .. 220.2 ns)
+variance introduced by outliers: 13% (moderately inflated)
+
+benchmarking po2i-flat/normal/random-250
+time                 28.35 μs   (28.31 μs .. 28.40 μs)
+                     1.000 R²   (1.000 R² .. 1.000 R²)
+mean                 28.33 μs   (28.27 μs .. 28.40 μs)
+std dev              213.5 ns   (172.9 ns .. 275.4 ns)
+
+benchmarking po2i-flat/normal/random-500
+time                 60.35 μs   (60.20 μs .. 60.52 μs)
+                     1.000 R²   (1.000 R² .. 1.000 R²)
+mean                 60.28 μs   (59.99 μs .. 60.56 μs)
+std dev              1.032 μs   (755.6 ns .. 1.538 μs)
+variance introduced by outliers: 12% (moderately inflated)
+
+benchmarking po2i-flat/normal/random-1500
+time                 205.5 μs   (205.0 μs .. 206.0 μs)
+                     1.000 R²   (1.000 R² .. 1.000 R²)
+mean                 205.6 μs   (204.9 μs .. 207.5 μs)
+std dev              3.458 μs   (1.382 μs .. 6.756 μs)
+variance introduced by outliers: 10% (moderately inflated)
+
+benchmarking po2i-flat/fusion/random-100
+time                 10.93 μs   (10.91 μs .. 10.95 μs)
+                     1.000 R²   (1.000 R² .. 1.000 R²)
+mean                 10.98 μs   (10.93 μs .. 11.05 μs)
+std dev              193.8 ns   (145.6 ns .. 257.3 ns)
+variance introduced by outliers: 16% (moderately inflated)
+
+benchmarking po2i-flat/fusion/random-250
+time                 28.08 μs   (28.03 μs .. 28.13 μs)
+                     1.000 R²   (0.999 R² .. 1.000 R²)
+mean                 28.37 μs   (28.15 μs .. 28.86 μs)
+std dev              1.027 μs   (653.4 ns .. 1.522 μs)
+variance introduced by outliers: 41% (moderately inflated)
+
+benchmarking po2i-flat/fusion/random-500
+time                 59.58 μs   (59.49 μs .. 59.67 μs)
+                     1.000 R²   (1.000 R² .. 1.000 R²)
+mean                 59.30 μs   (59.19 μs .. 59.42 μs)
+std dev              366.2 ns   (307.8 ns .. 472.5 ns)
+
+benchmarking po2i-flat/fusion/random-1500
+time                 194.3 μs   (193.7 μs .. 194.9 μs)
+                     1.000 R²   (1.000 R² .. 1.000 R²)
+mean                 194.0 μs   (193.7 μs .. 194.5 μs)
+std dev              1.367 μs   (1.068 μs .. 1.836 μs)
+
+benchmarking po2i-flat/fusionOrig/random-100
+time                 12.03 μs   (11.92 μs .. 12.10 μs)
+                     1.000 R²   (0.999 R² .. 1.000 R²)
+mean                 12.02 μs   (11.98 μs .. 12.04 μs)
+std dev              94.01 ns   (60.56 ns .. 155.8 ns)
+
+benchmarking po2i-flat/fusionOrig/random-250
+time                 31.87 μs   (31.34 μs .. 32.44 μs)
+                     0.999 R²   (0.998 R² .. 1.000 R²)
+mean                 31.37 μs   (31.26 μs .. 31.60 μs)
+std dev              575.0 ns   (250.6 ns .. 952.0 ns)
+variance introduced by outliers: 15% (moderately inflated)
+
+benchmarking po2i-flat/fusionOrig/random-500
+time                 66.54 μs   (66.38 μs .. 66.71 μs)
+                     1.000 R²   (0.999 R² .. 1.000 R²)
+mean                 66.78 μs   (66.48 μs .. 67.26 μs)
+std dev              1.235 μs   (876.7 ns .. 1.820 μs)
+variance introduced by outliers: 14% (moderately inflated)
+
+benchmarking po2i-flat/fusionOrig/random-1500
+time                 221.6 μs   (220.7 μs .. 222.4 μs)
+                     0.999 R²   (0.999 R² .. 1.000 R²)
+mean                 222.8 μs   (221.7 μs .. 224.2 μs)
+std dev              4.277 μs   (3.264 μs .. 5.492 μs)
+variance introduced by outliers: 12% (moderately inflated)
+
+benchmarking pr2i-i2pr/normal/random-100
+time                 55.88 μs   (55.70 μs .. 56.04 μs)
+                     1.000 R²   (1.000 R² .. 1.000 R²)
+mean                 55.53 μs   (55.40 μs .. 55.64 μs)
+std dev              394.7 ns   (321.4 ns .. 483.5 ns)
+
+benchmarking pr2i-i2pr/normal/random-250
+time                 156.1 μs   (155.5 μs .. 156.7 μs)
+                     1.000 R²   (1.000 R² .. 1.000 R²)
+mean                 155.4 μs   (155.1 μs .. 155.8 μs)
+std dev              1.178 μs   (980.5 ns .. 1.433 μs)
+
+benchmarking pr2i-i2pr/normal/random-500
+time                 367.6 μs   (348.7 μs .. 384.5 μs)
+                     0.991 R²   (0.986 R² .. 0.999 R²)
+mean                 346.8 μs   (342.6 μs .. 353.7 μs)
+std dev              18.31 μs   (7.196 μs .. 28.14 μs)
+variance introduced by outliers: 49% (moderately inflated)
+
+benchmarking pr2i-i2pr/normal/random-1500
+time                 1.221 ms   (1.198 ms .. 1.254 ms)
+                     0.990 R²   (0.979 R² .. 0.999 R²)
+mean                 1.228 ms   (1.206 ms .. 1.274 ms)
+std dev              96.73 μs   (33.13 μs .. 160.8 μs)
+variance introduced by outliers: 61% (severely inflated)
+
+benchmarking pr2i-i2pr/fusion/random-100
+time                 92.81 μs   (90.66 μs .. 96.48 μs)
+                     0.992 R²   (0.978 R² .. 1.000 R²)
+mean                 91.45 μs   (90.49 μs .. 94.34 μs)
+std dev              5.533 μs   (1.598 μs .. 10.31 μs)
+variance introduced by outliers: 62% (severely inflated)
+
+benchmarking pr2i-i2pr/fusion/random-250
+time                 293.9 μs   (265.9 μs .. 329.6 μs)
+                     0.949 R²   (0.925 R² .. 0.999 R²)
+mean                 272.0 μs   (264.4 μs .. 287.6 μs)
+std dev              37.12 μs   (18.32 μs .. 60.36 μs)
+variance introduced by outliers: 88% (severely inflated)
+
+benchmarking pr2i-i2pr/fusion/random-500
+time                 617.4 μs   (615.7 μs .. 619.6 μs)
+                     1.000 R²   (1.000 R² .. 1.000 R²)
+mean                 614.1 μs   (612.5 μs .. 616.3 μs)
+std dev              6.636 μs   (5.398 μs .. 8.312 μs)
+
+benchmarking pr2i-i2pr/fusion/random-1500
+time                 2.352 ms   (2.267 ms .. 2.437 ms)
+                     0.992 R²   (0.989 R² .. 0.995 R²)
+mean                 2.332 ms   (2.300 ms .. 2.380 ms)
+std dev              143.9 μs   (115.3 μs .. 218.0 μs)
+variance introduced by outliers: 43% (moderately inflated)
+
+benchmarking pr2i-i2pr/fusionOrig/random-100
+time                 90.10 μs   (89.89 μs .. 90.29 μs)
+                     1.000 R²   (1.000 R² .. 1.000 R²)
+mean                 89.74 μs   (89.53 μs .. 90.07 μs)
+std dev              860.9 ns   (608.2 ns .. 1.296 μs)
+
+benchmarking pr2i-i2pr/fusionOrig/random-250
+time                 260.4 μs   (259.0 μs .. 262.3 μs)
+                     1.000 R²   (0.999 R² .. 1.000 R²)
+mean                 259.4 μs   (258.8 μs .. 260.4 μs)
+std dev              2.634 μs   (1.834 μs .. 4.000 μs)
+
+benchmarking pr2i-i2pr/fusionOrig/random-500
+time                 619.6 μs   (616.0 μs .. 625.6 μs)
+                     1.000 R²   (0.999 R² .. 1.000 R²)
+mean                 616.9 μs   (615.2 μs .. 619.4 μs)
+std dev              7.338 μs   (5.211 μs .. 11.77 μs)
+
+benchmarking pr2i-i2pr/fusionOrig/random-1500
+time                 2.214 ms   (2.202 ms .. 2.225 ms)
+                     1.000 R²   (1.000 R² .. 1.000 R²)
+mean                 2.208 ms   (2.201 ms .. 2.220 ms)
+std dev              29.83 μs   (24.02 μs .. 39.66 μs)
+
+benchmarking po2i-i2pr/normal/random-100
+time                 38.99 μs   (38.78 μs .. 39.23 μs)
+                     1.000 R²   (1.000 R² .. 1.000 R²)
+mean                 38.71 μs   (38.57 μs .. 38.89 μs)
+std dev              493.6 ns   (404.0 ns .. 602.6 ns)
+
+benchmarking po2i-i2pr/normal/random-250
+time                 102.3 μs   (102.1 μs .. 102.6 μs)
+                     1.000 R²   (1.000 R² .. 1.000 R²)
+mean                 102.1 μs   (101.9 μs .. 102.5 μs)
+std dev              900.7 ns   (673.8 ns .. 1.323 μs)
+
+benchmarking po2i-i2pr/normal/random-500
+time                 211.4 μs   (210.9 μs .. 211.9 μs)
+                     1.000 R²   (1.000 R² .. 1.000 R²)
+mean                 210.8 μs   (210.4 μs .. 211.4 μs)
+std dev              1.494 μs   (1.149 μs .. 2.207 μs)
+
+benchmarking po2i-i2pr/normal/random-1500
+time                 696.9 μs   (692.7 μs .. 702.9 μs)
+                     0.999 R²   (0.998 R² .. 1.000 R²)
+mean                 701.8 μs   (698.0 μs .. 708.2 μs)
+std dev              16.16 μs   (9.531 μs .. 26.84 μs)
+variance introduced by outliers: 14% (moderately inflated)
+
+benchmarking po2i-i2pr/fusion/random-100
+time                 55.13 μs   (54.66 μs .. 55.66 μs)
+                     0.999 R²   (0.999 R² .. 1.000 R²)
+mean                 54.78 μs   (54.53 μs .. 55.24 μs)
+std dev              1.114 μs   (868.2 ns .. 1.525 μs)
+variance introduced by outliers: 16% (moderately inflated)
+
+benchmarking po2i-i2pr/fusion/random-250
+time                 140.5 μs   (140.2 μs .. 140.9 μs)
+                     1.000 R²   (1.000 R² .. 1.000 R²)
+mean                 141.1 μs   (140.5 μs .. 142.2 μs)
+std dev              2.710 μs   (1.833 μs .. 4.248 μs)
+variance introduced by outliers: 13% (moderately inflated)
+
+benchmarking po2i-i2pr/fusion/random-500
+time                 317.3 μs   (316.6 μs .. 318.2 μs)
+                     1.000 R²   (1.000 R² .. 1.000 R²)
+mean                 316.3 μs   (315.6 μs .. 317.0 μs)
+std dev              2.451 μs   (2.084 μs .. 2.914 μs)
+
+benchmarking po2i-i2pr/fusion/random-1500
+time                 1.032 ms   (1.027 ms .. 1.037 ms)
+                     1.000 R²   (0.999 R² .. 1.000 R²)
+mean                 1.040 ms   (1.035 ms .. 1.051 ms)
+std dev              24.07 μs   (13.34 μs .. 44.44 μs)
+variance introduced by outliers: 12% (moderately inflated)
+
+benchmarking po2i-i2pr/fusionOrig/random-100
+time                 96.17 μs   (95.68 μs .. 96.80 μs)
+                     0.999 R²   (0.999 R² .. 1.000 R²)
+mean                 95.90 μs   (95.31 μs .. 96.57 μs)
+std dev              2.033 μs   (1.434 μs .. 3.127 μs)
+variance introduced by outliers: 16% (moderately inflated)
+
+benchmarking po2i-i2pr/fusionOrig/random-250
+time                 267.2 μs   (266.0 μs .. 269.2 μs)
+                     0.998 R²   (0.995 R² .. 0.999 R²)
+mean                 270.7 μs   (266.9 μs .. 277.7 μs)
+std dev              16.78 μs   (8.911 μs .. 30.30 μs)
+variance introduced by outliers: 58% (severely inflated)
+
+benchmarking po2i-i2pr/fusionOrig/random-500
+time                 623.0 μs   (620.8 μs .. 625.9 μs)
+                     1.000 R²   (0.999 R² .. 1.000 R²)
+mean                 619.3 μs   (616.8 μs .. 624.3 μs)
+std dev              10.60 μs   (6.849 μs .. 17.22 μs)
+
+benchmarking po2i-i2pr/fusionOrig/random-1500
+time                 2.610 ms   (2.595 ms .. 2.623 ms)
+                     1.000 R²   (0.999 R² .. 1.000 R²)
+mean                 2.610 ms   (2.603 ms .. 2.620 ms)
+std dev              30.44 μs   (21.59 μs .. 47.48 μs)
+
+Benchmark fusion-speed-bench: FINISH
+Completed 2 action(s).

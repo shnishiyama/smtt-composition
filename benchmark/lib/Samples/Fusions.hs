@@ -270,17 +270,15 @@ po2iI2pr = stackHead . initial
 
     i__f0______f0_______1 (PMult u0) y2 = i__f0______f0_______1 u0 (stackCons (multi (stackHead (stackTail y2))) (stackTail (stackTail y2)))
 
-    i__f0______f0_______1 (POne u0) y2 = i_1_u0
+    i__f0______f0_______1 (POne u0) y2 = i__f0______f0_______1 u0 u0_y2
       where
-        i_0_u0 = i__f0__0__f0_0____0 u0 (stackCons (one (stackHead i_0_u0)) y2)
-        i_1_u0 = i__f0______f0_______1 u0 (stackCons (one (stackHead i_0_u0)) y2)
+        u0_y2 = stackCons (one (stackHead (i__f0__0__f0_0____0 u0 u0_y2))) y2
 
     i__f0______f0_______1 (PPlus u0) y2 = i__f0______f0_______1 u0 (stackCons (plus (stackHead (stackTail y2))) (stackTail (stackTail y2)))
 
-    i__f0______f0_______1 (PTwo u0) y2 = i_1_u0
+    i__f0______f0_______1 (PTwo u0) y2 = i__f0______f0_______1 u0 u0_y2
       where
-        i_0_u0 = i__f0__0__f0_0____0 u0 (stackCons (two (stackHead i_0_u0)) y2)
-        i_1_u0 = i__f0______f0_______1 u0 (stackCons (two (stackHead i_0_u0)) y2)
+        u0_y2 = stackCons (two (stackHead (i__f0__0__f0_0____0 u0 u0_y2))) y2
 
     end   = PEnd
     one   = POne
