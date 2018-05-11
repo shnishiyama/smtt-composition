@@ -1,6 +1,6 @@
 module Main where
 
-import           SattPrelude
+import           SmttPrelude
 
 import           Build_doctests (flags, module_sources, pkgs)
 import           Test.DocTest

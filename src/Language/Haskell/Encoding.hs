@@ -1,6 +1,6 @@
 module Language.Haskell.Encoding where
 
-import           SattPrelude
+import           SmttPrelude
 
 import qualified Data.Char   as Char
 

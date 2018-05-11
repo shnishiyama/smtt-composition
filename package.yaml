@@ -7,15 +7,15 @@ author:      Nishiyama Shun
 maintainer:  nishiyama@ipl.cs.uec.ac.jp
 copyright:   2018 Nishiyama Shun
 license:     MIT
-homepage:    https://github.com/shnishiyama/satt-composition
-git:         https://github.com/shnishiyama/satt-composition
+homepage:    https://github.com/shnishiyama/smtt-composition
+git:         https://github.com/shnishiyama/smtt-composition
 
 extra-source-files:
 - README.md
 
 _base-depends: &base-depends
   base: '>=4.7 && <5'
-  satt-prelude:
+  smtt-prelude:
 
 build-type: Custom
 custom-setup:
@@ -122,7 +122,8 @@ library:
     - Language.Haskell.Encoding
     - Language.Haskell.Tree.Trans.MAC
     - Language.Haskell.Tree.Trans.SMAC
-  other-modules: []
+  other-modules:
+    - Paths_smtt_composition
   ghc-options:
   - -dcore-lint
   dependencies:
@@ -136,7 +137,7 @@ library:
     text:
 
 executables:
-  satt-composit:
+  smtt-composit:
     main: Main.hs
     source-dirs: app
     ghc-options:

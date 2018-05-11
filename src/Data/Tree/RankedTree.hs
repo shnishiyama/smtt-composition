@@ -21,7 +21,7 @@ module Data.Tree.RankedTree
   , bottomLabel
   ) where
 
-import           SattPrelude
+import           SmttPrelude
 
 type RankNumber = Int
 type NodeVec    = Vector

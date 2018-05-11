@@ -2,7 +2,7 @@
 
 module Language.Haskell.Tree.Trans.SMAC where
 
-import           SattPrelude
+import           SmttPrelude
 
 import qualified Data.HashMap.Strict        as HashMap
 import qualified Data.Text                  as T

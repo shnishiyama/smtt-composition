@@ -33,7 +33,7 @@ module Data.Tree.RankedTree.Label
   , untaggedRankedAlphabet
   ) where
 
-import           SattPrelude
+import           SmttPrelude
 
 import qualified Data.Promotion.Prelude      as Typ
 import qualified Data.Promotion.Prelude.List as Typ

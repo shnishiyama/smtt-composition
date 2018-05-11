@@ -2,7 +2,7 @@
 
 module Data.Tree.Trans.Compose.ExtendDesc where
 
-import           SattPrelude
+import           SmttPrelude
 
 import qualified Data.HashMap.Strict         as HashMap
 import           Data.Tree.RankedTree

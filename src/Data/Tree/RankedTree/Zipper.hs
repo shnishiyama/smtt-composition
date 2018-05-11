@@ -20,7 +20,7 @@ module Data.Tree.RankedTree.Zipper
   , _rtPathList
   ) where
 
-import           SattPrelude
+import           SmttPrelude
 
 import           Control.Arrow
 import           Data.Tree.RankedTree

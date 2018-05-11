@@ -2,7 +2,7 @@
 
 module Data.Tree.Trans.MAC.Instances where
 
-import           SattPrelude
+import           SmttPrelude
 
 import           Data.Tree.RankedTree.Instances
 import           Data.Tree.RankedTree.Label

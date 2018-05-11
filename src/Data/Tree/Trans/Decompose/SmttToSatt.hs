@@ -3,7 +3,7 @@
 
 module Data.Tree.Trans.Decompose.SmttToSatt where
 
-import           SattPrelude
+import           SmttPrelude
 
 import           Control.Monad.State
 import qualified Data.HashMap.Strict   as HashMap

@@ -1,6 +1,6 @@
 module Fusion where
 
-import           SattPrelude
+import           SmttPrelude
 
 import           Control.Bench
 import           Control.Monad.State

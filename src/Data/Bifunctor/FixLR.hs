@@ -1,6 +1,6 @@
 module Data.Bifunctor.FixLR where
 
-import           SattPrelude
+import           SmttPrelude
 
 import qualified Text.Show   as S
 

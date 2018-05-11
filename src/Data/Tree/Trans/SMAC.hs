@@ -51,7 +51,7 @@ module Data.Tree.Trans.SMAC
   , smttTranslateRule
   ) where
 
-import           SattPrelude
+import           SmttPrelude
 
 import           Data.Bifunctor.FixLR
 import           Data.Tree.RankedTree

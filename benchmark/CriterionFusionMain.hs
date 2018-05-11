@@ -1,6 +1,6 @@
 module Main where
 
-import           SattPrelude
+import           SmttPrelude
 
 import           Criterion.Main
 import           Fusion         (benchSpec)

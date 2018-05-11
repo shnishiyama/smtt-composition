@@ -1,4 +1,4 @@
-TARGET_PACKAGE ?= satt-composition
+TARGET_PACKAGE ?= smtt-composition
 
 all: build
 

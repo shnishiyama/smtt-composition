@@ -57,7 +57,7 @@ module Data.Tree.Trans.ATT
   , pattern RedFix
   ) where
 
-import           SattPrelude
+import           SmttPrelude
 
 import           Data.Tree.RankedTree
 import           Data.Tree.RankedTree.Zipper

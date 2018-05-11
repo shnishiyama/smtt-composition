@@ -3,7 +3,7 @@
 
 module Data.Tree.Trans.Decompose.MttToAtt where
 
-import           SattPrelude
+import           SmttPrelude
 
 import           Control.Monad.State
 import qualified Data.HashSet         as HashSet

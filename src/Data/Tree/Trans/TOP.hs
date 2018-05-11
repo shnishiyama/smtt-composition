@@ -37,7 +37,7 @@ module Data.Tree.Trans.TOP
   , tdttTransRules
   ) where
 
-import           SattPrelude
+import           SmttPrelude
 
 import           Data.Tree.RankedTree
 import           Data.Tree.RankedTree.Label

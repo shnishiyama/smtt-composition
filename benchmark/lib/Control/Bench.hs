@@ -1,6 +1,6 @@
 module Control.Bench where
 
-import           SattPrelude
+import           SmttPrelude
 
 import           Criterion
 import           Weigh

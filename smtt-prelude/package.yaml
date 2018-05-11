@@ -1,14 +1,14 @@
-name:        satt-prelude
+name:        smtt-prelude
 version:     '0.1.0.0'
 synopsis:    Prelude
-description: Prelude for satt-composition
+description: Prelude for smtt-composition
 category:    Prelude
-author:      Mizunashi Mana
-maintainer:  mizunashi-mana@noreply.git
-copyright:   2017 Mizunashi Mana
+author:      Nishiyama Shun
+maintainer:  nishiyama@ipl.cs.uec.ac.jp
+copyright:   2017 Nishiyama Shun
 license:     MIT
-homepage:    https://gitlab.com/mizunashi-mana/satt-composition#readme
-git:         https://gitlab.com/mizunashi-mana/satt-composition
+homepage:    https://github.com/shnishiyama/smtt-composition#readme
+git:         https://github.com/shnishiyama/smtt-composition
 
 _base-dependencies: &base-dependencies
   base: '>=4.7 && <5'
@@ -90,8 +90,9 @@ default-extensions:
 library:
   source-dirs: src
   exposed-modules:
-  - SattPrelude
+  - SmttPrelude
   other-modules:
+  - Paths_smtt_prelude
   - OrphanInstances
   dependencies:
     <<: *base-dependencies
@@ -106,13 +107,14 @@ library:
     recursion-schemes:
     microlens:
     constraints:
+    safe-exceptions:
 
 tests:
   lint:
     main: Lint.hs
     source-dirs: test
     other-modules: []
-    ghc-options:
+    ghc-options: []
     dependencies:
       <<: *base-dependencies
       hlint:
@@ -125,7 +127,7 @@ tests:
     - -with-rtsopts=-N
     dependencies:
       <<: *base-dependencies
-      satt-prelude:
+      smtt-prelude:
       hspec:
       QuickCheck:
 

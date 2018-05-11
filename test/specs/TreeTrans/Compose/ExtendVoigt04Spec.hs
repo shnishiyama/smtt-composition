@@ -2,7 +2,7 @@
 
 module TreeTrans.Compose.ExtendVoigt04Spec where
 
-import           SattPrelude
+import           SmttPrelude
 import           Test.Hspec
 
 import           Data.Tree.RankedTree

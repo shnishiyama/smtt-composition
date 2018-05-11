@@ -1,6 +1,6 @@
 module Data.Tree.Trans.Compose.ExtendVoigt2004 where
 
-import           SattPrelude
+import           SmttPrelude
 
 import           Data.Tree.RankedTree
 import qualified Data.Tree.Trans.ATT                  as ATT

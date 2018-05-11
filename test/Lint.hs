@@ -1,6 +1,6 @@
 module Main where
 
-import           SattPrelude
+import           SmttPrelude
 
 import           Language.Haskell.HLint
 import           System.Environment     as Env

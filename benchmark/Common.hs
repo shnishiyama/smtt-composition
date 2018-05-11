@@ -2,7 +2,7 @@
 
 module Main where
 
-import           SattPrelude
+import           SmttPrelude
 import           Test.Hspec
 
 import           Fusion

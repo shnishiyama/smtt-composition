@@ -73,7 +73,7 @@ module Data.Tree.Trans.SATT
   , zoomInIdxPathInfo
   ) where
 
-import           SattPrelude
+import           SmttPrelude
 
 import           Control.Monad.State         (execState, modify')
 import           Data.Bifunctor.FixLR

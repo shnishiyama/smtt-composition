@@ -51,7 +51,7 @@ module Data.Tree.Trans.Stack
   , BiFixStack
   ) where
 
-import           SattPrelude
+import           SmttPrelude
 
 import           Data.Bifunctor.FixLR
 

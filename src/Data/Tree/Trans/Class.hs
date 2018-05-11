@@ -3,7 +3,7 @@ module Data.Tree.Trans.Class
   , RankedTree (..)
   ) where
 
-import           SattPrelude
+import           SmttPrelude
 
 import           Data.Tree.RankedTree
 

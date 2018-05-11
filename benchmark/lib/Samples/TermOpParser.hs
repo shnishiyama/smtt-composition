@@ -1,6 +1,6 @@
 module Samples.TermOpParser where
 
-import           SattPrelude
+import           SmttPrelude
 
 import           Data.Stack
 

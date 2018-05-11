@@ -4,7 +4,7 @@
 
 module Data.Tree.Trans.Compose.TdttAndSmtt where
 
-import           SattPrelude
+import           SmttPrelude
 
 import           Data.Bifunctor.FixLR
 import           Data.Tree.RankedTree

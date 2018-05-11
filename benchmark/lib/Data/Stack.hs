@@ -2,7 +2,7 @@
 
 module Data.Stack where
 
-import           SattPrelude
+import           SmttPrelude
 
 newtype Stack a = Stack [a]
   deriving (Eq, Ord, Show, Generic)

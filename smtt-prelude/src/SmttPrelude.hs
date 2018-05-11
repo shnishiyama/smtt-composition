@@ -1,12 +1,12 @@
-{-# LANGUAGE ImplicitParams       #-}
 {-# LANGUAGE UndecidableInstances #-}
 
-module SattPrelude
+module SmttPrelude
   ( -- common
     module ClassyPrelude
 
     -- useful modules
   , module Control.Arrow
+  , module Control.Exception.Safe
   , module Data.Bifoldable
   , module Data.Bitraversable
   , module Data.Either
@@ -57,6 +57,7 @@ module SattPrelude
 
 import           ClassyPrelude
 
+import           Control.Exception.Safe   (MonadThrow(..), throwM)
 import           Control.Arrow            (Kleisli (..), returnA, (<<<), (>>>))
 import           Data.Bifoldable
 import           Data.Bitraversable
@@ -84,13 +85,13 @@ import           Data.Ord.Deriving
 import           Text.Show.Deriving
 
 import           GHC.Exception            (errorCallWithCallStackException)
-import           GHC.Stack                (HasCallStack)
+import           GHC.Stack                (HasCallStack, callStack)
 
 import           OrphanInstances          ()
 
 
 throwErrorM :: (HasCallStack, MonadThrow m) => String -> m a
-throwErrorM s = throwM $ errorCallWithCallStackException s ?callStack
+throwErrorM s = throwM $ errorCallWithCallStackException s callStack
 
 bivoid :: Bifunctor f => f a b -> f () ()
 bivoid = bimap (const ()) (const ())
