@@ -1,4 +1,4 @@
-# The Composition of Stack-Attributed Tree Transducers
+# The Composition of A Stack Macro Tree Transducer And A Macro Tree Transducer
 
 ## Installation
 
