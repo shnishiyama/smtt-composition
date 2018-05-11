@@ -21,11 +21,9 @@ stack bench
 
 ## TODOs
 
-* rewrite to be able to apply other constructors to ATT
 * add more examples
 * add more tests
 * add benchmarks
-* remove all `TypeInType` language pragmas
 
 ## Links
 
