@@ -1,4 +1,4 @@
-image: fpco/stack-build:lts-10.3
+image: fpco/stack-build:lts-11.8
 
 cache:
   key: "$CI_BUILD_NAME"
