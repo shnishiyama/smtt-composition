@@ -344,17 +344,13 @@ fromReductionState x = case x of
     StackedExpr x' -> StackedExpr <$> fromReductionStateStk x'
   where
     fromReductionStateVal (FixVal x') = case x' of
-      PsSmttLabelSideF l cs -> do
-        cs' <- traverse fromReductionStateVal cs
-        pure $ SMAC.SmttLabelSide l cs'
+      PsSmttLabelSideF l cs -> SMAC.SmttLabelSide l <$> traverse fromReductionStateVal cs
       PsSmttStackBottomF    -> pure SMAC.SmttStackBottom
       PsSmttStackHeadF s    -> SMAC.SmttStackHead <$> fromReductionStateStk s
 
     fromReductionStateStk (FixStk x') = case x' of
       PsSmttContextF c        -> pure $ SMAC.SmttContext c
-      PsSmttStateSideF g u cs -> do
-        cs' <- traverse fromReductionStateStk cs
-        pure $ SMAC.SmttState g u cs'
+      PsSmttStateSideF g u cs -> SMAC.SmttState g u <$> traverse fromReductionStateStk cs
       PsSmttStackEmptyF       -> pure SMAC.SmttStackEmpty
       PsSmttStackTailF s      -> SMAC.SmttStackTail <$> fromReductionStateStk s
       PsSmttStackConsF v s    -> SMAC.SmttStackCons

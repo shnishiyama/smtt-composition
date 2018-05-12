@@ -1,4 +1,4 @@
-# The Composition of Stack-Attributed Tree Transducers
+# The Composition of A Stack Macro Tree Transducer And A Macro Tree Transducer
 
 ## Installation
 
@@ -21,11 +21,9 @@ stack bench
 
 ## TODOs
 
-* rewrite to be able to apply other constructors to ATT
 * add more examples
 * add more tests
 * add benchmarks
-* remove all `TypeInType` language pragmas
 
 ## Links
 
