@@ -57,7 +57,7 @@ module SmttPrelude
 
 import           ClassyPrelude
 
-import           Control.Exception.Safe   (MonadThrow(..), throwM)
+import           Control.Exception.Safe   (MonadThrow, throwM)
 import           Control.Arrow            (Kleisli (..), returnA, (<<<), (>>>))
 import           Data.Bifoldable
 import           Data.Bitraversable
